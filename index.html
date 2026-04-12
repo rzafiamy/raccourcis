@@ -53,6 +53,14 @@
       <i data-lucide="mail"></i><span>Communication</span>
     </a>
 
+    <div class="sidebar-section-label">Management</div>
+    <a href="#" class="nav-item" id="navDashboard" data-view="dashboard">
+      <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+    </a>
+    <a href="#" class="nav-item" id="navCron" data-view="cron">
+      <i data-lucide="calendar-clock"></i><span>Cron Tasks</span>
+    </a>
+
     <div class="sidebar-spacer"></div>
 
     <div class="sidebar-section-label">System</div>
@@ -84,6 +92,102 @@
 
     </header>
     <div class="shortcut-grid" id="shortcutGrid"></div>
+
+    <!-- Dashboard View -->
+    <div id="dashboardView" class="view-content" style="display: none;">
+      <div class="dashboard-grid">
+        <!-- Stats cards -->
+        <div class="dash-card stat-card" id="dashShortcutsToday">
+          <div class="dash-card-icon bg-blue-soft"><i data-lucide="zap"></i></div>
+          <div class="dash-card-info">
+            <span class="dash-card-label">Total Shortcuts</span>
+            <span class="dash-card-value" id="statTotalShortcuts">0</span>
+          </div>
+        </div>
+        <div class="dash-card stat-card">
+          <div class="dash-card-icon bg-purple-soft"><i data-lucide="clock"></i></div>
+          <div class="dash-card-info">
+            <span class="dash-card-label" id="currentDate">--</span>
+            <span class="dash-card-value" id="currentTime">--</span>
+          </div>
+        </div>
+        <!-- Host Stats -->
+        <div class="dash-card host-card">
+          <div class="dash-card-header">
+            <h3>Host Stats</h3>
+            <i data-lucide="cpu"></i>
+          </div>
+          <div class="host-stats-list">
+            <div class="host-stat-item">
+              <div class="host-stat-header">
+                <span>CPU Load</span>
+                <span id="hostCpuLoad">0%</span>
+              </div>
+              <div class="host-stat-bar"><div id="hostCpuBar" style="width: 0%"></div></div>
+            </div>
+            <div class="host-stat-item">
+              <div class="host-stat-header">
+                <span>RAM Usage</span>
+                <span id="hostRamUsage">0 GB / 0 GB</span>
+              </div>
+              <div class="host-stat-bar"><div id="hostRamBar" style="width: 0%"></div></div>
+            </div>
+            <div class="host-stat-item">
+              <div class="host-stat-header">
+                <span>Disk Usage</span>
+                <span id="hostDiskUsage">0 GB / 0 GB</span>
+              </div>
+              <div class="host-stat-bar"><div id="hostDiskBar" style="width: 0%"></div></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Usage Chart placeholder -->
+        <div class="dash-card usage-card">
+          <div class="dash-card-header">
+            <h3>Usage (Last 7 Days)</h3>
+            <i data-lucide="bar-chart-3"></i>
+          </div>
+          <div class="usage-chart" id="usageChart">
+            <!-- Bars will be injected here -->
+          </div>
+        </div>
+
+        <!-- Top Shortcuts -->
+        <div class="dash-card top-shortcuts">
+          <div class="dash-card-header">
+            <h3>Top 5 Shortcuts</h3>
+            <i data-lucide="trending-up"></i>
+          </div>
+          <ul class="top-list" id="topShortcutsList">
+            <!-- Items will be injected here -->
+          </ul>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="dash-card category-card">
+          <div class="dash-card-header">
+            <h3>Categories</h3>
+            <i data-lucide="pie-chart"></i>
+          </div>
+          <div class="category-list" id="categoryBreakdownList">
+            <!-- Items will be injected here -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Cron View -->
+    <div id="cronView" class="view-content" style="display: none;">
+      <div class="cron-header">
+        <p class="cron-desc">Schedule workflows to run automatically using cron expressions.</p>
+        <button class="btn btn-primary" id="addCronBtn"><i data-lucide="plus"></i> Add Schedule</button>
+      </div>
+      <div class="cron-list" id="cronListContainer">
+        <!-- Cron items will be injected here -->
+      </div>
+    </div>
   </main>
 
   <!-- ── Editor panel (full-screen overlay inside #app) ── -->
@@ -495,6 +599,47 @@
         </div>
       </div>
       <button class="btn btn-primary about-close-btn" id="closeAbout">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     Cron Editor Modal
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="cronModal">
+  <div class="modal-content cron-editor-modal">
+    <div class="modal-header">
+      <h2 id="cronModalTitle">Add Schedule</h2>
+      <button class="action-btn" id="closeCronModal" title="Close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Select Shortcut</label>
+        <select class="input-field select-field" id="cronShortcutSelect">
+          <!-- Options will be injected here -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cron Expression (e.g. <code>0 9 * * *</code> for 9am daily)</label>
+        <input class="input-field" id="cronExpression" type="text" placeholder="* * * * *">
+        <p class="settings-hint">Format: minute hour day-of-month month day-of-week</p>
+      </div>
+      <div class="form-group">
+        <label>Label / Name</label>
+        <input class="input-field" id="cronLabel" type="text" placeholder="Daily Report…">
+      </div>
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="cronEnabled" checked>
+          <span>Enabled</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="cancelCronBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveCronBtn">Save Schedule</button>
     </div>
   </div>
 </div>

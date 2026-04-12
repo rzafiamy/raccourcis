@@ -28,7 +28,9 @@
   "dependencies": {
     "fast-xml-parser": "^5.5.11",
     "js-yaml": "^4.1.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
-    "openai": "^6.34.0"
+    "openai": "^6.34.0",
+    "systeminformation": "^5.31.5"
   }
 }

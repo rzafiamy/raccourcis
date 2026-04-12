@@ -8,6 +8,8 @@ import os from 'node:os'
 import yaml from 'js-yaml'
 import { XMLParser } from 'fast-xml-parser'
 import nodemailer from 'nodemailer'
+import cron from 'node-cron'
+import si from 'systeminformation'
 
 const xmlParser = new XMLParser()
 
@@ -372,5 +374,121 @@ ipcMain.handle('shell-exec', async (_, command) => {
       exitCode: err.code ?? 1,
     }
   }
+})
+
+
+// ── Cron & Host Stats ─────────────────────────────────────────────────────────
+
+const CRONS_FILE = path.join(DATA_DIR, 'crons.json')
+let scheduledJobs = new Map() // cronId -> job
+
+function loadCrons() {
+  if (!fs.existsSync(CRONS_FILE)) return []
+  try {
+    const data = fs.readFileSync(CRONS_FILE, 'utf8')
+    return JSON.parse(data)
+  } catch (err) {
+    console.error('[main] loadCrons error:', err.message)
+    return []
+  }
+}
+
+function saveCrons(crons) {
+  ensureDataDir()
+  fs.writeFileSync(CRONS_FILE, JSON.stringify(crons, null, 2))
+}
+
+function setupCrons() {
+  const crons = loadCrons()
+  
+  // Clear existing jobs
+  for (const job of scheduledJobs.values()) {
+    job.stop()
+  }
+  scheduledJobs.clear()
+
+  crons.filter(c => c.enabled).forEach(c => {
+    try {
+      if (!cron.validate(c.expression)) {
+        console.warn(`[Cron] Invalid expression for ${c.id}: ${c.expression}`)
+        return
+      }
+      const job = cron.schedule(c.expression, () => {
+        console.log(`[Cron] Triggering shortcut ${c.shortcutId} (${c.shortcutName})`)
+        win?.webContents.send('run-shortcut-by-id', c.shortcutId)
+      })
+      scheduledJobs.set(c.id, job)
+    } catch (err) {
+      console.error(`[Cron] Failed to schedule ${c.id}:`, err.message)
+    }
+  })
+}
+
+// Host Stats
+ipcMain.handle('get-host-stats', async () => {
+  try {
+    const cpu = await si.cpu()
+    const mem = await si.mem()
+    const fsSize = await si.fsSize()
+    const load = await si.currentLoad()
+    
+    // Pick the main disk (usually /)
+    const disk = fsSize.find(d => d.mount === '/') || fsSize[0]
+
+    return {
+      cpu: {
+        model: cpu.brand,
+        load: Math.round(load.currentLoad)
+      },
+      memory: {
+        total: mem.total,
+        used: mem.used,
+        percent: Math.round((mem.used / mem.total) * 100)
+      },
+      disk: {
+        total: disk.size,
+        used: disk.used,
+        percent: Math.round(disk.use),
+        mount: disk.mount
+      },
+      uptime: os.uptime(),
+      timestamp: new Date().toISOString()
+    }
+  } catch (err) {
+    console.error('[main] get-host-stats error:', err.message)
+    return null
+  }
+})
+
+// Cron Handlers
+ipcMain.handle('cron-list', async () => loadCrons())
+
+ipcMain.handle('cron-save', async (_, cronData) => {
+  const crons = loadCrons()
+  const idx = crons.findIndex(c => c.id === cronData.id)
+  
+  let finalCron = { ...cronData }
+  if (idx !== -1) {
+    crons[idx] = finalCron
+  } else {
+    finalCron.id = Date.now().toString()
+    crons.push(finalCron)
+  }
+  
+  saveCrons(crons)
+  setupCrons()
+  return { ok: true }
+})
+
+ipcMain.handle('cron-delete', async (_, id) => {
+  const crons = loadCrons().filter(c => c.id !== id)
+  saveCrons(crons)
+  setupCrons()
+  return { ok: true }
+})
+
+// Initialize Crons on start
+app.on('ready', () => {
+  setupCrons()
 })
 

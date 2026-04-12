@@ -18,10 +18,14 @@ import {
   refreshIcons,
 } from './ui.js'
 
+import { refreshDashboard } from './dashboard.js'
+import { refreshCronList, openCronEditor, saveCron } from './cron.js'
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let shortcuts = []
 let currentCategory = 'all'
+let currentView = 'grid' // 'grid', 'dashboard', 'cron'
 
 let editingShortcut = null   // deep-copy of shortcut being edited
 
@@ -102,6 +106,7 @@ document.getElementById('winMaximize').addEventListener('click', () => window.ip
 document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
   item.addEventListener('click', async (e) => {
     e.preventDefault()
+    switchToView('grid')
     document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
     item.classList.add('active')
     currentCategory = item.dataset.category
@@ -114,6 +119,42 @@ document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
     renderGrid()
   })
 })
+
+document.getElementById('navDashboard').addEventListener('click', (e) => {
+  e.preventDefault()
+  switchToView('dashboard')
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
+  document.getElementById('navDashboard').classList.add('active')
+  mainTitle.textContent = 'Dashboard'
+  doDashboardRefresh()
+})
+
+let dashboardTimer = null
+async function doDashboardRefresh() {
+  if (dashboardTimer) clearTimeout(dashboardTimer)
+  if (currentView !== 'dashboard') return
+  await refreshDashboard(shortcuts, currentView, (s) => startRun(s))
+  dashboardTimer = setTimeout(doDashboardRefresh, 30000)
+}
+
+document.getElementById('navCron').addEventListener('click', (e) => {
+  e.preventDefault()
+  switchToView('cron')
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
+  document.getElementById('navCron').classList.add('active')
+  mainTitle.textContent = 'Cron Tasks'
+  refreshCronList(shortcuts)
+})
+
+function switchToView(view) {
+  currentView = view
+  grid.style.display = view === 'grid' ? 'grid' : 'none'
+  document.getElementById('dashboardView').style.display = view === 'dashboard' ? 'block' : 'none'
+  document.getElementById('cronView').style.display = view === 'cron' ? 'block' : 'none'
+  
+  // Hide/show header actions if needed
+  document.querySelector('.header-actions').style.display = view === 'grid' ? 'flex' : 'none'
+}
 
 document.getElementById('openSettings').addEventListener('click', async (e) => {
   e.preventDefault()
@@ -604,10 +645,28 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault()
     if (editorPanel.classList.contains('open')) {
       paletteSearch.focus()
-    } else {
+    } else if (currentView === 'grid') {
       searchInput.focus()
       searchInput.select()
     }
+  }
+})
+
+// ── Cron Modal Bindings ──────────────────────────────────────────────────────
+
+document.getElementById('addCronBtn').addEventListener('click', () => openCronEditor(shortcuts))
+document.getElementById('closeCronModal').addEventListener('click', () => document.getElementById('cronModal').style.display = 'none')
+document.getElementById('cancelCronBtn').addEventListener('click', () => document.getElementById('cronModal').style.display = 'none')
+document.getElementById('saveCronBtn').addEventListener('click', () => saveCron(shortcuts))
+
+// ── IPC Listeners ─────────────────────────────────────────────────────────────
+
+window.ipcRenderer.on('run-shortcut-by-id', async (event, shortcutId) => {
+  const s = shortcuts.find(sh => String(sh.id) === String(shortcutId))
+  if (s) {
+    startRun(s)
+  } else {
+    console.warn(`[Renderer] Received run-shortcut-by-id for unknown ID: ${shortcutId}`)
   }
 })
 

@@ -46,6 +46,13 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     loadShortcuts: () => ipcRenderer.invoke('store-load-shortcuts'),
     saveConfig: (data) => ipcRenderer.invoke('store-save-config', data),
     loadConfig: () => ipcRenderer.invoke('store-load-config'),
+  },
+
+  getHostStats: () => ipcRenderer.invoke('get-host-stats'),
+  cron: {
+    list: () => ipcRenderer.invoke('cron-list'),
+    save: (data) => ipcRenderer.invoke('cron-save', data),
+    delete: (id) => ipcRenderer.invoke('cron-delete', id),
   }
 })
 

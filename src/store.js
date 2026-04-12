@@ -1116,7 +1116,7 @@ export function loadRuns() {
 export function appendRun(run) {
   const runs = loadRuns()
   runs.unshift(run) // newest first
-  if (runs.length > 20) runs.splice(20)
+  if (runs.length > 100) runs.splice(100)
   localStorage.setItem(KEYS.runs, JSON.stringify(runs))
 }
 
