@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, clipboard, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, clipboard, dialog, desktopCapturer, screen } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exec } from 'node:child_process'
@@ -198,6 +198,51 @@ ipcMain.handle('download-url', async (_, { url, fileName }) => {
     return { ok: false, canceled: true }
   } catch (err) {
     console.error('[main] download-url error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('file-rename', async (_, { oldPath, newPath }) => {
+  try {
+    fs.renameSync(oldPath, newPath)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('file-move', async (_, { src, dest }) => {
+  try {
+    // If it's across devices, renameSync might fail, but for simple use it's fine
+    fs.renameSync(src, dest)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('file-delete', async (_, filePath) => {
+  try {
+    fs.unlinkSync(filePath)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('screenshot-capture', async (_) => {
+  try {
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: screen.getPrimaryDisplay().size })
+    if (sources.length === 0) throw new Error('No screen sources found')
+    
+    // Use the first source (primary screen usually)
+    const img = sources[0].thumbnail.toPNG()
+    const filePath = path.join(os.tmpdir(), `screenshot_${Date.now()}.png`)
+    fs.writeFileSync(filePath, img)
+    
+    return { ok: true, filePath }
+  } catch (err) {
+    console.error('[main] screenshot-capture error:', err.message)
     return { ok: false, error: err.message }
   }
 })

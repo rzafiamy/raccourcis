@@ -487,6 +487,69 @@ const EXECUTORS = {
     ctx.result = filePath
   },
 
+  'screenshot-capture': async (_step, ctx, opts) => {
+    const res = await window.ipcRenderer.invoke('screenshot-capture')
+    if (!res.ok) throw new Error(res.error)
+    ctx.result = res.filePath
+    if (opts.onShowResult) opts.onShowResult(res.filePath, 'image')
+  },
+
+  'file-rename': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const oldPath = s.oldPath || ctx.result
+    if (!oldPath) throw new Error('File Rename: missing current path.')
+    if (!s.newPath) throw new Error('File Rename: missing new path.')
+    const res = await window.ipcRenderer.invoke('file-rename', { oldPath, newPath: s.newPath })
+    if (!res.ok) throw new Error(res.error)
+    ctx.result = s.newPath
+  },
+
+  'file-move': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const src = s.src || ctx.result
+    if (!src) throw new Error('File Move: missing source path.')
+    if (!s.dest) throw new Error('File Move: missing destination path.')
+    const res = await window.ipcRenderer.invoke('file-move', { src, dest: s.dest })
+    if (!res.ok) throw new Error(res.error)
+    ctx.result = s.dest
+  },
+
+  'file-delete': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const path = s.path || ctx.result
+    if (!path) throw new Error('File Delete: missing path.')
+    const res = await window.ipcRenderer.invoke('file-delete', path)
+    if (!res.ok) throw new Error(res.error)
+  },
+
+  'git-clone': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const url = s.url
+    const targetDir = s.targetDir || ctx.result
+    if (!url) throw new Error('Git Clone: missing repository URL.')
+    if (!targetDir) throw new Error('Git Clone: missing target directory.')
+
+    const cmd = `git clone "${url}" "${targetDir}"`
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Git Clone failed: ${stderr}`)
+    ctx.result = targetDir
+  },
+
+  'git-init': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const folder = s.folder || ctx.result
+    if (!folder) throw new Error('Git Init: missing folder path.')
+
+    let cmd = `cd "${folder}" && git init`
+    if (s.originUrl) {
+      cmd += ` && git remote add origin "${s.originUrl}"`
+    }
+    
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Git Init failed: ${stderr}`)
+    ctx.result = folder
+  },
+
   'set-var': async (step, ctx, _opts) => {
     const name = step.varName || 'result'
     ctx.vars[name] = ctx.result

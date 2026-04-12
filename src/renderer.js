@@ -91,6 +91,7 @@ const sNextcloudPassword  = document.getElementById('nextcloudPassword')
 const sSupabaseUrl     = document.getElementById('supabaseUrl')
 const sSupabaseAnon    = document.getElementById('supabaseAnonKey')
 const sSupabaseService = document.getElementById('supabaseServiceKey')
+const sSupabaseUser    = document.getElementById('supabaseUserId')
 const aboutModal       = document.getElementById('aboutModal')
 // helpModal removed, now a view
 
