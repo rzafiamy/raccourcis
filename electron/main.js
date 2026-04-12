@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, clipboard } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -70,4 +70,28 @@ app.whenReady().then(createWindow)
 // IPC Handlers
 ipcMain.on('open-external', (_, url) => {
   shell.openExternal(url)
+})
+
+ipcMain.on('window-close', () => {
+  win?.close()
+})
+
+ipcMain.on('window-minimize', () => {
+  win?.minimize()
+})
+
+ipcMain.on('window-maximize', () => {
+  if (win?.isMaximized()) {
+    win.unmaximize()
+  } else {
+    win.maximize()
+  }
+})
+
+ipcMain.handle('clipboard-read', () => {
+  return clipboard.readText()
+})
+
+ipcMain.on('clipboard-write', (_, text) => {
+  clipboard.writeText(text)
 })

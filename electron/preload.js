@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     return ipcRenderer.invoke(channel, ...rest)
   },
 
-  // You can expose other apts you need here.
-  // ...
+  clipboard: {
+    readText: () => ipcRenderer.invoke('clipboard-read'),
+    writeText: (text) => ipcRenderer.send('clipboard-write', text)
+  }
 })
