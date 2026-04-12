@@ -288,6 +288,7 @@ function matchesFilter(shortcut) {
   if (currentCategory === 'personal') return shortcut.category === 'personal'
   if (currentCategory === 'media') return shortcut.category === 'media'
   if (currentCategory === 'comm') return shortcut.category === 'comm'
+  if (currentCategory === 'socialnet') return shortcut.category === 'socialnet'
   if (currentCategory === 'filesystem') return !!shortcut.isFileSystem
   if (currentCategory === 'recent') return true
   return true
@@ -295,7 +296,7 @@ function matchesFilter(shortcut) {
 
 // Whether the current view should render trigger-group sections
 function shouldGroupByTrigger() {
-  return ['all', 'favorites', 'ai', 'personal', 'media', 'comm', 'filesystem'].includes(currentCategory)
+  return ['all', 'favorites', 'ai', 'personal', 'media', 'comm', 'socialnet', 'filesystem'].includes(currentCategory)
 }
 
 // Group shortcuts by how recently they were used
@@ -387,7 +388,7 @@ function renderGrid() {
       }))
     })
     // "+ New" card first
-    if (['all', 'personal', 'ai', 'media', 'comm'].includes(currentCategory)) {
+    if (['all', 'personal', 'ai', 'media', 'comm', 'socialnet'].includes(currentCategory)) {
       const newCard = document.createElement('div')
       newCard.className = 'shortcut-card card-new'
       newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
@@ -406,7 +407,7 @@ function renderGrid() {
   filtered.forEach((s) => buckets.get(getTriggerGroup(s).id).push(s))
 
   // "+ New" shortcut — prepended as its own unsectioned card
-  if (['all', 'personal', 'ai', 'media', 'comm'].includes(currentCategory)) {
+  if (['all', 'personal', 'ai', 'media', 'comm', 'socialnet'].includes(currentCategory)) {
     const newCard = document.createElement('div')
     newCard.className = 'shortcut-card card-new'
     newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`

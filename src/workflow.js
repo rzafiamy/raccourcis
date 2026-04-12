@@ -1214,6 +1214,89 @@ const EXECUTORS = {
     }
     ctx.result = `Deleted from ${s.table} where ${s.filter}`
   },
+
+  'youtube-download': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const url = s.url || ctx.result
+    if (!url) throw new Error('YouTube Download: no URL provided.')
+    const format = s.format || 'best'
+    const outputDir = s.outputDir || ''
+    const filename = s.filename || '%(title)s.%(ext)s'
+    
+    let cmd = `yt-dlp -o "${outputDir ? outputDir + '/' : ''}${filename}"`
+    if (format === 'mp3') cmd += ' -x --audio-format mp3'
+    else if (format === 'wav') cmd += ' -x --audio-format wav'
+    else if (format === 'mp4') cmd += ' -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"'
+    
+    cmd += ` "${url}"`
+    
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`YouTube Download failed: ${stderr}`)
+    
+    // Attempt to find the downloaded file path from stdout
+    const match = stdout.match(/\[download\] Destination: (.+)/)
+    if (match) ctx.result = match[1].trim()
+    else ctx.result = 'Download completed in ' + (outputDir || 'current directory')
+  },
+
+  'filename-generate': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    if (!text) throw new Error('Filename Generate: no input text provided.')
+    let clean = text.toLowerCase()
+      .replace(/[^\w\s-]/g, '') // remove non-word chars
+      .replace(/[\s_-]+/g, '-')   // swap spaces/underscores for single dash
+      .replace(/^-+|-+$/g, '')    // trim dashes from ends
+    
+    if (s.extension) {
+      const ext = s.extension.startsWith('.') ? s.extension : `.${s.extension}`
+      if (!clean.endsWith(ext)) clean += ext
+    }
+    ctx.result = clean
+  },
+
+  'math-evaluate': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const expr = s.expression || ctx.result
+    if (!expr) throw new Error('Math Evaluate: no expression provided.')
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', `python3 -c "print(${expr})"`)
+    if (exitCode !== 0) throw new Error(`Math Evaluate failed: ${stderr}`)
+    ctx.result = stdout.trim()
+  },
+
+  'hash-generate': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const input = s.input || ctx.result
+    const alg = s.algorithm || 'sha256'
+    const isFile = s.isFile === true || s.isFile === 'true'
+    
+    let cmd
+    if (isFile) {
+      cmd = `sha256sum "${input}"` // Default to sha256sum for file unless we map others
+      if (alg === 'md5') cmd = `md5sum "${input}"`
+      else if (alg === 'sha1') cmd = `sha1sum "${input}"`
+      else if (alg === 'sha512') cmd = `sha512sum "${input}"`
+    } else {
+      cmd = `echo -n "${input}" | ${alg}sum`
+    }
+    
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Hash generation failed: ${stderr}`)
+    
+    ctx.result = stdout.split(' ')[0].trim()
+  },
+
+  'url-encode': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    ctx.result = encodeURIComponent(text)
+  },
+
+  'url-decode': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    ctx.result = decodeURIComponent(text)
+  },
 }
 
 
