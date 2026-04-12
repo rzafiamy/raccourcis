@@ -1518,4 +1518,97 @@ else: print('\\n'.join(results))
       step('show-result', { title: 'Tondro Link', label: 'Share Link' }),
     ],
   },
-]
+  {
+    id: 82,
+    name: 'Tag MP3',
+    icon: 'tag',
+    color: 'bg-orange',
+    category: 'media',
+    favorite: false,
+    steps: [
+      step('file-picker', { title: 'Pick MP3', buttonLabel: 'Select MP3' }),
+      step('set-var', { title: 'Save Path', varName: 'mp3Path' }),
+      step('user-input', { title: 'Title', label: 'Song Title:', placeholder: 'My Awesome Song' }),
+      step('set-var', { title: 'Save Title', varName: 'mTitle' }),
+      step('user-input', { title: 'Artist', label: 'Artist:', placeholder: 'The Shortcuts' }),
+      step('set-var', { title: 'Save Artist', varName: 'mArtist' }),
+      step('media-metadata-tag', { 
+        filePath: '{{vars.mp3Path}}', 
+        title: '{{vars.mTitle}}', 
+        artist: '{{vars.mArtist}}' 
+      }),
+      step('notification', { title: 'MP3 Tagged', body: 'Metadata applied to {{vars.mTitle}}' }),
+    ],
+  },
+  {
+    id: 83,
+    name: 'Audio to Video Poster',
+    icon: 'film',
+    color: 'bg-indigo',
+    category: 'media',
+    favorite: false,
+    steps: [
+      step('file-picker', { title: 'Pick Audio', buttonLabel: 'Select Audio' }),
+      step('set-var', { title: 'Save Audio Path', varName: 'audioPath' }),
+      step('file-picker', { title: 'Pick Poster Image', buttonLabel: 'Select Image' }),
+      step('set-var', { title: 'Save Image Path', varName: 'imagePath' }),
+      step('media-merge-poster', { 
+        audioPath: '{{vars.audioPath}}', 
+        imagePath: '{{vars.imagePath}}' 
+      }),
+      step('show-result', { title: 'Video Created', label: 'Output Video' }),
+    ],
+  },
+  {
+    id: 84,
+    name: 'Extract MP3 from Video',
+    icon: 'music',
+    color: 'bg-green',
+    category: 'media',
+    favorite: false,
+    steps: [
+      step('file-picker', { title: 'Pick Video', buttonLabel: 'Select Video' }),
+      step('media-extract-audio', { format: 'mp3' }),
+      step('notification', { title: 'Audio Extracted', body: 'Saved as .mp3 next to video' }),
+      step('show-result', { title: 'Audio File', label: 'Extracted Audio' }),
+    ],
+  },
+  {
+    id: 85,
+    name: 'Convert Video',
+    icon: 'refresh-cw',
+    color: 'bg-blue',
+    category: 'media',
+    favorite: false,
+    steps: [
+      step('file-picker', { title: 'Pick Video', buttonLabel: 'Select Video' }),
+      step('set-var', { title: 'Save Video Path', varName: 'videoPath' }),
+      step('user-input', { 
+        title: 'Target Format', 
+        label: 'Enter format (mp4, mkv, webm):', 
+        prefill: 'mp4' 
+      }),
+      step('media-convert', { inputPath: '{{vars.videoPath}}', format: '{{result}}' }),
+      step('show-result', { title: 'Converted', label: 'Converted Video' }),
+    ],
+  },
+  {
+    id: 86,
+    name: 'Compress Image',
+    icon: 'minimize-2',
+    color: 'bg-green',
+    category: 'media',
+    favorite: false,
+    steps: [
+      step('file-picker', { title: 'Pick Image', buttonLabel: 'Select Image' }),
+      step('set-var', { title: 'Save Image Path', varName: 'imgPath' }),
+      step('user-input', { 
+        title: 'Compression Quality', 
+        label: 'Quality (1-100):', 
+        prefill: '75' 
+      }),
+      step('image-compress', { filePath: '{{vars.imgPath}}', quality: '{{result}}' }),
+      step('notification', { title: 'Image Compressed', body: 'File size reduced successfully.' }),
+    ],
+  },
+];

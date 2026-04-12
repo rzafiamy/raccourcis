@@ -712,6 +712,93 @@ const EXECUTORS = {
     await window.ipcRenderer.invoke('app-launch', target)
   },
 
+  'media-metadata-tag': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const filePath = s.filePath || ctx.result
+    if (!filePath) throw new Error('Media Tag: No file path provided.')
+    
+    let cmd = `ffmpeg -i "${filePath}" -y`
+    if (s.title) cmd += ` -metadata title="${s.title}"`
+    if (s.artist) cmd += ` -metadata artist="${s.artist}"`
+    if (s.album) cmd += ` -metadata album="${s.album}"`
+    
+    const ext = filePath.split('.').pop()
+    const tmpFile = filePath.replace(`.${ext}`, `_tagged.${ext}`)
+    cmd += ` -codec copy "${tmpFile}" && mv "${tmpFile}" "${filePath}"`
+    
+    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (result.exitCode !== 0) throw new Error(`Media Tag failed: ${result.stderr}`)
+    ctx.result = filePath
+  },
+
+  'media-merge-poster': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    if (!s.audioPath || !s.imagePath) throw new Error('Merge Poster: Missing audio or image path.')
+    
+    let out = s.outputPath
+    if (!out) {
+       out = s.audioPath.replace(/\.[^.]+$/, '') + '.mp4'
+    }
+    
+    const cmd = `ffmpeg -loop 1 -i "${s.imagePath}" -i "${s.audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -y "${out}"`
+    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (result.exitCode !== 0) throw new Error(`Merge Poster failed: ${result.stderr}`)
+    ctx.result = out
+  },
+
+  'media-extract-audio': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const videoPath = s.videoPath || ctx.result
+    if (!videoPath) throw new Error('Extract Audio: No video path.')
+    
+    const ext = s.format || 'mp3'
+    const out = videoPath.replace(/\.[^.]+$/, '') + '.' + ext
+    
+    // Use appropriate encoder
+    let acodec = 'libmp3lame'
+    if (ext === 'aac') acodec = 'aac'
+    if (ext === 'wav') acodec = 'pcm_s16le'
+    if (ext === 'flac') acodec = 'flac'
+
+    const cmd = `ffmpeg -i "${videoPath}" -vn -c:a ${acodec} -q:a 2 -y "${out}"`
+    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (result.exitCode !== 0) throw new Error(`Extract Audio failed: ${result.stderr}`)
+    ctx.result = out
+  },
+
+  'media-convert': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const inputPath = s.inputPath || ctx.result
+    if (!inputPath) throw new Error('Convert Media: No input path.')
+    
+    const ext = s.format || 'mp4'
+    const out = inputPath.replace(/\.[^.]+$/, '') + '_converted.' + ext
+    
+    const cmd = `ffmpeg -i "${inputPath}" -y "${out}"`
+    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (result.exitCode !== 0) throw new Error(`Convert Media failed: ${result.stderr}`)
+    ctx.result = out
+  },
+
+  'image-compress': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const filePath = s.filePath || ctx.result
+    if (!filePath) throw new Error('Image Compress: No file path.')
+    
+    const quality = s.quality || 80
+    // Try mogrify first
+    const cmd = `mogrify -quality ${quality} "${filePath}"`
+    const res = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (res.exitCode !== 0) {
+      // Fallback to ffmpeg if mogrify fails
+      const tmp = filePath.replace(/\.[^.]+$/, '') + `_q${quality}.jpg`
+      const cmd2 = `ffmpeg -i "${filePath}" -q:v ${Math.floor((100 - quality) / 2)} -y "${tmp}" && mv "${tmp}" "${filePath}"`
+      const res2 = await window.ipcRenderer.invoke('shell-exec', cmd2)
+      if (res2.exitCode !== 0) throw new Error(`Image Compress failed: ${res2.stderr}`)
+    }
+    ctx.result = filePath
+  },
+
   // ── Services ──────────────────────────────────────────────────────────────────
 
   'firecrawl-scrape': async (step, ctx, opts) => {
