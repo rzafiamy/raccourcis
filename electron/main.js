@@ -101,6 +101,16 @@ ipcMain.handle('read-file-base64', async (_, filePath) => {
   return buf.toString('base64')
 })
 
+// Reveal a file in the system file explorer
+ipcMain.on('reveal-in-folder', (_, filePath) => {
+  const resolved = filePath?.startsWith('~')
+    ? path.join(os.homedir(), filePath.slice(1))
+    : filePath
+  if (fs.existsSync(resolved)) {
+    shell.showItemInFolder(resolved)
+  }
+})
+
 // Play an audio file via the default system player (non-blocking).
 ipcMain.on('play-audio', (_, filePath) => {
   const cmd = process.platform === 'darwin'
@@ -109,6 +119,30 @@ ipcMain.on('play-audio', (_, filePath) => {
   exec(cmd, (err) => {
     if (err) console.warn('[main] play-audio error:', err.message)
   })
+})
+
+// Download a URL and save to a file
+ipcMain.handle('download-url', async (_, { url, fileName }) => {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`)
+    const arrayBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    const { filePath, canceled } = await dialog.showSaveDialog(win, {
+      defaultPath: path.join(app.getPath('downloads'), fileName || 'download.png'),
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+    })
+
+    if (!canceled && filePath) {
+      fs.writeFileSync(filePath, buffer)
+      return { ok: true, filePath }
+    }
+    return { ok: false, canceled: true }
+  } catch (err) {
+    console.error('[main] download-url error:', err.message)
+    return { ok: false, error: err.message }
+  }
 })
 
 // ── Shortcut Discovery ───────────────────────────────────────────────────────

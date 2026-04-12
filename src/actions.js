@@ -38,6 +38,41 @@ export const ACTION_REGISTRY = [
     params: [],
   },
   {
+    type: 'file-picker',
+    title: 'Pick File',
+    desc: 'Select a file from your computer → result (filePath)',
+    icon: 'file-search',
+    color: '#0A84FF',
+    defaults: { buttonLabel: 'Select' },
+    params: [
+      { name: 'buttonLabel', label: 'Button Label', kind: 'text', placeholder: 'Select' },
+    ],
+  },
+  {
+    type: 'notification',
+    title: 'Show Notification',
+    desc: 'Display a system notification',
+    icon: 'bell',
+    color: '#FF9F0A',
+    defaults: { title: 'Shortcut Done', body: '{{result}}' },
+    params: [
+      { name: 'title', label: 'Title', kind: 'text', placeholder: 'Shortcut Done' },
+      { name: 'body', label: 'Message body', kind: 'text', placeholder: '{{result}}' },
+    ],
+  },
+  {
+    type: 'confirm-dialog',
+    title: 'Ask to Continue',
+    desc: 'Show a yes/no dialog. If canceled, the shortcut stops.',
+    icon: 'help-circle',
+    color: '#FFD60A',
+    defaults: { title: 'Continue?', message: 'Do you want to proceed?' },
+    params: [
+      { name: 'title', label: 'Title', kind: 'text', placeholder: 'Continue?' },
+      { name: 'message', label: 'Message', kind: 'text', placeholder: 'Do you want to proceed?' },
+    ],
+  },
+  {
     type: 'user-input',
     title: 'User Input',
     desc: 'Ask the user to type something → result',
@@ -106,6 +141,61 @@ export const ACTION_REGISTRY = [
     defaults: { label: 'Result' },
     params: [
       { name: 'label', label: 'Panel label', kind: 'text', placeholder: 'Result' },
+    ],
+  },
+  {
+    type: 'get-date',
+    title: 'Get Date',
+    desc: 'Get current date/time formatted → result',
+    icon: 'calendar',
+    color: '#FF375F',
+    defaults: { format: 'YYYY-MM-DD HH:mm:ss' },
+    params: [
+      { name: 'format', label: 'Format (not implemented, will use ISO)', kind: 'text', placeholder: 'YYYY-MM-DD' },
+    ],
+  },
+  {
+    type: 'text-transform',
+    title: 'Transform Text',
+    desc: 'Change case, slugify, etc. → result',
+    icon: 'type',
+    color: '#32D74B',
+    defaults: { formula: 'uppercase' },
+    params: [
+      {
+        name: 'formula',
+        label: 'Formula',
+        kind: 'select',
+        options: [
+          { value: 'uppercase', label: 'UPPERCASE' },
+          { value: 'lowercase', label: 'lowercase' },
+          { value: 'titlecase', label: 'Title Case' },
+          { value: 'slugify', label: 'slug-ify' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'file-write',
+    title: 'Save to File',
+    desc: 'Write text to a specified local file',
+    icon: 'file-down',
+    color: '#0A84FF',
+    defaults: { path: '', content: '{{result}}' },
+    params: [
+      { name: 'path', label: 'Destination File Path (Leave empty for Save Dialog)', kind: 'text', placeholder: '/home/user/output.txt' },
+      { name: 'content', label: 'Content to save', kind: 'text', placeholder: '{{result}}' },
+    ],
+  },
+  {
+    type: 'reveal-file',
+    title: 'Show in Finder',
+    desc: 'Open the folder containing the file',
+    icon: 'folder-open',
+    color: '#5E5CE6',
+    defaults: { path: '{{result}}' },
+    params: [
+      { name: 'path', label: 'File/Folder Path', kind: 'text', placeholder: '{{result}}' },
     ],
   },
   {
@@ -199,11 +289,25 @@ export const ACTION_REGISTRY = [
         placeholder: '/path/to/audio.mp3 or {{result}}',
       },
       {
-        name: 'language',
-        label: 'Language (optional, e.g. en, fr)',
-        kind: 'text',
         placeholder: 'en',
       },
+      {
+        name: 'model',
+        label: 'Model (OpenAI Whisper)',
+        kind: 'text',
+        placeholder: 'whisper-1',
+      },
+    ],
+  },
+  {
+    type: 'audio-record',
+    title: 'Record Audio',
+    desc: 'Record audio from the microphone → result (filePath)',
+    icon: 'mic',
+    color: '#FF375F',
+    defaults: { duration: 30 },
+    params: [
+      { name: 'duration', label: 'Max duration (seconds)', kind: 'number', placeholder: '30' },
     ],
   },
   {
@@ -244,31 +348,51 @@ export const ACTION_REGISTRY = [
           { value: 'hd', label: 'HD' },
         ],
       },
+      {
+        name: 'model',
+        label: 'Model (DALL·E or Flux)',
+        kind: 'text',
+        placeholder: 'dall-e-3',
+      },
     ],
   },
   {
     type: 'image-vision',
     title: 'Image Vision',
-    desc: 'Analyse an image URL with GPT-4o Vision → text result',
+    desc: 'Analyse an image URL or local file with AI Vision → text result',
     icon: 'eye',
     color: '#32D74B',
     defaults: {
       imageUrl: '{{result}}',
+      filePath: '',
       prompt: 'Describe this image in detail.',
       systemPrompt: 'You are a helpful vision assistant.',
+      model: 'gpt-4o',
     },
     params: [
       {
         name: 'imageUrl',
-        label: 'Image URL (use {{result}} for previous step URL)',
+        label: 'Image URL (optional)',
         kind: 'text',
-        placeholder: 'https://... or {{result}}',
+        placeholder: 'https://...',
+      },
+      {
+        name: 'filePath',
+        label: 'Local File Path (optional, or use {{result}})',
+        kind: 'text',
+        placeholder: '/home/user/image.jpg',
       },
       {
         name: 'prompt',
         label: 'Question / instruction',
         kind: 'textarea',
         placeholder: 'Describe this image in detail.',
+      },
+      {
+        name: 'model',
+        label: 'Vision Model',
+        kind: 'text',
+        placeholder: 'gpt-4o',
       },
       {
         name: 'systemPrompt',

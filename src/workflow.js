@@ -117,7 +117,7 @@ async function callTTS(text, voice, model, signal) {
 
 // ── ASR call ──────────────────────────────────────────────────────────────────
 
-async function callASR(fileBase64, fileName, language, signal) {
+async function callASR(fileBase64, fileName, language, model, signal) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
@@ -129,7 +129,7 @@ async function callASR(fileBase64, fileName, language, signal) {
 
   const form = new FormData()
   form.append('file', blob, fileName)
-  form.append('model', 'whisper-1')
+  form.append('model', model || cfg.asrModel || 'whisper-1')
   if (language) form.append('language', language)
 
   const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {
@@ -150,7 +150,7 @@ async function callASR(fileBase64, fileName, language, signal) {
 
 // ── Image generation call ─────────────────────────────────────────────────────
 
-async function callImageGen(prompt, size, quality, signal) {
+async function callImageGen(prompt, size, quality, model, signal) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
@@ -162,7 +162,7 @@ async function callImageGen(prompt, size, quality, signal) {
     },
     signal,
     body: JSON.stringify({
-      model: 'dall-e-3',
+      model: model || cfg.imageGenModel || 'dall-e-3',
       prompt,
       n: 1,
       size: size || '1024x1024',
@@ -181,7 +181,7 @@ async function callImageGen(prompt, size, quality, signal) {
 
 // ── Vision call ───────────────────────────────────────────────────────────────
 
-async function callVision(imageUrl, prompt, systemPrompt, signal) {
+async function callVision(imageUrl, prompt, systemPrompt, model, signal) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
@@ -196,10 +196,9 @@ async function callVision(imageUrl, prompt, systemPrompt, signal) {
     },
     signal,
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: model || 'gpt-4o',
       messages: [
         { role: 'system', content: finalSystemPrompt },
-
         {
           role: 'user',
           content: [
@@ -247,6 +246,77 @@ const EXECUTORS = {
     })
     if (value === null) throw new Error('User cancelled input.')
     ctx.result = value
+  },
+
+  'audio-record': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    if (!opts.promptRecord) throw new Error('audio-record step requires a promptRecord callback.')
+    const filePath = await opts.promptRecord({
+      duration: parseInt(s.duration) || 30
+    })
+    if (!filePath) throw new Error('User cancelled recording.')
+    ctx.result = filePath
+  },
+
+  'file-picker': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const res = await window.ipcRenderer.showOpenDialog({
+      properties: ['openFile'],
+      buttonLabel: s.buttonLabel || 'Select'
+    })
+    if (res.canceled) throw new Error('User cancelled file selection.')
+    ctx.result = res.filePaths[0]
+  },
+
+  'notification': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    new Notification(s.title || 'Notification', {
+      body: s.body || ctx.result
+    })
+  },
+
+  'confirm-dialog': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    if (!opts.showConfirm) throw new Error('confirm-dialog step requires a showConfirm callback.')
+    const confirmed = await opts.showConfirm({
+      title: s.title || 'Confirm',
+      message: s.message || 'Do you want to continue?',
+      confirmText: 'Continue',
+      confirmClass: 'btn-primary'
+    })
+    if (!confirmed) throw new Error('User stopped the shortcut.')
+  },
+
+  'get-date': async (step, ctx, _opts) => {
+    ctx.result = new Date().toLocaleString()
+  },
+
+  'text-transform': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const formula = s.formula || 'uppercase'
+    const text = ctx.result || ''
+    if (formula === 'uppercase') ctx.result = text.toUpperCase()
+    else if (formula === 'lowercase') ctx.result = text.toLowerCase()
+    else if (formula === 'titlecase') ctx.result = text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
+    else if (formula === 'slugify') ctx.result = text.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '')
+  },
+
+  'file-write': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    let dest = s.path
+    if (!dest) {
+      const res = await window.ipcRenderer.showSaveDialog({ defaultPath: 'output.txt' })
+      if (res.canceled) throw new Error('User cancelled file save.')
+      dest = res.filePath
+    }
+    const writeRes = await window.ipcRenderer.writeFile(dest, s.content)
+    if (!writeRes.ok) throw new Error(writeRes.error)
+    ctx.result = dest
+  },
+
+  'reveal-file': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    window.ipcRenderer.revealInFolder(s.path)
   },
 
   'ai-prompt': async (step, ctx, opts) => {
@@ -305,14 +375,14 @@ const EXECUTORS = {
     if (!filePath) throw new Error('ASR: no audio file path provided.')
     const base64 = await window.ipcRenderer.readFileBase64(filePath)
     const fileName = filePath.split('/').pop() || 'audio.mp3'
-    ctx.result = await callASR(base64, fileName, s.language || '', opts.signal)
+    ctx.result = await callASR(base64, fileName, s.language || '', s.model, opts.signal)
   },
 
   'image-gen': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const prompt = s.prompt || ctx.result
     if (!prompt) throw new Error('Image generation: no prompt provided.')
-    const url = await callImageGen(prompt, s.size, s.quality, opts.signal)
+    const url = await callImageGen(prompt, s.size, s.quality, s.model, opts.signal)
     ctx.result = url
     ctx.vars._imageUrl = url
     if (opts.onShowResult) opts.onShowResult(url, 'image')
@@ -320,9 +390,18 @@ const EXECUTORS = {
 
   'image-vision': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
-    const imageUrl = s.imageUrl || ctx.result
-    if (!imageUrl) throw new Error('Vision: no image URL provided.')
-    ctx.result = await callVision(imageUrl, s.prompt, s.systemPrompt, opts.signal)
+    let imageUrl = s.imageUrl || s.filePath || ctx.result
+    if (!imageUrl) throw new Error('Vision: no image source provided.')
+
+    // If it looks like a local path, convert to base64 data URI
+    if (imageUrl.startsWith('/') || imageUrl.startsWith('~') || imageUrl.match(/^[a-zA-Z]:\\/)) {
+      const base64 = await window.ipcRenderer.readFileBase64(imageUrl)
+      const ext = imageUrl.split('.').pop().toLowerCase()
+      const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
+      imageUrl = `data:${mime};base64,${base64}`
+    }
+
+    ctx.result = await callVision(imageUrl, s.prompt, s.systemPrompt, s.model, opts.signal)
   },
 
   // ── Services ──────────────────────────────────────────────────────────────────

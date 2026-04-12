@@ -43,6 +43,12 @@
     <a href="#" class="nav-item" data-category="personal">
       <i data-lucide="zap"></i><span>Personal</span>
     </a>
+    <a href="#" class="nav-item" data-category="media">
+      <i data-lucide="image"></i><span>Media</span>
+    </a>
+    <a href="#" class="nav-item" data-category="comm">
+      <i data-lucide="mail"></i><span>Communication</span>
+    </a>
 
     <div class="sidebar-spacer"></div>
 
@@ -247,8 +253,16 @@
             <input class="input-field" id="aiApiKey" type="password" placeholder="sk-…">
           </div>
           <div class="form-group">
-            <label>Model</label>
+            <label>Text Model</label>
             <input class="input-field" id="aiModel" type="text" placeholder="gpt-4o-mini">
+          </div>
+          <div class="form-group">
+            <label>ASR Model (Whisper)</label>
+            <input class="input-field" id="aiAsrModel" type="text" placeholder="whisper-1">
+          </div>
+          <div class="form-group">
+            <label>Image Model (DALL-E / Flux)</label>
+            <input class="input-field" id="aiImageModel" type="text" placeholder="dall-e-3">
           </div>
         </div>
 

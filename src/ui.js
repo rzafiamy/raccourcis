@@ -130,11 +130,23 @@ export function createRunOverlay(shortcut, onCancel) {
   const outputText = overlay.querySelector('#runOutputText')
   const copyBtn    = overlay.querySelector('#runCopyBtn')
 
-  copyBtn.addEventListener('click', () => {
-    const text = outputText.textContent || outputText.innerText
-    window.ipcRenderer.clipboard.writeText(text)
-    copyBtn.textContent = 'Copied!'
-    setTimeout(() => (copyBtn.textContent = 'Copy'), 1500)
+  copyBtn.addEventListener('click', async () => {
+    const kind = copyBtn.dataset.kind || 'text'
+    const content = copyBtn.dataset.content || ''
+
+    if (kind === 'image') {
+      copyBtn.disabled = true
+      copyBtn.textContent = 'Downloading…'
+      const res = await window.ipcRenderer.downloadUrl(content, 'generated-image.png')
+      copyBtn.disabled = false
+      copyBtn.textContent = res.ok ? 'Saved!' : 'Download'
+      if (res.ok) setTimeout(() => (copyBtn.textContent = 'Download'), 1500)
+    } else {
+      const text = outputText.textContent || outputText.innerText
+      window.ipcRenderer.clipboard.writeText(text)
+      copyBtn.textContent = 'Copied!'
+      setTimeout(() => (copyBtn.textContent = 'Copy'), 1500)
+    }
   })
 
   return {
@@ -157,11 +169,19 @@ export function createRunOverlay(shortcut, onCancel) {
       outputEl.style.display = 'block'
       outputText.innerHTML = ''
       copyBtn.style.display = 'block'
+      copyBtn.dataset.kind = kind
+      copyBtn.dataset.content = content
+
       if (kind === 'image') {
+        copyBtn.textContent = 'Download'
         const img = document.createElement('img')
         img.src = content
         img.className = 'run-output-image'
         img.alt = 'Generated image'
+        // Error handling for "empty" image
+        img.onerror = () => {
+          outputText.innerHTML = '<div class="error-text">Failed to load image. It may have expired or the URL is invalid.</div>'
+        }
         outputText.appendChild(img)
       } else if (kind === 'audio') {
         const audio = document.createElement('audio')
@@ -188,9 +208,11 @@ export function createRunOverlay(shortcut, onCancel) {
         outputText.innerHTML = `<pre class="run-output-pre error-text">${errorMsg}</pre>`
         copyBtn.style.display = 'none'
       } else if (ok && result) {
-        const isImageUrl = typeof result === 'string' &&
-          result.startsWith('http') &&
-          (result.includes('oaidalleapiprodscus') || /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(result))
+        // More robust image detection
+        const isImageUrl = typeof result === 'string' && (
+          (result.startsWith('http') && (result.includes('oaidalleapiprodscus') || result.includes('replicate.delivery') || result.includes('together.xyz') || /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(result))) ||
+          result.startsWith('data:image/')
+        )
         this.showOutput(result, isImageUrl ? 'image' : 'text')
       }
     },
@@ -237,6 +259,93 @@ export function promptUser({ label, placeholder, prefill = '' }) {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirm()
       if (e.key === 'Escape') cancel()
     })
+  })
+}
+
+export function promptRecord({ duration = 30 }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'modal-overlay'
+    overlay.style.display = 'flex'
+
+    overlay.innerHTML = `
+      <div class="modal-content" style="max-width:400px;text-align:center;">
+        <div class="modal-header">
+          <h2>Recording Audio</h2>
+        </div>
+        <div class="modal-body" style="padding:40px;">
+          <div id="recordingTimer" style="font-size:32px;font-weight:600;margin-bottom:20px;">0:00</div>
+          <div class="visualizer" style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-bottom:30px;overflow:hidden;">
+            <div id="visualizerBar" style="height:100%;width:0%;background:var(--accent-primary);transition:width 0.1s;"></div>
+          </div>
+          <button class="btn btn-danger btn-circle" id="stopRecordBtn" style="width:64px;height:64px;border-radius:32px;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+            <div style="width:20px;height:20px;background:#fff;border-radius:4px;"></div>
+          </button>
+        </div>
+        <div class="modal-footer" style="justify-content:center;">
+          <button class="btn btn-ghost" id="cancelRecord">Cancel</button>
+        </div>
+      </div>
+    `
+
+    document.body.appendChild(overlay)
+
+    let mediaRecorder
+    let audioChunks = []
+    let startTime = Date.now()
+    let timerInterval
+
+    const updateTimer = () => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      const minutes = Math.floor(elapsed / 60)
+      const seconds = elapsed % 60
+      overlay.querySelector('#recordingTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`
+      overlay.querySelector('#visualizerBar').style.width = `${(elapsed / duration) * 100}%`
+      
+      if (elapsed >= duration) stop()
+    }
+
+    const start = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        mediaRecorder = new MediaRecorder(stream)
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data)
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' })
+          const buffer = await blob.arrayBuffer()
+          const uint8 = new Uint8Array(buffer)
+          const filePath = await window.ipcRenderer.saveTempFile(Array.from(uint8), 'webm')
+          overlay.remove()
+          resolve(filePath)
+          stream.getTracks().forEach(t => t.stop())
+        }
+        mediaRecorder.start()
+        timerInterval = setInterval(updateTimer, 500)
+      } catch (err) {
+        console.error('Recording failed:', err)
+        overlay.remove()
+        resolve(null)
+      }
+    }
+
+    const stop = () => {
+      clearInterval(timerInterval)
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop()
+      }
+    }
+
+    overlay.querySelector('#stopRecordBtn').addEventListener('click', stop)
+    overlay.querySelector('#cancelRecord').addEventListener('click', () => {
+      clearInterval(timerInterval)
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop()
+      }
+      overlay.remove()
+      resolve(null)
+    })
+
+    start()
   })
 }
 
@@ -412,10 +521,10 @@ export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMov
 // ── Palette list ──────────────────────────────────────────────────────────────
 
 const PALETTE_GROUPS = [
-  { label: 'Input',    types: ['clipboard-read', 'user-input'] },
+  { label: 'Input',    types: ['clipboard-read', 'user-input', 'audio-record', 'file-picker', 'get-date'] },
   { label: 'AI',       types: ['ai-prompt', 'image-gen', 'image-vision', 'tts', 'asr'] },
-  { label: 'Output',   types: ['clipboard-write', 'show-result', 'url-open'] },
-  { label: 'Control',  types: ['wait', 'set-var'] },
+  { label: 'Output',   types: ['clipboard-write', 'show-result', 'url-open', 'notification', 'file-write', 'reveal-file'] },
+  { label: 'Control',  types: ['wait', 'set-var', 'confirm-dialog', 'text-transform'] },
   { label: 'System',   types: ['shell'] },
   { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'weather', 'qr-code'] },
   { label: 'Google Workspace', types: ['google-calendar-list', 'gmail-send'] },

@@ -9,6 +9,7 @@ import {
   buildShortcutCard,
   createRunOverlay,
   promptUser,
+  promptRecord,
   showConfirm,
   showAlert,
   buildStepCard,
@@ -52,6 +53,8 @@ const settingsModal   = document.getElementById('settingsModal')
 const settingsBaseUrl = document.getElementById('aiBaseUrl')
 const settingsApiKey  = document.getElementById('aiApiKey')
 const settingsModel   = document.getElementById('aiModel')
+const settingsAsrModel = document.getElementById('aiAsrModel')
+const settingsImgModel = document.getElementById('aiImageModel')
 const sLanguage       = document.getElementById('prefLanguage')
 const sLocation       = document.getElementById('userLocation')
 
@@ -141,6 +144,8 @@ function matchesFilter(shortcut) {
   if (currentCategory === 'favorites') return shortcut.favorite
   if (currentCategory === 'ai') return shortcut.category === 'ai'
   if (currentCategory === 'personal') return shortcut.category === 'personal'
+  if (currentCategory === 'media') return shortcut.category === 'media'
+  if (currentCategory === 'comm') return shortcut.category === 'comm'
   if (currentCategory === 'recent') return true
   return true
 }
@@ -159,7 +164,7 @@ function renderGrid() {
   })
 
   // "+ New" card
-  if (currentCategory === 'all' || currentCategory === 'personal' || currentCategory === 'ai') {
+  if (currentCategory === 'all' || currentCategory === 'personal' || currentCategory === 'ai' || currentCategory === 'media' || currentCategory === 'comm') {
     const newCard = document.createElement('div')
     newCard.className = 'shortcut-card card-new'
     newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
@@ -179,6 +184,9 @@ async function startRun(shortcut) {
   const result = await runWorkflow(shortcut, {
     signal:       abortController.signal,
     promptUser,
+    promptRecord,
+    showConfirm,
+    showAlert,
     onStepStart:  (i)        => overlay.setStepActive(i),
     onStepEnd:    (i, entry) => overlay.setStepDone(i, entry),
     onShowResult: (text, kind) => overlay.showOutput(text, kind),
@@ -388,6 +396,8 @@ async function openSettings() {
   settingsBaseUrl.value = cfg.baseUrl
   settingsApiKey.value  = cfg.apiKey
   settingsModel.value   = cfg.model
+  settingsAsrModel.value= cfg.asrModel || 'whisper-1'
+  settingsImgModel.value= cfg.imageGenModel || 'dall-e-3'
   
   sLanguage.value = cfg.preferredLanguage || 'English'
   sLocation.value = cfg.userLocation || ''
@@ -438,6 +448,8 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
     baseUrl:              settingsBaseUrl.value.trim(),
     apiKey:               settingsApiKey.value.trim(),
     model:                settingsModel.value.trim(),
+    asrModel:             settingsAsrModel.value.trim(),
+    imageGenModel:        settingsImgModel.value.trim(),
     preferredLanguage:    sLanguage.value.trim(),
     userLocation:         sLocation.value.trim(),
     firecrawlApiKey:      sFirecrawlKey.value.trim(),

@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   saveTempFile: (data, ext) => ipcRenderer.invoke('save-temp-file', { data, ext }),
   readFileBase64: (filePath) => ipcRenderer.invoke('read-file-base64', filePath),
   playAudio: (filePath) => ipcRenderer.send('play-audio', filePath),
+  revealInFolder: (filePath) => ipcRenderer.send('reveal-in-folder', filePath),
+  downloadUrl: (url, fileName) => ipcRenderer.invoke('download-url', { url, fileName }),
 
   // Shortcut Discovery
   discoverShortcuts: () => ipcRenderer.invoke('discover-shortcuts'),
