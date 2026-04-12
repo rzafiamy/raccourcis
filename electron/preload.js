@@ -22,5 +22,10 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   clipboard: {
     readText: () => ipcRenderer.invoke('clipboard-read'),
     writeText: (text) => ipcRenderer.send('clipboard-write', text)
-  }
+  },
+
+  // File helpers used by TTS / ASR actions
+  saveTempFile: (data, ext) => ipcRenderer.invoke('save-temp-file', { data, ext }),
+  readFileBase64: (filePath) => ipcRenderer.invoke('read-file-base64', filePath),
+  playAudio: (filePath) => ipcRenderer.send('play-audio', filePath),
 })

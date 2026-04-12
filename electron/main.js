@@ -3,6 +3,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
+import fs from 'node:fs'
+import os from 'node:os'
 
 const execAsync = promisify(exec)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -22,7 +24,7 @@ function createWindow() {
     height: 720,
     minWidth: 760,
     minHeight: 540,
-    titleBarStyle: 'hidden',
+    frame: false,
     backgroundColor: '#0c0c0e',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -75,6 +77,34 @@ ipcMain.on('open-external', (_, url) => {
   } catch {
     console.warn('[main] Invalid URL rejected:', url)
   }
+})
+
+// ── File helpers ──────────────────────────────────────────────────────────────
+
+// Save a binary buffer (e.g. TTS audio) to a temp file, return the path.
+ipcMain.handle('save-temp-file', async (_, { data, ext }) => {
+  const tmpPath = path.join(os.tmpdir(), `raccourci_${Date.now()}.${ext}`)
+  fs.writeFileSync(tmpPath, Buffer.from(data))
+  return tmpPath
+})
+
+// Read a file as a base64 string (for ASR uploads).
+ipcMain.handle('read-file-base64', async (_, filePath) => {
+  const resolved = filePath.startsWith('~')
+    ? path.join(os.homedir(), filePath.slice(1))
+    : filePath
+  const buf = fs.readFileSync(resolved)
+  return buf.toString('base64')
+})
+
+// Play an audio file via the default system player (non-blocking).
+ipcMain.on('play-audio', (_, filePath) => {
+  const cmd = process.platform === 'darwin'
+    ? `afplay "${filePath}"`
+    : `xdg-open "${filePath}"`
+  exec(cmd, (err) => {
+    if (err) console.warn('[main] play-audio error:', err.message)
+  })
 })
 
 // ── Shell execution ───────────────────────────────────────────────────────────

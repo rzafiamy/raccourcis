@@ -138,6 +138,147 @@ export const ACTION_REGISTRY = [
     ],
   },
 
+  // ── AI media actions ───────────────────────────────────────────
+  {
+    type: 'tts',
+    title: 'Text to Speech',
+    desc: 'Convert text to spoken audio (OpenAI TTS) → audio result',
+    icon: 'volume-2',
+    color: '#FF9F0A',
+    defaults: {
+      text: '{{result}}',
+      voice: 'alloy',
+      model: 'tts-1',
+    },
+    params: [
+      {
+        name: 'text',
+        label: 'Text (use {{result}})',
+        kind: 'textarea',
+        placeholder: '{{result}}',
+      },
+      {
+        name: 'voice',
+        label: 'Voice',
+        kind: 'select',
+        options: [
+          { value: 'alloy', label: 'Alloy' },
+          { value: 'echo', label: 'Echo' },
+          { value: 'fable', label: 'Fable' },
+          { value: 'onyx', label: 'Onyx' },
+          { value: 'nova', label: 'Nova' },
+          { value: 'shimmer', label: 'Shimmer' },
+        ],
+      },
+      {
+        name: 'model',
+        label: 'Model',
+        kind: 'select',
+        options: [
+          { value: 'tts-1', label: 'tts-1 (fast)' },
+          { value: 'tts-1-hd', label: 'tts-1-hd (quality)' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'asr',
+    title: 'Speech to Text',
+    desc: 'Transcribe audio file to text (OpenAI Whisper) → result',
+    icon: 'mic',
+    color: '#64D2FF',
+    defaults: {
+      filePath: '',
+      language: '',
+    },
+    params: [
+      {
+        name: 'filePath',
+        label: 'Audio file path (or use {{result}} for a path)',
+        kind: 'text',
+        placeholder: '/path/to/audio.mp3 or {{result}}',
+      },
+      {
+        name: 'language',
+        label: 'Language (optional, e.g. en, fr)',
+        kind: 'text',
+        placeholder: 'en',
+      },
+    ],
+  },
+  {
+    type: 'image-gen',
+    title: 'Image Generation',
+    desc: 'Generate an image from a text prompt (DALL·E) → image URL',
+    icon: 'image',
+    color: '#BF5AF2',
+    defaults: {
+      prompt: '{{result}}',
+      size: '1024x1024',
+      quality: 'standard',
+      n: 1,
+    },
+    params: [
+      {
+        name: 'prompt',
+        label: 'Prompt (use {{result}})',
+        kind: 'textarea',
+        placeholder: 'A photorealistic cat astronaut on the moon',
+      },
+      {
+        name: 'size',
+        label: 'Size',
+        kind: 'select',
+        options: [
+          { value: '1024x1024', label: '1024×1024 (square)' },
+          { value: '1792x1024', label: '1792×1024 (landscape)' },
+          { value: '1024x1792', label: '1024×1792 (portrait)' },
+        ],
+      },
+      {
+        name: 'quality',
+        label: 'Quality',
+        kind: 'select',
+        options: [
+          { value: 'standard', label: 'Standard' },
+          { value: 'hd', label: 'HD' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'image-vision',
+    title: 'Image Vision',
+    desc: 'Analyse an image URL with GPT-4o Vision → text result',
+    icon: 'eye',
+    color: '#32D74B',
+    defaults: {
+      imageUrl: '{{result}}',
+      prompt: 'Describe this image in detail.',
+      systemPrompt: 'You are a helpful vision assistant.',
+    },
+    params: [
+      {
+        name: 'imageUrl',
+        label: 'Image URL (use {{result}} for previous step URL)',
+        kind: 'text',
+        placeholder: 'https://... or {{result}}',
+      },
+      {
+        name: 'prompt',
+        label: 'Question / instruction',
+        kind: 'textarea',
+        placeholder: 'Describe this image in detail.',
+      },
+      {
+        name: 'systemPrompt',
+        label: 'System Prompt (optional)',
+        kind: 'textarea',
+        placeholder: 'You are a helpful vision assistant.',
+      },
+    ],
+  },
+
   // ── System (Linux/desktop) ─────────────────────────────────────
   {
     type: 'shell',

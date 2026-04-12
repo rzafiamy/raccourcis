@@ -1,9 +1,5 @@
 /**
  * ui.js — Rendering helpers
- *
- * Pure DOM-building functions. Each function returns a DOM node or
- * mutates an existing element. No state is held here — the caller
- * (renderer.js) owns state and passes it in.
  */
 
 import { ACTION_REGISTRY, getActionDef } from './actions.js'
@@ -23,20 +19,14 @@ export function refreshIcons(root = document) {
 
 // ── Shortcut card ─────────────────────────────────────────────────────────────
 
-/**
- * Build a shortcut card element.
- * @param {object} shortcut
- * @param {object} callbacks { onRun, onEdit, onDelete }
- */
 export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
   const card = document.createElement('div')
   card.className = `shortcut-card ${shortcut.color}`
   card.dataset.id = shortcut.id
 
-  const icEl = icon(shortcut.icon, 'shortcut-icon-svg')
   const iconWrap = document.createElement('div')
   iconWrap.className = 'shortcut-icon'
-  iconWrap.appendChild(icEl)
+  iconWrap.appendChild(icon(shortcut.icon, 'shortcut-icon-svg'))
 
   const namEl = document.createElement('div')
   namEl.className = 'shortcut-name'
@@ -67,17 +57,10 @@ export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
   card.appendChild(stepCount)
   card.appendChild(actions)
 
-  // ── Interaction ──
   card.addEventListener('click', (e) => {
-    if (e.target.closest('.edit-btn')) {
-      e.stopPropagation()
-      onEdit(shortcut)
-    } else if (e.target.closest('.delete-btn')) {
-      e.stopPropagation()
-      onDelete(shortcut)
-    } else {
-      onRun(shortcut)
-    }
+    if (e.target.closest('.edit-btn'))   { e.stopPropagation(); onEdit(shortcut) }
+    else if (e.target.closest('.delete-btn')) { e.stopPropagation(); onDelete(shortcut) }
+    else onRun(shortcut)
   })
 
   return card
@@ -85,22 +68,21 @@ export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
 
 // ── Run overlay ───────────────────────────────────────────────────────────────
 
-/**
- * Create and mount the run-overlay. Returns an API to update it.
- */
 export function createRunOverlay(shortcut, onCancel) {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay run-overlay'
+  overlay.style.display = 'flex'
 
   overlay.innerHTML = `
     <div class="run-modal">
       <div class="run-header">
         <div class="run-icon ${shortcut.color}"></div>
-        <div>
+        <div class="run-header-info">
           <div class="run-title">${shortcut.name}</div>
           <div class="run-status" id="runStatus">Starting…</div>
         </div>
-        <button class="action-btn" id="runCancelBtn" title="Cancel"></button>
+        <button class="action-btn run-cancel-btn" id="runCancelBtn" title="Cancel"></button>
+        <button class="action-btn run-close-btn" id="runCloseBtn" title="Close" style="display:none"></button>
       </div>
       <div class="run-progress-track">
         <div class="run-progress-bar" id="runProgressBar" style="width:0%"></div>
@@ -108,20 +90,22 @@ export function createRunOverlay(shortcut, onCancel) {
       <div class="run-steps-list" id="runStepsList"></div>
       <div class="run-output" id="runOutput" style="display:none">
         <div class="run-output-label">Output</div>
-        <pre class="run-output-text" id="runOutputText"></pre>
+        <div class="run-output-text" id="runOutputText"></div>
         <button class="run-copy-btn" id="runCopyBtn">Copy</button>
       </div>
     </div>
   `
 
-  // Inject cancel icon
   const cancelBtn = overlay.querySelector('#runCancelBtn')
+  const closeBtn  = overlay.querySelector('#runCloseBtn')
   cancelBtn.appendChild(icon('x'))
+  closeBtn.appendChild(icon('x'))
 
   cancelBtn.addEventListener('click', () => {
     onCancel()
     cancelBtn.disabled = true
   })
+  closeBtn.addEventListener('click', () => overlay.remove())
 
   // Pre-render step rows
   const stepsList = overlay.querySelector('#runStepsList')
@@ -140,14 +124,15 @@ export function createRunOverlay(shortcut, onCancel) {
   document.body.appendChild(overlay)
   refreshIcons(overlay)
 
-  const statusEl = overlay.querySelector('#runStatus')
+  const statusEl   = overlay.querySelector('#runStatus')
   const progressEl = overlay.querySelector('#runProgressBar')
-  const outputEl = overlay.querySelector('#runOutput')
+  const outputEl   = overlay.querySelector('#runOutput')
   const outputText = overlay.querySelector('#runOutputText')
-  const copyBtn = overlay.querySelector('#runCopyBtn')
+  const copyBtn    = overlay.querySelector('#runCopyBtn')
 
   copyBtn.addEventListener('click', () => {
-    window.ipcRenderer.clipboard.writeText(outputText.textContent)
+    const text = outputText.textContent || outputText.innerText
+    window.ipcRenderer.clipboard.writeText(text)
     copyBtn.textContent = 'Copied!'
     setTimeout(() => (copyBtn.textContent = 'Copy'), 1500)
   })
@@ -165,43 +150,61 @@ export function createRunOverlay(shortcut, onCancel) {
       if (!row) return
       row.classList.remove('active')
       row.classList.add(entry.error ? 'error' : 'done')
-      const stateEl = row.querySelector(`#runStepState-${i}`)
-      stateEl.textContent = entry.error ? '✕' : `${entry.ms}ms`
+      const stateEl = overlay.querySelector(`#runStepState-${i}`)
+      if (stateEl) stateEl.textContent = entry.error ? '✕' : `${entry.ms}ms`
     },
-    setStatus(text, isError = false) {
-      statusEl.textContent = text
-      statusEl.className = `run-status ${isError ? 'error' : ''}`
-    },
-    setProgress(pct) {
-      progressEl.style.width = `${pct}%`
-    },
-    showOutput(text) {
+    showOutput(content, kind = 'text') {
       outputEl.style.display = 'block'
-      outputText.textContent = text
+      outputText.innerHTML = ''
+      copyBtn.style.display = 'block'
+      if (kind === 'image') {
+        const img = document.createElement('img')
+        img.src = content
+        img.className = 'run-output-image'
+        img.alt = 'Generated image'
+        outputText.appendChild(img)
+      } else if (kind === 'audio') {
+        const audio = document.createElement('audio')
+        audio.controls = true
+        audio.src = `file://${content}`
+        audio.className = 'run-output-audio'
+        outputText.appendChild(audio)
+        copyBtn.style.display = 'none'
+      } else {
+        const pre = document.createElement('pre')
+        pre.className = 'run-output-pre'
+        pre.textContent = content
+        outputText.appendChild(pre)
+      }
     },
-    setDone(ok, result) {
+    setDone(ok, result, errorMsg) {
       progressEl.style.width = '100%'
       statusEl.textContent = ok ? 'Completed' : 'Failed'
       statusEl.className = `run-status ${ok ? 'done' : 'error'}`
       cancelBtn.style.display = 'none'
-      if (ok && result) this.showOutput(result)
+      closeBtn.style.display  = 'flex'
+      if (!ok && errorMsg) {
+        outputEl.style.display = 'block'
+        outputText.innerHTML = `<pre class="run-output-pre error-text">${errorMsg}</pre>`
+        copyBtn.style.display = 'none'
+      } else if (ok && result) {
+        const isImageUrl = typeof result === 'string' &&
+          result.startsWith('http') &&
+          (result.includes('oaidalleapiprodscus') || /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(result))
+        this.showOutput(result, isImageUrl ? 'image' : 'text')
+      }
     },
-    dismiss() {
-      overlay.remove()
-    },
+    dismiss() { overlay.remove() },
   }
 }
 
 // ── User-input prompt ─────────────────────────────────────────────────────────
 
-/**
- * Show a modal asking the user to type something.
- * Returns the entered string, or null if cancelled.
- */
 export function promptUser({ label, placeholder, prefill = '' }) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
+    overlay.style.display = 'flex'
 
     overlay.innerHTML = `
       <div class="modal-content" style="max-width:480px;height:auto;">
@@ -225,19 +228,11 @@ export function promptUser({ label, placeholder, prefill = '' }) {
     field.focus()
     field.select()
 
-    const confirm = () => {
-      const val = field.value
-      overlay.remove()
-      resolve(val)
-    }
-    const cancel = () => {
-      overlay.remove()
-      resolve(null)
-    }
+    const confirm = () => { overlay.remove(); resolve(field.value) }
+    const cancel  = () => { overlay.remove(); resolve(null) }
 
     overlay.querySelector('#userInputConfirm').addEventListener('click', confirm)
     overlay.querySelector('#userInputCancel').addEventListener('click', cancel)
-
     field.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirm()
       if (e.key === 'Escape') cancel()
@@ -251,6 +246,7 @@ export function showConfirm({ title, message }) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
+    overlay.style.display = 'flex'
     overlay.innerHTML = `
       <div class="modal-content" style="max-width:400px;height:auto;">
         <div class="modal-body" style="text-align:center;padding:40px 32px 24px;">
@@ -265,96 +261,82 @@ export function showConfirm({ title, message }) {
     `
     document.body.appendChild(overlay)
     overlay.querySelector('#confirmYes').addEventListener('click', () => { overlay.remove(); resolve(true) })
-    overlay.querySelector('#confirmNo').addEventListener('click', () => { overlay.remove(); resolve(false) })
+    overlay.querySelector('#confirmNo').addEventListener('click',  () => { overlay.remove(); resolve(false) })
   })
 }
 
-// ── Debug log panel ───────────────────────────────────────────────────────────
+// ── Step card (canvas) ────────────────────────────────────────────────────────
 
 /**
- * Render a run's debug log into an element.
- */
-export function renderDebugLog(container, log) {
-  container.innerHTML = ''
-  log.forEach((entry) => {
-    const row = document.createElement('div')
-    row.className = `debug-row ${entry.error ? 'debug-error' : 'debug-ok'}`
-
-    const badge = document.createElement('span')
-    badge.className = 'debug-badge'
-    badge.textContent = entry.error ? '✕' : '✓'
-
-    const title = document.createElement('span')
-    title.className = 'debug-title'
-    title.textContent = `${entry.title} (${entry.ms}ms)`
-
-    const detail = document.createElement('div')
-    detail.className = 'debug-detail'
-    if (entry.error) {
-      detail.textContent = `Error: ${entry.error}`
-    } else {
-      const inp = entry.input ? `In: ${truncate(entry.input, 80)}` : ''
-      const out = entry.output ? `Out: ${truncate(entry.output, 80)}` : ''
-      detail.textContent = [inp, out].filter(Boolean).join(' → ')
-    }
-
-    row.appendChild(badge)
-    row.appendChild(title)
-    row.appendChild(detail)
-    container.appendChild(row)
-  })
-}
-
-function truncate(str, max) {
-  if (!str) return ''
-  return str.length > max ? str.slice(0, max) + '…' : str
-}
-
-// ── Step editor ───────────────────────────────────────────────────────────────
-
-/**
- * Build the editable step card for the workflow editor.
  * @param {object} step
  * @param {number} index
- * @param {function} onChange(index, newStep) — called when any field changes
- * @param {function} onRemove(index)
+ * @param {object} callbacks { onChange, onRemove, onMoveUp, onMoveDown }
  */
-export function buildStepCard(step, index, onChange, onRemove) {
-  const def = getActionDef(step.type)
+export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMoveDown }) {
+  const def  = getActionDef(step.type)
   const card = document.createElement('div')
   card.className = 'step-card'
 
+  // ── Header ──
   const header = document.createElement('div')
   header.className = 'step-header'
-  header.innerHTML = `
-    <div class="step-icon" style="background:${step.color}"></div>
-    <div class="step-info">
-      <div class="step-title">${step.title}</div>
-      <div class="step-desc">${step.desc}</div>
-    </div>
-  `
-  const stepIconEl = header.querySelector('.step-icon')
+
+  const dragHandle = document.createElement('div')
+  dragHandle.className = 'step-drag-handle'
+  dragHandle.appendChild(icon('grip-vertical'))
+  dragHandle.title = 'Drag to reorder'
+
+  const stepIconEl = document.createElement('div')
+  stepIconEl.className = 'step-icon'
+  stepIconEl.style.background = step.color
   stepIconEl.appendChild(icon(step.icon))
+
+  const stepInfo = document.createElement('div')
+  stepInfo.className = 'step-info'
+  stepInfo.innerHTML = `<div class="step-title">${step.title}</div><div class="step-desc">${step.desc}</div>`
+
+  const stepControls = document.createElement('div')
+  stepControls.className = 'step-controls'
+
+  const moveUpBtn = document.createElement('button')
+  moveUpBtn.className = 'action-btn step-ctrl-btn'
+  moveUpBtn.title = 'Move up'
+  moveUpBtn.appendChild(icon('chevron-up'))
+  moveUpBtn.addEventListener('click', (e) => { e.stopPropagation(); onMoveUp(index) })
+
+  const moveDownBtn = document.createElement('button')
+  moveDownBtn.className = 'action-btn step-ctrl-btn'
+  moveDownBtn.title = 'Move down'
+  moveDownBtn.appendChild(icon('chevron-down'))
+  moveDownBtn.addEventListener('click', (e) => { e.stopPropagation(); onMoveDown(index) })
 
   const removeBtn = document.createElement('button')
   removeBtn.className = 'action-btn remove-step-btn'
-  removeBtn.title = 'Remove step'
-  removeBtn.appendChild(icon('x'))
-  removeBtn.addEventListener('click', () => onRemove(index))
-  header.appendChild(removeBtn)
+  removeBtn.title = 'Remove'
+  removeBtn.appendChild(icon('trash-2'))
+  removeBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(index) })
 
+  stepControls.appendChild(moveUpBtn)
+  stepControls.appendChild(moveDownBtn)
+  stepControls.appendChild(removeBtn)
+
+  header.appendChild(dragHandle)
+  header.appendChild(stepIconEl)
+  header.appendChild(stepInfo)
+  header.appendChild(stepControls)
   card.appendChild(header)
 
+  // ── Params ──
   if (def && def.params.length > 0) {
-    const params = document.createElement('div')
-    params.className = 'step-params'
+    const paramsEl = document.createElement('div')
+    paramsEl.className = 'step-params'
 
     def.params.forEach((param) => {
       const group = document.createElement('div')
       group.className = 'param-group'
 
-      const label = document.createElement('label')
-      label.textContent = param.label
+      const labelEl = document.createElement('label')
+      labelEl.textContent = param.label
 
       let input
       if (param.kind === 'textarea') {
@@ -369,6 +351,16 @@ export function buildStepCard(step, index, onChange, onRemove) {
         input.className = 'input-field'
         input.value = step[param.name] ?? ''
         input.placeholder = param.placeholder || ''
+      } else if (param.kind === 'select') {
+        input = document.createElement('select')
+        input.className = 'input-field select-field'
+        ;(param.options || []).forEach((opt) => {
+          const option = document.createElement('option')
+          option.value = opt.value
+          option.textContent = opt.label
+          if ((step[param.name] ?? param.options[0]?.value) === opt.value) option.selected = true
+          input.appendChild(option)
+        })
       } else {
         input = document.createElement('input')
         input.type = 'text'
@@ -377,56 +369,64 @@ export function buildStepCard(step, index, onChange, onRemove) {
         input.placeholder = param.placeholder || ''
       }
 
-      input.addEventListener('input', () => {
-        const updated = { ...step, [param.name]: input.value }
-        onChange(index, updated)
+      const eventType = (input.tagName === 'SELECT') ? 'change' : 'input'
+      input.addEventListener(eventType, () => {
+        onChange(index, { ...step, [param.name]: input.value })
       })
 
-      group.appendChild(label)
+      group.appendChild(labelEl)
       group.appendChild(input)
-      params.appendChild(group)
+      paramsEl.appendChild(group)
     })
 
-    card.appendChild(params)
+    card.appendChild(paramsEl)
   }
 
   refreshIcons(card)
   return card
 }
 
-// ── Action picker ─────────────────────────────────────────────────────────────
+// ── Palette list ──────────────────────────────────────────────────────────────
 
-/**
- * Build the list of available actions for the picker modal.
- * @param {function} onPick(actionDef)
- */
-export function buildActionPicker(onPick) {
-  const list = document.createElement('div')
-  list.className = 'action-picker-list'
+const PALETTE_GROUPS = [
+  { label: 'Input',   types: ['clipboard-read', 'user-input'] },
+  { label: 'AI',      types: ['ai-prompt', 'image-gen', 'image-vision', 'tts', 'asr'] },
+  { label: 'Output',  types: ['clipboard-write', 'show-result', 'url-open'] },
+  { label: 'Control', types: ['wait', 'set-var'] },
+  { label: 'System',  types: ['shell'] },
+]
 
-  const groups = [
-    { label: 'Input', types: ['clipboard-read', 'user-input'] },
-    { label: 'AI', types: ['ai-prompt'] },
-    { label: 'Output', types: ['clipboard-write', 'show-result', 'url-open'] },
-    { label: 'Control', types: ['wait', 'set-var'] },
-    { label: 'System', types: ['shell'] },
-  ]
+export function buildPaletteList(filter, onPick) {
+  const q    = (filter || '').toLowerCase().trim()
+  const wrap = document.createElement('div')
+  wrap.className = 'palette-groups'
 
-  groups.forEach(({ label, types }) => {
+  PALETTE_GROUPS.forEach(({ label, types }) => {
+    const matched = types
+      .map((t) => ACTION_REGISTRY.find((a) => a.type === t))
+      .filter((def) => {
+        if (!def) return false
+        if (!q) return true
+        return def.title.toLowerCase().includes(q) || def.desc.toLowerCase().includes(q)
+      })
+
+    if (matched.length === 0) return
+
+    const groupEl = document.createElement('div')
+    groupEl.className = 'palette-group'
+
     const groupLabel = document.createElement('div')
-    groupLabel.className = 'picker-group-label'
+    groupLabel.className = 'palette-group-label'
     groupLabel.textContent = label
-    list.appendChild(groupLabel)
+    groupEl.appendChild(groupLabel)
 
-    types.forEach((type) => {
-      const def = ACTION_REGISTRY.find((a) => a.type === type)
-      if (!def) return
-
+    matched.forEach((def) => {
       const row = document.createElement('div')
-      row.className = 'picker-row'
+      row.className = 'palette-row'
+      row.draggable = true   // future: drag from palette to canvas
 
       const badge = document.createElement('div')
-      badge.className = 'step-icon'
+      badge.className = 'step-icon palette-badge'
       badge.style.background = def.color
       badge.appendChild(icon(def.icon))
 
@@ -434,13 +434,26 @@ export function buildActionPicker(onPick) {
       info.className = 'step-info'
       info.innerHTML = `<div class="step-title">${def.title}</div><div class="step-desc">${def.desc}</div>`
 
+      const addBtn = document.createElement('button')
+      addBtn.className = 'palette-add-btn'
+      addBtn.title = 'Add action'
+      addBtn.appendChild(icon('plus'))
+
       row.appendChild(badge)
       row.appendChild(info)
+      row.appendChild(addBtn)
+
       row.addEventListener('click', () => onPick(def))
-      list.appendChild(row)
+      groupEl.appendChild(row)
     })
+
+    wrap.appendChild(groupEl)
   })
 
-  refreshIcons(list)
-  return list
+  if (wrap.childElementCount === 0) {
+    wrap.innerHTML = `<div class="palette-empty">No actions match "${filter}"</div>`
+  }
+
+  refreshIcons(wrap)
+  return wrap
 }

@@ -15,9 +15,9 @@
   <!-- ── Sidebar ────────────────────────────────────── -->
   <aside class="sidebar">
     <div class="window-controls">
-      <div class="control close"    id="winClose"></div>
-      <div class="control minimize" id="winMinimize"></div>
-      <div class="control maximize" id="winMaximize"></div>
+      <div class="control close"    id="winClose"    title="Close"></div>
+      <div class="control minimize" id="winMinimize" title="Minimize"></div>
+      <div class="control maximize" id="winMaximize" title="Maximize"></div>
     </div>
 
     <div class="sidebar-logo">
@@ -53,7 +53,7 @@
   </aside>
 
   <!-- ── Main content ──────────────────────────────── -->
-  <main class="main-content">
+  <main class="main-content" id="mainContent">
     <header class="header">
       <h1>All Shortcuts</h1>
       <div class="search-container">
@@ -61,90 +61,74 @@
         <input class="search-input" type="text" placeholder="Search…" autocomplete="off">
       </div>
     </header>
-
     <div class="shortcut-grid" id="shortcutGrid"></div>
   </main>
-</div>
 
-<!-- ══════════════════════════════════════════════════════
-     Workflow Editor Modal
-══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="editorModal">
-  <div class="modal-content editor-modal">
+  <!-- ── Editor panel (full-screen overlay inside #app) ── -->
+  <div class="editor-panel" id="editorPanel">
 
-    <div class="modal-header">
-      <input class="modal-title-input" id="editorName" type="text" placeholder="Shortcut name">
-      <button class="action-btn" id="closeEditorModal" title="Close">
-        <i data-lucide="x"></i>
+    <!-- Top bar -->
+    <div class="editor-topbar">
+      <button class="editor-back-btn" id="editorBackBtn" title="Back">
+        <i data-lucide="chevron-left"></i>
       </button>
-    </div>
-
-    <div class="modal-body">
-
-      <!-- Appearance row -->
-      <div class="editor-meta-row">
-        <div class="form-group">
-          <label>Color</label>
-          <div class="color-picker">
-            <div class="color-swatch bg-blue"   data-color="bg-blue"></div>
-            <div class="color-swatch bg-pink"   data-color="bg-pink"></div>
-            <div class="color-swatch bg-purple" data-color="bg-purple"></div>
-            <div class="color-swatch bg-orange" data-color="bg-orange"></div>
-            <div class="color-swatch bg-green"  data-color="bg-green"></div>
-            <div class="color-swatch bg-cyan"   data-color="bg-cyan"></div>
-            <div class="color-swatch bg-indigo" data-color="bg-indigo"></div>
-          </div>
+      <input class="editor-name-input" id="editorName" type="text" placeholder="Shortcut name…" spellcheck="false">
+      <div class="editor-topbar-meta">
+        <!-- Color swatches -->
+        <div class="color-picker" id="colorPicker">
+          <div class="color-swatch bg-blue"   data-color="bg-blue"></div>
+          <div class="color-swatch bg-pink"   data-color="bg-pink"></div>
+          <div class="color-swatch bg-purple" data-color="bg-purple"></div>
+          <div class="color-swatch bg-orange" data-color="bg-orange"></div>
+          <div class="color-swatch bg-green"  data-color="bg-green"></div>
+          <div class="color-swatch bg-cyan"   data-color="bg-cyan"></div>
+          <div class="color-swatch bg-indigo" data-color="bg-indigo"></div>
         </div>
-
-        <div class="form-group" style="display:flex;gap:12px;align-items:center;">
-          <div>
-            <label>Category</label>
-            <select class="input-field select-field" id="editorCategory">
-              <option value="personal">Personal</option>
-              <option value="ai">AI Workflow</option>
-            </select>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:24px;">
-            <input type="checkbox" id="editorFavorite">
-            <label style="margin:0;text-transform:none;font-size:14px;">Favorite</label>
-          </div>
-        </div>
+        <!-- Category -->
+        <select class="input-field select-field editor-category" id="editorCategory">
+          <option value="personal">Personal</option>
+          <option value="ai">AI Workflow</option>
+        </select>
+        <!-- Favorite -->
+        <label class="fav-toggle" title="Favorite">
+          <input type="checkbox" id="editorFavorite">
+          <i data-lucide="star"></i>
+        </label>
       </div>
-
-      <!-- Steps -->
-      <div class="form-group">
-        <label>Actions</label>
-        <div id="editorSteps"></div>
-        <button class="add-step-btn" id="addStep">
-          <i data-lucide="plus"></i>
-          <span>Add Action</span>
+      <div class="editor-topbar-actions">
+        <button class="btn btn-ghost" id="editorSaveBtn">Save</button>
+        <button class="btn btn-primary" id="editorRunBtn">
+          <i data-lucide="play"></i> Run
         </button>
       </div>
     </div>
 
-    <div class="modal-footer">
-      <button class="btn btn-ghost"    id="editorRunBtn">Run now</button>
-      <button class="btn btn-primary"  id="editorSaveBtn">Save</button>
-    </div>
+    <!-- Body: canvas + palette -->
+    <div class="editor-body">
 
-  </div>
-</div>
+      <!-- Canvas (left) -->
+      <div class="editor-canvas" id="editorCanvas">
+        <div class="canvas-empty" id="canvasEmpty">
+          <i data-lucide="mouse-pointer-click"></i>
+          <p>Pick actions from the panel on the right<br>to build your workflow.</p>
+        </div>
+        <div class="canvas-steps" id="editorSteps"></div>
+      </div>
 
-<!-- ══════════════════════════════════════════════════════
-     Action Picker Modal
-══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="actionPickerModal">
-  <div class="modal-content picker-modal">
-    <div class="modal-header">
-      <h2>Add Action</h2>
-      <button class="action-btn" id="closeActionPicker" title="Close">
-        <i data-lucide="x"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div id="actionPickerContent"></div>
+      <!-- Palette (right) -->
+      <aside class="editor-palette">
+        <div class="palette-header">
+          <div class="palette-search-wrap">
+            <i data-lucide="search"></i>
+            <input class="palette-search" id="paletteSearch" type="text" placeholder="Search actions…" autocomplete="off">
+          </div>
+        </div>
+        <div class="palette-list" id="paletteList"></div>
+      </aside>
+
     </div>
   </div>
+
 </div>
 
 <!-- ══════════════════════════════════════════════════════

@@ -72,6 +72,133 @@ async function callAI(prompt, systemPrompt, signal) {
   return data.choices[0].message.content
 }
 
+// ── TTS call ──────────────────────────────────────────────────────────────────
+
+async function callTTS(text, voice, model, signal) {
+  const cfg = loadConfig()
+  if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
+
+  const res = await fetch(`${cfg.baseUrl}/audio/speech`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${cfg.apiKey}`,
+    },
+    signal,
+    body: JSON.stringify({ model: model || 'tts-1', input: text, voice: voice || 'alloy' }),
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error?.message || `TTS request failed (${res.status})`)
+  }
+
+  // Return as Uint8Array so we can hand it to IPC for file saving
+  const buf = await res.arrayBuffer()
+  return new Uint8Array(buf)
+}
+
+// ── ASR call ──────────────────────────────────────────────────────────────────
+
+async function callASR(fileBase64, fileName, language, signal) {
+  const cfg = loadConfig()
+  if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
+
+  // Rebuild binary from base64
+  const binaryStr = atob(fileBase64)
+  const bytes = new Uint8Array(binaryStr.length)
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+  const blob = new Blob([bytes])
+
+  const form = new FormData()
+  form.append('file', blob, fileName)
+  form.append('model', 'whisper-1')
+  if (language) form.append('language', language)
+
+  const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${cfg.apiKey}` },
+    signal,
+    body: form,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error?.message || `ASR request failed (${res.status})`)
+  }
+
+  const data = await res.json()
+  return data.text
+}
+
+// ── Image generation call ─────────────────────────────────────────────────────
+
+async function callImageGen(prompt, size, quality, signal) {
+  const cfg = loadConfig()
+  if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
+
+  const res = await fetch(`${cfg.baseUrl}/images/generations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${cfg.apiKey}`,
+    },
+    signal,
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size: size || '1024x1024',
+      quality: quality || 'standard',
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error?.message || `Image generation failed (${res.status})`)
+  }
+
+  const data = await res.json()
+  return data.data[0].url
+}
+
+// ── Vision call ───────────────────────────────────────────────────────────────
+
+async function callVision(imageUrl, prompt, systemPrompt, signal) {
+  const cfg = loadConfig()
+  if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
+
+  const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${cfg.apiKey}`,
+    },
+    signal,
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt || 'You are a helpful vision assistant.' },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl } },
+            { type: 'text', text: prompt || 'Describe this image.' },
+          ],
+        },
+      ],
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error?.message || `Vision request failed (${res.status})`)
+  }
+
+  const data = await res.json()
+  return data.choices[0].message.content
+}
+
 // ── Step executors ────────────────────────────────────────────────────────────
 
 const EXECUTORS = {
@@ -124,9 +251,8 @@ const EXECUTORS = {
     await new Promise((resolve) => setTimeout(resolve, ms))
   },
 
-  shell: async (step, ctx, opts) => {
+  shell: async (step, ctx, _opts) => {
     const s = interpolateStep(step, ctx)
-    if (!window.ipcRenderer.invoke) throw new Error('IPC invoke not available.')
     const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', s.command)
     if (exitCode !== 0) throw new Error(`Shell exited ${exitCode}: ${stderr}`)
     ctx.result = stdout.trimEnd()
@@ -135,6 +261,47 @@ const EXECUTORS = {
   'set-var': async (step, ctx, _opts) => {
     const name = step.varName || 'result'
     ctx.vars[name] = ctx.result
+  },
+
+  tts: async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    if (!text) throw new Error('TTS: no text to speak.')
+    const audioBytes = await callTTS(text, s.voice, s.model, opts.signal)
+    // Save to temp file so it can be played / previewed
+    const filePath = await window.ipcRenderer.saveTempFile(Array.from(audioBytes), 'mp3')
+    // Play immediately in background
+    window.ipcRenderer.playAudio(filePath)
+    // Expose path as result for downstream steps
+    ctx.result = filePath
+    ctx.vars._ttsFile = filePath
+    if (opts.onShowResult) opts.onShowResult(filePath, 'audio')
+  },
+
+  asr: async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const filePath = s.filePath || ctx.result
+    if (!filePath) throw new Error('ASR: no audio file path provided.')
+    const base64 = await window.ipcRenderer.readFileBase64(filePath)
+    const fileName = filePath.split('/').pop() || 'audio.mp3'
+    ctx.result = await callASR(base64, fileName, s.language || '', opts.signal)
+  },
+
+  'image-gen': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const prompt = s.prompt || ctx.result
+    if (!prompt) throw new Error('Image generation: no prompt provided.')
+    const url = await callImageGen(prompt, s.size, s.quality, opts.signal)
+    ctx.result = url
+    ctx.vars._imageUrl = url
+    if (opts.onShowResult) opts.onShowResult(url, 'image')
+  },
+
+  'image-vision': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const imageUrl = s.imageUrl || ctx.result
+    if (!imageUrl) throw new Error('Vision: no image URL provided.')
+    ctx.result = await callVision(imageUrl, s.prompt, s.systemPrompt, opts.signal)
   },
 }
 

@@ -1,17 +1,9 @@
 /**
  * renderer.js — Main orchestrator
- *
- * Wires store ↔ workflow ↔ ui together.
- * Keeps state minimal: shortcuts[], config, currentCategory, editingShortcut.
- *
- * UX flow:
- *   Click card → runWorkflow (1 click)
- *   Click edit icon → editor modal → Save / Run (2 clicks)
- *   Click + card → editor modal for new shortcut
  */
 
 import { loadShortcuts, saveShortcuts, loadConfig, saveConfig, appendRun } from './store.js'
-import { makeStep } from './actions.js'
+import { ACTION_REGISTRY, makeStep } from './actions.js'
 import { runWorkflow } from './workflow.js'
 import {
   buildShortcutCard,
@@ -19,7 +11,7 @@ import {
   promptUser,
   showConfirm,
   buildStepCard,
-  buildActionPicker,
+  buildPaletteList,
   refreshIcons,
 } from './ui.js'
 
@@ -31,31 +23,35 @@ let editingShortcut = null   // deep-copy of shortcut being edited
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
-const grid = document.getElementById('shortcutGrid')
-const mainTitle = document.querySelector('.header h1')
-const searchInput = document.querySelector('.search-input')
+const grid         = document.getElementById('shortcutGrid')
+const mainTitle    = document.querySelector('.header h1')
+const searchInput  = document.querySelector('.search-input')
+const mainContent  = document.getElementById('mainContent')
+const editorPanel  = document.getElementById('editorPanel')
 
-// Modals
-const editorModal = document.getElementById('editorModal')
-const settingsModal = document.getElementById('settingsModal')
-const actionPickerModal = document.getElementById('actionPickerModal')
-
-// Editor
-const editorNameInput = document.getElementById('editorName')
-const editorSteps = document.getElementById('editorSteps')
-const editorFavorite = document.getElementById('editorFavorite')
+// Editor top-bar
+const editorNameInput      = document.getElementById('editorName')
+const editorFavorite       = document.getElementById('editorFavorite')
 const editorCategorySelect = document.getElementById('editorCategory')
-const colorSwatches = document.querySelectorAll('.color-swatch')
-const addStepBtn = document.getElementById('addStep')
-const editorRunBtn = document.getElementById('editorRunBtn')
-const editorSaveBtn = document.getElementById('editorSaveBtn')
+const colorSwatches        = document.querySelectorAll('#colorPicker .color-swatch')
+const editorSaveBtn        = document.getElementById('editorSaveBtn')
+const editorRunBtn         = document.getElementById('editorRunBtn')
+const editorBackBtn        = document.getElementById('editorBackBtn')
+
+// Editor canvas / palette
+const editorSteps  = document.getElementById('editorSteps')
+const canvasEmpty  = document.getElementById('canvasEmpty')
+const paletteList  = document.getElementById('paletteList')
+const paletteSearch= document.getElementById('paletteSearch')
 
 // Settings
+const settingsModal   = document.getElementById('settingsModal')
 const settingsBaseUrl = document.getElementById('aiBaseUrl')
-const settingsApiKey = document.getElementById('aiApiKey')
-const settingsModel = document.getElementById('aiModel')
+const settingsApiKey  = document.getElementById('aiApiKey')
+const settingsModel   = document.getElementById('aiModel')
 
-// Window controls
+// ── Window controls ───────────────────────────────────────────────────────────
+
 document.getElementById('winClose').addEventListener('click', () => window.ipcRenderer.send('window-close'))
 document.getElementById('winMinimize').addEventListener('click', () => window.ipcRenderer.send('window-minimize'))
 document.getElementById('winMaximize').addEventListener('click', () => window.ipcRenderer.send('window-maximize'))
@@ -97,26 +93,22 @@ function matchesFilter(shortcut) {
 
 function renderGrid() {
   grid.innerHTML = ''
-
   const filtered = shortcuts.filter(matchesFilter)
 
   filtered.forEach((shortcut) => {
     const card = buildShortcutCard(shortcut, {
-      onRun: (s) => startRun(s),
-      onEdit: (s) => openEditor(s),
+      onRun:    (s) => startRun(s),
+      onEdit:   (s) => openEditor(s),
       onDelete: (s) => deleteShortcut(s),
     })
     grid.appendChild(card)
   })
 
   // "+ New" card
-  if (currentCategory === 'all' || currentCategory === 'personal') {
+  if (currentCategory === 'all' || currentCategory === 'personal' || currentCategory === 'ai') {
     const newCard = document.createElement('div')
     newCard.className = 'shortcut-card card-new'
-    newCard.innerHTML = `
-      <div class="new-card-icon"><i data-lucide="plus"></i></div>
-      <div class="shortcut-name">New Shortcut</div>
-    `
+    newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
     newCard.addEventListener('click', () => openEditor(null))
     grid.appendChild(newCard)
   }
@@ -128,40 +120,35 @@ function renderGrid() {
 
 async function startRun(shortcut) {
   const abortController = new AbortController()
-
   const overlay = createRunOverlay(shortcut, () => abortController.abort())
 
   const result = await runWorkflow(shortcut, {
-    signal: abortController.signal,
+    signal:       abortController.signal,
     promptUser,
-    onStepStart: (i) => overlay.setStepActive(i),
-    onStepEnd: (i, entry) => overlay.setStepDone(i, entry),
-    onShowResult: (text) => overlay.showOutput(text),
+    onStepStart:  (i)        => overlay.setStepActive(i),
+    onStepEnd:    (i, entry) => overlay.setStepDone(i, entry),
+    onShowResult: (text, kind) => overlay.showOutput(text, kind),
   })
 
-  overlay.setDone(result.ok, result.result)
+  overlay.setDone(result.ok, result.result, result.error)
 
-  // Persist run to history
   appendRun({
-    shortcutId: shortcut.id,
+    shortcutId:   shortcut.id,
     shortcutName: shortcut.name,
-    ok: result.ok,
-    durationMs: result.durationMs,
-    error: result.error,
-    log: result.log,
-    runAt: new Date().toISOString(),
+    ok:           result.ok,
+    durationMs:   result.durationMs,
+    error:        result.error,
+    log:          result.log,
+    runAt:        new Date().toISOString(),
   })
-
-  // Auto-dismiss after delay
-  await delay(result.ok ? 2000 : 4000)
-  overlay.dismiss()
+  // Overlay stays open — user closes it manually
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 
 async function deleteShortcut(shortcut) {
   const confirmed = await showConfirm({
-    title: 'Delete shortcut?',
+    title:   'Delete shortcut?',
     message: `"${shortcut.name}" will be permanently removed.`,
   })
   if (!confirmed) return
@@ -170,64 +157,129 @@ async function deleteShortcut(shortcut) {
   renderGrid()
 }
 
-// ── Editor ────────────────────────────────────────────────────────────────────
+// ── Editor panel ──────────────────────────────────────────────────────────────
 
 function openEditor(shortcut) {
   editingShortcut = shortcut
-    ? JSON.parse(JSON.stringify(shortcut)) // deep copy
+    ? JSON.parse(JSON.stringify(shortcut))
     : {
-        id: Date.now(),
-        name: 'New Shortcut',
-        icon: 'rocket',
-        color: 'bg-blue',
+        id:       Date.now(),
+        name:     '',
+        icon:     'rocket',
+        color:    'bg-blue',
         category: 'personal',
         favorite: false,
-        steps: [],
+        steps:    [],
       }
 
-  editorNameInput.value = editingShortcut.name
-  editorFavorite.checked = editingShortcut.favorite
-  editorCategorySelect.value = editingShortcut.category
+  editorNameInput.value          = editingShortcut.name
+  editorFavorite.checked         = editingShortcut.favorite
+  editorCategorySelect.value     = editingShortcut.category
 
   colorSwatches.forEach((sw) =>
     sw.classList.toggle('active', sw.dataset.color === editingShortcut.color),
   )
 
-  renderEditorSteps()
-  editorModal.style.display = 'flex'
+  renderCanvasSteps()
+  renderPalette()
+
+  // Slide in editor panel
+  mainContent.classList.add('hidden')
+  editorPanel.classList.add('open')
+  editorNameInput.focus()
+  editorNameInput.select()
+  refreshIcons(editorPanel)
 }
 
 function closeEditor() {
-  editorModal.style.display = 'none'
+  editorPanel.classList.remove('open')
+  mainContent.classList.remove('hidden')
   editingShortcut = null
 }
 
-function renderEditorSteps() {
+// ── Canvas step rendering ─────────────────────────────────────────────────────
+
+function renderCanvasSteps() {
   editorSteps.innerHTML = ''
 
-  if (editingShortcut.steps.length === 0) {
-    editorSteps.innerHTML =
-      '<div class="steps-empty">No actions yet — click Add Action below.</div>'
-    return
-  }
+  const hasSteps = editingShortcut.steps.length > 0
+  canvasEmpty.style.display = hasSteps ? 'none' : 'flex'
+  editorSteps.style.display = hasSteps ? 'flex' : 'none'
 
   editingShortcut.steps.forEach((step, i) => {
-    const card = buildStepCard(
-      step,
-      i,
-      (idx, updated) => {
+    const card = buildStepCard(step, i, {
+      onChange: (idx, updated) => {
         editingShortcut.steps[idx] = updated
       },
-      (idx) => {
+      onRemove: (idx) => {
         editingShortcut.steps.splice(idx, 1)
-        renderEditorSteps()
+        renderCanvasSteps()
       },
-    )
+      onMoveUp: (idx) => {
+        if (idx === 0) return
+        ;[editingShortcut.steps[idx - 1], editingShortcut.steps[idx]] =
+          [editingShortcut.steps[idx], editingShortcut.steps[idx - 1]]
+        renderCanvasSteps()
+      },
+      onMoveDown: (idx) => {
+        if (idx >= editingShortcut.steps.length - 1) return
+        ;[editingShortcut.steps[idx], editingShortcut.steps[idx + 1]] =
+          [editingShortcut.steps[idx + 1], editingShortcut.steps[idx]]
+        renderCanvasSteps()
+      },
+    })
+
+    // ── Drag-to-reorder ──
+    card.draggable = true
+    card.dataset.stepIndex = i
+
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', String(i))
+      card.classList.add('dragging')
+    })
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging')
+      editorSteps.querySelectorAll('.step-card').forEach((c) => c.classList.remove('drag-over'))
+    })
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      editorSteps.querySelectorAll('.step-card').forEach((c) => c.classList.remove('drag-over'))
+      card.classList.add('drag-over')
+    })
+    card.addEventListener('drop', (e) => {
+      e.preventDefault()
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10)
+      const toIdx   = parseInt(card.dataset.stepIndex, 10)
+      if (fromIdx === toIdx) return
+      const moved = editingShortcut.steps.splice(fromIdx, 1)[0]
+      editingShortcut.steps.splice(toIdx, 0, moved)
+      renderCanvasSteps()
+    })
+
     editorSteps.appendChild(card)
   })
+
+  refreshIcons(editorSteps)
 }
 
-// Editor field bindings
+// ── Palette rendering ─────────────────────────────────────────────────────────
+
+function renderPalette(filter = '') {
+  paletteList.innerHTML = ''
+  const list = buildPaletteList(filter, (def) => {
+    editingShortcut.steps.push(makeStep(def))
+    renderCanvasSteps()
+  })
+  paletteList.appendChild(list)
+  refreshIcons(paletteList)
+}
+
+paletteSearch.addEventListener('input', () => renderPalette(paletteSearch.value))
+
+// ── Editor top-bar bindings ───────────────────────────────────────────────────
+
 editorNameInput.addEventListener('input', () => {
   if (editingShortcut) editingShortcut.name = editorNameInput.value
 })
@@ -246,10 +298,11 @@ colorSwatches.forEach((sw) => {
   })
 })
 
-document.getElementById('closeEditorModal').addEventListener('click', closeEditor)
+editorBackBtn.addEventListener('click', closeEditor)
 
 editorSaveBtn.addEventListener('click', () => {
   if (!editingShortcut) return
+  if (!editingShortcut.name.trim()) editingShortcut.name = 'Untitled'
   const idx = shortcuts.findIndex((s) => s.id === editingShortcut.id)
   if (idx !== -1) shortcuts[idx] = editingShortcut
   else shortcuts.push(editingShortcut)
@@ -260,26 +313,16 @@ editorSaveBtn.addEventListener('click', () => {
 
 editorRunBtn.addEventListener('click', () => {
   if (!editingShortcut) return
+  // Save first so the run uses current state
+  if (!editingShortcut.name.trim()) editingShortcut.name = 'Untitled'
+  const idx = shortcuts.findIndex((s) => s.id === editingShortcut.id)
+  if (idx !== -1) shortcuts[idx] = editingShortcut
+  else shortcuts.push(editingShortcut)
+  saveShortcuts(shortcuts)
+  renderGrid()
+  const snapshot = JSON.parse(JSON.stringify(editingShortcut))
   closeEditor()
-  startRun(editingShortcut)
-})
-
-// ── Action picker ─────────────────────────────────────────────────────────────
-
-addStepBtn.addEventListener('click', () => {
-  const container = document.getElementById('actionPickerContent')
-  container.innerHTML = ''
-  const list = buildActionPicker((def) => {
-    editingShortcut.steps.push(makeStep(def))
-    renderEditorSteps()
-    actionPickerModal.style.display = 'none'
-  })
-  container.appendChild(list)
-  actionPickerModal.style.display = 'flex'
-})
-
-document.getElementById('closeActionPicker').addEventListener('click', () => {
-  actionPickerModal.style.display = 'none'
+  startRun(snapshot)
 })
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -287,8 +330,8 @@ document.getElementById('closeActionPicker').addEventListener('click', () => {
 function openSettings() {
   const cfg = loadConfig()
   settingsBaseUrl.value = cfg.baseUrl
-  settingsApiKey.value = cfg.apiKey
-  settingsModel.value = cfg.model
+  settingsApiKey.value  = cfg.apiKey
+  settingsModel.value   = cfg.model
   settingsModal.style.display = 'flex'
 }
 
@@ -299,8 +342,8 @@ document.getElementById('closeSettings').addEventListener('click', () => {
 document.getElementById('saveSettings').addEventListener('click', () => {
   saveConfig({
     baseUrl: settingsBaseUrl.value.trim(),
-    apiKey: settingsApiKey.value.trim(),
-    model: settingsModel.value.trim(),
+    apiKey:  settingsApiKey.value.trim(),
+    model:   settingsModel.value.trim(),
   })
   settingsModal.style.display = 'none'
 })
@@ -309,27 +352,22 @@ document.getElementById('saveSettings').addEventListener('click', () => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    if (actionPickerModal.style.display === 'flex') {
-      actionPickerModal.style.display = 'none'
-    } else if (editorModal.style.display === 'flex') {
-      closeEditor()
-    } else if (settingsModal.style.display === 'flex') {
+    if (settingsModal.style.display === 'flex') {
       settingsModal.style.display = 'none'
+    } else if (editorPanel.classList.contains('open')) {
+      closeEditor()
     }
   }
-  // Cmd/Ctrl+F → focus search
   if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
     e.preventDefault()
-    searchInput.focus()
-    searchInput.select()
+    if (editorPanel.classList.contains('open')) {
+      paletteSearch.focus()
+    } else {
+      searchInput.focus()
+      searchInput.select()
+    }
   }
 })
-
-// ── Utility ───────────────────────────────────────────────────────────────────
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
