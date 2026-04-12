@@ -413,6 +413,30 @@ const EXECUTORS = {
     ctx.result = stdout.trimEnd()
   },
 
+  'image-clean': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const filePath = s.filePath || ctx.result
+    if (!filePath) throw new Error('Image Clean: No file path provided.')
+
+    // 1. Remove all metadata using exiftool
+    // We use -all= to strip everything and -overwrite_original to keep the same file
+    await window.ipcRenderer.invoke('shell-exec', `exiftool -all= -overwrite_original "${filePath}"`)
+    
+    // 2. Subtle pixel change to break AI marks:
+    // - re-encode quality
+    // - slight resize (99.9%)
+    // - strip again just in case
+    const changeRes = await window.ipcRenderer.invoke('shell-exec', 
+      `mogrify -strip -quality 92 -scale 99.9% "${filePath}"`
+    )
+    
+    if (changeRes.exitCode !== 0) {
+      throw new Error(`Image Clean failed: ${changeRes.stderr}`)
+    }
+    
+    ctx.result = filePath
+  },
+
   'set-var': async (step, ctx, _opts) => {
     const name = step.varName || 'result'
     ctx.vars[name] = ctx.result

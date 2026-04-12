@@ -407,6 +407,17 @@ export const ACTION_REGISTRY = [
     ],
   },
   {
+    type: 'image-clean',
+    title: 'Clean Image',
+    desc: 'Remove all metadata and subtly alter image to break AI marks/watermarks',
+    icon: 'shield-check',
+    color: '#32D74B',
+    defaults: { filePath: '{{result}}' },
+    params: [
+      { name: 'filePath', label: 'Image File Path', kind: 'text', placeholder: '{{result}}' },
+    ],
+  },
+  {
     type: 'set-var',
     title: 'Save to Variable',
     desc: 'Store result under a named variable for later steps',
