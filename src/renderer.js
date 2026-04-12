@@ -265,12 +265,84 @@ function shouldGroupByTrigger() {
   return ['all', 'favorites', 'ai', 'personal', 'media', 'comm', 'filesystem'].includes(currentCategory)
 }
 
+// Group shortcuts by how recently they were used
+function getTimeBucket(isoDate) {
+  if (!isoDate) return null
+  const now = new Date()
+  const d = new Date(isoDate)
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterdayStart = new Date(todayStart - 86400000)
+  const weekStart = new Date(todayStart - 6 * 86400000)
+  if (d >= todayStart) return 'Today'
+  if (d >= yesterdayStart) return 'Yesterday'
+  if (d >= weekStart) return 'This Week'
+  return 'Older'
+}
+
 function renderGrid() {
   grid.innerHTML = ''
   grid.classList.remove('grid-grouped')
 
   const filtered = shortcuts.filter(matchesFilter)
   const q = searchInput.value.trim()
+
+  // ── Recent view: grouped by time last used ───────────────────────────────────
+  if (!q && currentCategory === 'recent') {
+    const used = filtered
+      .filter((s) => s.lastUsed)
+      .sort((a, b) => new Date(b.lastUsed) - new Date(a.lastUsed))
+
+    if (used.length === 0) {
+      const empty = document.createElement('div')
+      empty.className = 'recent-empty'
+      empty.textContent = 'No shortcuts have been run yet.'
+      grid.appendChild(empty)
+      return
+    }
+
+    grid.classList.add('grid-grouped')
+    const BUCKET_ORDER = ['Today', 'Yesterday', 'This Week', 'Older']
+    const buckets = {}
+    used.forEach((s) => {
+      const b = getTimeBucket(s.lastUsed)
+      if (!buckets[b]) buckets[b] = []
+      buckets[b].push(s)
+    })
+
+    BUCKET_ORDER.forEach((label) => {
+      const cards = buckets[label]
+      if (!cards || cards.length === 0) return
+
+      const section = document.createElement('div')
+      section.className = 'trigger-section'
+
+      const heading = document.createElement('div')
+      heading.className = 'trigger-heading'
+      heading.innerHTML = `
+        <i data-lucide="clock" class="trigger-heading-icon"></i>
+        <span class="trigger-heading-label">${label}</span>
+        <span class="trigger-heading-count">${cards.length}</span>
+      `
+
+      const row = document.createElement('div')
+      row.className = 'trigger-cards'
+
+      cards.forEach((shortcut) => {
+        row.appendChild(buildShortcutCard(shortcut, {
+          onRun:    (s) => startRun(s),
+          onEdit:   (s) => openEditor(s),
+          onDelete: (s) => deleteShortcut(s),
+        }))
+      })
+
+      section.appendChild(heading)
+      section.appendChild(row)
+      grid.appendChild(section)
+    })
+
+    refreshIcons(grid)
+    return
+  }
 
   // Flat render when searching (no section headers, just results)
   if (q || !shouldGroupByTrigger()) {
@@ -369,6 +441,7 @@ async function startRun(shortcut) {
 
   overlay.setDone(result.ok, result.result, result.error)
 
+  const runAt = new Date().toISOString()
   appendRun({
     shortcutId:   shortcut.id,
     shortcutName: shortcut.name,
@@ -376,8 +449,15 @@ async function startRun(shortcut) {
     durationMs:   result.durationMs,
     error:        result.error,
     log:          result.log,
-    runAt:        new Date().toISOString(),
+    runAt,
   })
+
+  // Stamp lastUsed on the shortcut and persist
+  const idx = shortcuts.findIndex((s) => s.id === shortcut.id)
+  if (idx !== -1) {
+    shortcuts[idx].lastUsed = runAt
+    await saveShortcuts(shortcuts)
+  }
   // Overlay stays open — user closes it manually
 }
 
