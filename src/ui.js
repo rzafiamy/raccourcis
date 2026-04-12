@@ -3,7 +3,7 @@
  */
 
 import { ACTION_REGISTRY, getActionDef } from './actions.js'
-import { buildVarField, buildTypeBadge, TYPE_META } from './varPicker.js'
+import { buildVarField, buildInlineTokens, buildTypeBadge, TYPE_META } from './varPicker.js'
 
 // ── Lucide icon helper ────────────────────────────────────────────────────────
 
@@ -467,6 +467,23 @@ export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMov
   actionTypeChip.className = 'step-action-type'
   actionTypeChip.textContent = step.type
   descEl.appendChild(actionTypeChip)
+
+  // For steps with no editable params, surface any {{token}} values as
+  // read-only chips in the header so the user can see what data flows through
+  const hasParams = def && def.params.length > 0
+  if (!hasParams) {
+    const SKIP_KEYS = new Set(['type', 'title', 'desc', 'icon', 'color'])
+    const tokenValues = Object.entries(step)
+      .filter(([k, v]) => !SKIP_KEYS.has(k) && typeof v === 'string' && /\{\{/.test(v))
+    if (tokenValues.length > 0) {
+      const tokenRow = document.createElement('div')
+      tokenRow.className = 'step-header-tokens'
+      tokenValues.forEach(([, v]) => {
+        tokenRow.appendChild(buildInlineTokens(v, index, allSteps))
+      })
+      descEl.appendChild(tokenRow)
+    }
+  }
 
   stepInfo.appendChild(titleRow)
   stepInfo.appendChild(descEl)

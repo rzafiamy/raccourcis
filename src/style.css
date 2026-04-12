@@ -609,9 +609,6 @@ body {
 
 /* ── Var-field wrapper ────────────────────────────────────────────── */
 .var-field-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
   position: relative;
 }
 
@@ -621,9 +618,23 @@ body {
   gap: 6px;
 }
 
-.var-field-row .var-field-input {
+/* ── Rich contenteditable editor ──────────────────────────────────── */
+.var-rich-editor {
   flex: 1;
   min-width: 0;
+  min-height: 34px;
+  line-height: 1.6;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.var-rich-editor--multiline {
+  min-height: 72px;
+}
+.var-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 /* ── Var picker button ────────────────────────────────────────────── */
@@ -711,11 +722,13 @@ body {
   text-overflow: ellipsis;
 }
 
-.var-picker-token {
+.var-picker-sublabel {
   font-size: 11px;
   color: var(--text-muted);
-  font-family: 'SF Mono', 'Fira Code', monospace;
   margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .var-picker-empty {
@@ -726,31 +739,31 @@ body {
   line-height: 1.5;
 }
 
-/* ── Token chip strip ─────────────────────────────────────────────── */
-.var-chip-strip {
-  display: none;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-/* ── Token chip ───────────────────────────────────────────────────── */
+/* ── Token chip — shared ──────────────────────────────────────────── */
 .var-token-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px 3px 9px;
+  gap: 4px;
+  padding: 1px 7px 2px 8px;
   border-radius: 99px;
   background: color-mix(in srgb, var(--chip-color) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--chip-color) 35%, transparent);
   color: var(--chip-color);
   font-size: 11px;
   font-weight: 600;
-  cursor: default;
   user-select: none;
+  vertical-align: middle;
+  line-height: 1.5;
+  position: relative;
+  top: -1px;
+}
+
+.var-token-chip--editor {
+  cursor: default;
 }
 
 .var-token-label {
-  max-width: 160px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -760,22 +773,38 @@ body {
   background: none;
   border: none;
   color: inherit;
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: pointer;
   padding: 0;
   font-size: 13px;
   line-height: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   transition: opacity 0.12s, background 0.12s;
+  flex-shrink: 0;
 }
 .var-token-remove:hover {
   opacity: 1;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.18);
+}
+
+/* ── Header token row (paramless steps) ─────────��─────────────────── */
+.step-header-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.inline-tokens {
+  display: inline;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 /* ── Palette (right sidebar) ──────────────────────────────────────── */

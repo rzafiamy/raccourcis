@@ -1,88 +1,107 @@
 /**
- * varPicker.js — Variable picker for step param fields
+ * varPicker.js — Inline magic-variable fields
  *
- * Inspired by iPadOS Shortcuts "magic variable" picker.
- * Replaces raw {{...}} syntax with visual token chips in text/textarea fields.
+ * Renders text + {{token}} variables as a rich contenteditable field where
+ * tokens appear as colored clickable pills inline in the text — macOS Shortcuts style.
  *
  * Public API:
- *   buildVarField(param, value, stepIndex, allSteps, onChange)
- *     → HTMLElement (wrapper with input + picker button)
+ *   buildVarField(param, value, stepIndex, allSteps, onChange) → HTMLElement
+ *   buildInlineTokens(value, stepIndex, allSteps)              → HTMLElement  (read-only, for headers)
+ *   getAvailableVars(stepIndex, allSteps)                      → VarOption[]
+ *   buildTypeBadge(type)                                       → HTMLElement
  *
- *   getAvailableVars(stepIndex, allSteps)
- *     → Array<VarOption>
- *
- * VarOption:
- *   { label, token, type, icon, color, stepIndex }
+ * Data model:
+ *   The underlying value is always a plain string with {{...}} tokens.
+ *   The rich editor serialises back to that format on every change.
  */
 
 import { getActionDef } from './actions.js'
 
-// ── Data type metadata ────────────────────────────────────────────────────────
+// ── Type metadata ─────────────────────────────────────────────────────────────
 
 export const TYPE_META = {
-  text:   { label: 'Text',   icon: 'type',         color: '#BF5AF2' },
-  number: { label: 'Number', icon: 'hash',          color: '#FF9F0A' },
-  file:   { label: 'File',   icon: 'file',          color: '#0A84FF' },
-  image:  { label: 'Image',  icon: 'image',         color: '#32D74B' },
-  audio:  { label: 'Audio',  icon: 'volume-2',      color: '#FF9F0A' },
-  list:   { label: 'List',   icon: 'list',          color: '#64D2FF' },
-  date:   { label: 'Date',   icon: 'calendar',      color: '#FF375F' },
-  json:   { label: 'JSON',   icon: 'braces',        color: '#5E5CE6' },
-  null:   { label: 'None',   icon: 'minus',         color: '#8E8E93' },
+  text:   { label: 'Text',   icon: 'type',      color: '#BF5AF2' },
+  number: { label: 'Number', icon: 'hash',       color: '#FF9F0A' },
+  file:   { label: 'File',   icon: 'file',       color: '#0A84FF' },
+  image:  { label: 'Image',  icon: 'image',      color: '#32D74B' },
+  audio:  { label: 'Audio',  icon: 'volume-2',   color: '#FF9F0A' },
+  list:   { label: 'List',   icon: 'list',       color: '#64D2FF' },
+  date:   { label: 'Date',   icon: 'calendar',   color: '#FF375F' },
+  json:   { label: 'JSON',   icon: 'braces',     color: '#5E5CE6' },
+  null:   { label: 'None',   icon: 'minus',       color: '#8E8E93' },
 }
 
 function typeMeta(type) {
   return TYPE_META[type] || TYPE_META.text
 }
 
-// ── Available variable sources for a given step index ─────────────────────────
+const TOKEN_RE   = /(\{\{(?:result|clipboard|vars\.\w+)\}\})/g
+const TOKEN_TEST = /^\{\{(?:result|clipboard|vars\.\w+)\}\}$/
 
-/**
- * Returns all variables available to a step at position `stepIndex`.
- * Includes:
- *   - Previous Result (output of step at stepIndex - 1)
- *   - Clipboard
- *   - Named vars set by any prior set-var step
- */
+// ── Token → human label / color ───────────────────────────────────────────────
+
+function tokenMeta(token, stepIndex, allSteps) {
+  const inner = token.slice(2, -2) // strip {{ }}
+
+  if (inner === 'result') {
+    const prev = stepIndex > 0 ? allSteps[stepIndex - 1] : null
+    const def  = prev ? getActionDef(prev.type) : null
+    const outType = def?.outputType || 'text'
+    const meta = typeMeta(outType)
+    return {
+      label: prev ? `${prev.title}` : 'Previous Result',
+      color: meta.color,
+      type:  outType,
+    }
+  }
+  if (inner === 'clipboard') {
+    return { label: 'Clipboard', color: '#BF5AF2', type: 'text' }
+  }
+  const varName = inner.replace('vars.', '')
+  return { label: varName, color: '#64D2FF', type: 'text' }
+}
+
+// ── Available variable sources ────────────────────────────────────────────────
+
 export function getAvailableVars(stepIndex, allSteps) {
   const vars = []
 
-  // Clipboard is always available
-  vars.push({
-    label: 'Clipboard',
-    token: '{{clipboard}}',
-    type: 'text',
-    icon: 'clipboard',
-    color: '#BF5AF2',
-    stepIndex: -1,
-  })
-
-  // Previous result (from the step immediately before this one, or any step's output type)
   if (stepIndex > 0) {
     const prevStep = allSteps[stepIndex - 1]
     const def = getActionDef(prevStep?.type)
     const outType = def?.outputType || 'text'
     const meta = typeMeta(outType)
-    vars.unshift({
-      label: prevStep ? `${prevStep.title} — Output` : 'Previous Result',
-      token: '{{result}}',
-      type: outType,
-      icon: meta.icon,
-      color: meta.color,
+    vars.push({
+      label:     prevStep ? `${prevStep.title}` : 'Previous Result',
+      sublabel:  'Output of previous step',
+      token:     '{{result}}',
+      type:      outType,
+      icon:      meta.icon,
+      color:     meta.color,
       stepIndex: stepIndex - 1,
     })
   }
 
-  // Named variables from prior set-var steps
+  vars.push({
+    label:     'Clipboard',
+    sublabel:  'Contents of clipboard at start',
+    token:     '{{clipboard}}',
+    type:      'text',
+    icon:      'clipboard',
+    color:     '#BF5AF2',
+    stepIndex: -1,
+  })
+
   for (let i = 0; i < stepIndex; i++) {
-    const step = allSteps[i]
-    if (step?.type === 'set-var' && step.varName) {
+    const s = allSteps[i]
+    if (s?.type === 'set-var' && s.varName) {
       vars.push({
-        label: `"${step.varName}" (variable)`,
-        token: `{{vars.${step.varName}}}`,
-        type: 'text',
-        icon: 'save',
-        color: '#64D2FF',
+        label:     s.varName,
+        sublabel:  `Saved variable`,
+        token:     `{{vars.${s.varName}}}`,
+        type:      'text',
+        icon:      'save',
+        color:     '#64D2FF',
         stepIndex: i,
       })
     }
@@ -91,7 +110,7 @@ export function getAvailableVars(stepIndex, allSteps) {
   return vars
 }
 
-// ── Render a small type badge pill ────────────────────────────────────────────
+// ── Type badge ────────────────────────────────────────────────────────────────
 
 export function buildTypeBadge(type) {
   const meta = typeMeta(type)
@@ -100,32 +119,6 @@ export function buildTypeBadge(type) {
   badge.style.setProperty('--badge-color', meta.color)
   badge.textContent = meta.label
   return badge
-}
-
-// ── Render a token chip (inline in the field) ─────────────────────────────────
-
-function buildTokenChip(varOpt, onRemove) {
-  const chip = document.createElement('span')
-  chip.className = 'var-token-chip'
-  chip.style.setProperty('--chip-color', varOpt.color)
-  chip.dataset.token = varOpt.token
-
-  const label = document.createElement('span')
-  label.className = 'var-token-label'
-  label.textContent = varOpt.label
-
-  const rm = document.createElement('button')
-  rm.className = 'var-token-remove'
-  rm.title = 'Remove'
-  rm.innerHTML = '×'
-  rm.addEventListener('click', (e) => {
-    e.stopPropagation()
-    onRemove(varOpt.token)
-  })
-
-  chip.appendChild(label)
-  chip.appendChild(rm)
-  return chip
 }
 
 // ── Picker dropdown ───────────────────────────────────────────────────────────
@@ -160,17 +153,8 @@ function buildPickerDropdown(availableVars, onPick) {
 
     const info = document.createElement('div')
     info.className = 'var-picker-info'
-
-    const labelEl = document.createElement('div')
-    labelEl.className = 'var-picker-label'
-    labelEl.textContent = v.label
-
-    const tokenEl = document.createElement('div')
-    tokenEl.className = 'var-picker-token'
-    tokenEl.textContent = v.token
-
-    info.appendChild(labelEl)
-    info.appendChild(tokenEl)
+    info.innerHTML = `<div class="var-picker-label">${v.label}</div>
+                      <div class="var-picker-sublabel">${v.sublabel}</div>`
 
     const typePill = buildTypeBadge(v.type)
     typePill.style.marginLeft = 'auto'
@@ -179,7 +163,6 @@ function buildPickerDropdown(availableVars, onPick) {
     row.appendChild(iconEl)
     row.appendChild(info)
     row.appendChild(typePill)
-
     row.addEventListener('click', () => onPick(v))
     dropdown.appendChild(row)
   })
@@ -188,168 +171,216 @@ function buildPickerDropdown(availableVars, onPick) {
   return dropdown
 }
 
-// ── Main builder: a textarea/text field with variable picker ──────────────────
+// ── Inline token chip (non-interactive, for read-only display) ────────────────
+
+export function buildInlineChip(label, color) {
+  const chip = document.createElement('span')
+  chip.className = 'var-token-chip'
+  chip.style.setProperty('--chip-color', color)
+  chip.textContent = label
+  chip.contentEditable = 'false'
+  return chip
+}
+
+// ── Read-only inline token display (for step headers) ────────────────────────
 
 /**
- * Build a param field that supports variable insertion via a picker button.
+ * Renders a string with {{tokens}} as a mix of text nodes and colored chips.
+ * Used in step headers for steps that have no editable params but do have
+ * token values (e.g. clipboard-read, file-picker, url-open).
+ */
+export function buildInlineTokens(value, stepIndex, allSteps) {
+  const wrap = document.createElement('span')
+  wrap.className = 'inline-tokens'
+
+  if (!value || typeof value !== 'string') return wrap
+
+  const parts = value.split(TOKEN_RE)
+  parts.forEach((part) => {
+    if (!part) return
+    if (TOKEN_TEST.test(part)) {
+      const meta = tokenMeta(part, stepIndex, allSteps)
+      wrap.appendChild(buildInlineChip(meta.label, meta.color))
+    } else if (part.trim()) {
+      wrap.appendChild(document.createTextNode(part))
+    }
+  })
+
+  return wrap
+}
+
+// ── Rich contenteditable field ────────────────────────────────────────────────
+
+/**
+ * Serialise the contenteditable DOM back to a plain string with {{tokens}}.
+ */
+function serialise(editor) {
+  let out = ''
+  editor.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const token = node.dataset?.token
+      if (token) {
+        out += token
+      } else {
+        // e.g. <br> inserted by contenteditable
+        out += node.tagName === 'BR' ? '\n' : node.textContent
+      }
+    }
+  })
+  return out
+}
+
+/**
+ * Populate the contenteditable editor from a plain string value.
+ * Splits on {{tokens}} and inserts chip elements for each.
+ */
+function deserialise(editor, value, stepIndex, allSteps) {
+  editor.innerHTML = ''
+  if (!value) return
+
+  const parts = value.split(TOKEN_RE)
+  parts.forEach((part) => {
+    if (!part) return
+    if (TOKEN_TEST.test(part)) {
+      const meta = tokenMeta(part, stepIndex, allSteps)
+      const chip = makeEditorChip(part, meta.label, meta.color)
+      editor.appendChild(chip)
+    } else {
+      editor.appendChild(document.createTextNode(part))
+    }
+  })
+}
+
+/**
+ * Build a chip element for use inside the contenteditable editor.
+ * Has a × button to delete it.
+ */
+function makeEditorChip(token, label, color) {
+  const chip = document.createElement('span')
+  chip.className = 'var-token-chip var-token-chip--editor'
+  chip.style.setProperty('--chip-color', color)
+  chip.dataset.token = token
+  chip.contentEditable = 'false'
+
+  const labelSpan = document.createElement('span')
+  labelSpan.className = 'var-token-label'
+  labelSpan.textContent = label
+
+  const rm = document.createElement('button')
+  rm.className = 'var-token-remove'
+  rm.type = 'button'
+  rm.title = 'Remove'
+  rm.textContent = '×'
+  rm.addEventListener('mousedown', (e) => {
+    // mousedown so we fire before blur
+    e.preventDefault()
+    e.stopPropagation()
+    chip.remove()
+    // onChange is called via the 'input' event on the editor
+    chip.dispatchEvent(new Event('chip-removed', { bubbles: true }))
+  })
+
+  chip.appendChild(labelSpan)
+  chip.appendChild(rm)
+  return chip
+}
+
+// ── Main public builder ───────────────────────────────────────────────────────
+
+/**
+ * Build a rich variable-aware field.
  *
- * @param {object} param       - Action param definition
- * @param {string} value       - Current param value (may contain {{...}})
- * @param {number} stepIndex   - Position of this step in the workflow
- * @param {Array}  allSteps    - All steps in the current shortcut
- * @param {function} onChange  - Called with new string value when field changes
- * @returns {HTMLElement}
+ * @param {object}   param      - Action param definition
+ * @param {string}   value      - Current value (may contain {{tokens}})
+ * @param {number}   stepIndex
+ * @param {Array}    allSteps
+ * @param {function} onChange   - Called with new string value
  */
 export function buildVarField(param, value, stepIndex, allSteps, onChange) {
   const wrapper = document.createElement('div')
   wrapper.className = 'var-field-wrap'
 
-  // ── The actual input / textarea ──
-  let input
-  if (param.kind === 'textarea') {
-    input = document.createElement('textarea')
-    input.className = 'input-field var-field-input'
-    input.rows = 3
-  } else {
-    input = document.createElement('input')
-    input.type = 'text'
-    input.className = 'input-field var-field-input'
+  // ── Rich editor ──
+  const editor = document.createElement('div')
+  editor.className = `var-rich-editor input-field${param.kind === 'textarea' ? ' var-rich-editor--multiline' : ''}`
+  editor.contentEditable = 'true'
+  editor.spellcheck = false
+  editor.setAttribute('data-placeholder', param.placeholder || '')
+  editor.setAttribute('role', 'textbox')
+  if (param.kind === 'textarea') editor.setAttribute('aria-multiline', 'true')
+
+  deserialise(editor, value ?? '', stepIndex, allSteps)
+
+  // fire onChange on every edit
+  const emitChange = () => onChange(serialise(editor))
+  editor.addEventListener('input', emitChange)
+  editor.addEventListener('chip-removed', emitChange)
+
+  // Prevent newlines in single-line fields
+  if (param.kind !== 'textarea') {
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') e.preventDefault()
+    })
   }
-  input.value = value ?? ''
-  input.placeholder = param.placeholder || ''
 
-  const eventType = param.kind === 'textarea' ? 'input' : 'input'
-  input.addEventListener(eventType, () => onChange(input.value))
-
-  // ── Picker trigger button ──
+  // ── Picker button ──
   const pickerBtn = document.createElement('button')
   pickerBtn.type = 'button'
   pickerBtn.className = 'var-picker-btn'
   pickerBtn.title = 'Insert variable'
   pickerBtn.innerHTML = `<i data-lucide="variable"></i>`
 
-  // ── Picker dropdown logic ──
   let activeDropdown = null
 
   function closeDropdown() {
-    if (activeDropdown) {
-      activeDropdown.remove()
-      activeDropdown = null
-    }
+    if (activeDropdown) { activeDropdown.remove(); activeDropdown = null }
   }
 
   pickerBtn.addEventListener('click', (e) => {
     e.stopPropagation()
-
-    if (activeDropdown) {
-      closeDropdown()
-      return
-    }
+    if (activeDropdown) { closeDropdown(); return }
 
     const availableVars = getAvailableVars(stepIndex, allSteps)
     activeDropdown = buildPickerDropdown(availableVars, (varOpt) => {
-      // Insert token at cursor position (or append)
-      const token = varOpt.token
-      const el = input
+      // Insert chip at current cursor, or append
+      const meta = tokenMeta(varOpt.token, stepIndex, allSteps)
+      const chip = makeEditorChip(varOpt.token, meta.label, meta.color)
 
-      if (el.setRangeText) {
-        const start = el.selectionStart ?? el.value.length
-        const end = el.selectionEnd ?? el.value.length
-        el.setRangeText(token, start, end, 'end')
-      } else {
-        el.value += token
+      const sel = window.getSelection()
+      let inserted = false
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        if (editor.contains(range.commonAncestorContainer)) {
+          range.deleteContents()
+          range.insertNode(chip)
+          // move cursor after chip
+          range.setStartAfter(chip)
+          range.collapse(true)
+          sel.removeAllRanges()
+          sel.addRange(range)
+          inserted = true
+        }
       }
+      if (!inserted) editor.appendChild(chip)
 
-      onChange(el.value)
+      onChange(serialise(editor))
       closeDropdown()
-      el.focus()
+      editor.focus()
     })
 
     wrapper.appendChild(activeDropdown)
     if (window.lucide) window.lucide.createIcons({ node: activeDropdown })
-
-    // Close on outside click
-    setTimeout(() => {
-      document.addEventListener('click', closeDropdown, { once: true })
-    }, 0)
-  })
-
-  // ── Inline token chip strip (read-only preview for tokens in value) ──
-  // Shown above the input when value contains tokens, so user sees them as chips
-  const chipStrip = document.createElement('div')
-  chipStrip.className = 'var-chip-strip'
-  renderChipStrip(chipStrip, value ?? '', onChange, input)
-
-  input.addEventListener('input', () => {
-    renderChipStrip(chipStrip, input.value, onChange, input)
+    setTimeout(() => document.addEventListener('click', closeDropdown, { once: true }), 0)
   })
 
   const row = document.createElement('div')
   row.className = 'var-field-row'
-  row.appendChild(input)
+  row.appendChild(editor)
   row.appendChild(pickerBtn)
 
-  wrapper.appendChild(chipStrip)
   wrapper.appendChild(row)
-
   if (window.lucide) window.lucide.createIcons({ node: wrapper })
   return wrapper
-}
-
-/**
- * Refresh the chip strip to show token pills above the field.
- * Each token in the value is rendered as a colored chip.
- */
-function renderChipStrip(stripEl, value, onChange, inputEl) {
-  stripEl.innerHTML = ''
-
-  // Find all {{...}} tokens in the value
-  const TOKEN_RE = /\{\{(result|clipboard|vars\.\w+)\}\}/g
-  const tokens = [...value.matchAll(TOKEN_RE)]
-
-  if (tokens.length === 0) {
-    stripEl.style.display = 'none'
-    return
-  }
-
-  stripEl.style.display = 'flex'
-
-  tokens.forEach((match) => {
-    const token = match[0]
-    const name = match[1]
-
-    let label, color, type
-    if (name === 'result') {
-      label = 'Previous Result'; color = '#FF375F'; type = 'text'
-    } else if (name === 'clipboard') {
-      label = 'Clipboard'; color = '#BF5AF2'; type = 'text'
-    } else {
-      const varName = name.replace('vars.', '')
-      label = varName; color = '#64D2FF'; type = 'text'
-    }
-
-    const chip = document.createElement('span')
-    chip.className = 'var-token-chip'
-    chip.style.setProperty('--chip-color', color)
-
-    const labelSpan = document.createElement('span')
-    labelSpan.className = 'var-token-label'
-    labelSpan.textContent = label
-
-    const rm = document.createElement('button')
-    rm.className = 'var-token-remove'
-    rm.title = 'Remove from text'
-    rm.innerHTML = '×'
-    rm.addEventListener('click', (e) => {
-      e.stopPropagation()
-      const newVal = inputEl.value.replace(token, '')
-      inputEl.value = newVal
-      onChange(newVal)
-      renderChipStrip(stripEl, newVal, onChange, inputEl)
-    })
-
-    chip.appendChild(labelSpan)
-    chip.appendChild(rm)
-    stripEl.appendChild(chip)
-  })
 }
