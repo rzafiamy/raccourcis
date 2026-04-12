@@ -195,6 +195,57 @@ searchInput.addEventListener('input', renderGrid)
 
 // ── Grid rendering ────────────────────────────────────────────────────────────
 
+// Maps first-step type → trigger group definition
+const TRIGGER_GROUPS = [
+  {
+    id: 'clipboard',
+    label: 'Clipboard',
+    icon: 'clipboard',
+    match: (t) => t === 'clipboard-read',
+  },
+  {
+    id: 'prompt',
+    label: 'User Input',
+    icon: 'keyboard',
+    match: (t) => t === 'user-input',
+  },
+  {
+    id: 'file',
+    label: 'File / Folder',
+    icon: 'folder-open',
+    match: (t) => ['file-picker', 'folder-picker', 'file-read', 'folder-list'].includes(t),
+  },
+  {
+    id: 'voice',
+    label: 'Voice',
+    icon: 'mic',
+    match: (t) => t === 'audio-record' || t === 'asr',
+  },
+  {
+    id: 'shell',
+    label: 'Shell / System',
+    icon: 'terminal',
+    match: (t) => t === 'shell' || t === 'app-launch',
+  },
+  {
+    id: 'web',
+    label: 'Web / API',
+    icon: 'globe',
+    match: (t) => ['http-request', 'firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search'].includes(t),
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    icon: 'zap',
+    match: () => true,
+  },
+]
+
+function getTriggerGroup(shortcut) {
+  const firstType = shortcut.steps?.[0]?.type ?? ''
+  return TRIGGER_GROUPS.find((g) => g.match(firstType)) ?? TRIGGER_GROUPS[TRIGGER_GROUPS.length - 1]
+}
+
 function matchesFilter(shortcut) {
   const q = searchInput.value.toLowerCase()
   if (q && !shortcut.name.toLowerCase().includes(q)) return false
@@ -209,27 +260,92 @@ function matchesFilter(shortcut) {
   return true
 }
 
+// Whether the current view should render trigger-group sections
+function shouldGroupByTrigger() {
+  return ['all', 'favorites', 'ai', 'personal', 'media', 'comm', 'filesystem'].includes(currentCategory)
+}
+
 function renderGrid() {
   grid.innerHTML = ''
+  grid.classList.remove('grid-grouped')
+
   const filtered = shortcuts.filter(matchesFilter)
+  const q = searchInput.value.trim()
 
-  filtered.forEach((shortcut) => {
-    const card = buildShortcutCard(shortcut, {
-      onRun:    (s) => startRun(s),
-      onEdit:   (s) => openEditor(s),
-      onDelete: (s) => deleteShortcut(s),
+  // Flat render when searching (no section headers, just results)
+  if (q || !shouldGroupByTrigger()) {
+    filtered.forEach((shortcut) => {
+      grid.appendChild(buildShortcutCard(shortcut, {
+        onRun:    (s) => startRun(s),
+        onEdit:   (s) => openEditor(s),
+        onDelete: (s) => deleteShortcut(s),
+      }))
     })
-    grid.appendChild(card)
-  })
+    // "+ New" card first
+    if (['all', 'personal', 'ai', 'media', 'comm'].includes(currentCategory)) {
+      const newCard = document.createElement('div')
+      newCard.className = 'shortcut-card card-new'
+      newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
+      newCard.addEventListener('click', () => openEditor(null))
+      grid.prepend(newCard)
+    }
+    refreshIcons(grid)
+    return
+  }
 
-  // "+ New" card — always first so it's reachable regardless of content length
-  if (currentCategory === 'all' || currentCategory === 'personal' || currentCategory === 'ai' || currentCategory === 'media' || currentCategory === 'comm') {
+  // ── Grouped by trigger type ──────────────────────────────────────────────────
+  grid.classList.add('grid-grouped')
+
+  // Bucket shortcuts into ordered groups
+  const buckets = new Map(TRIGGER_GROUPS.map((g) => [g.id, []]))
+  filtered.forEach((s) => buckets.get(getTriggerGroup(s).id).push(s))
+
+  // "+ New" shortcut — prepended as its own unsectioned card
+  if (['all', 'personal', 'ai', 'media', 'comm'].includes(currentCategory)) {
     const newCard = document.createElement('div')
     newCard.className = 'shortcut-card card-new'
     newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
     newCard.addEventListener('click', () => openEditor(null))
-    grid.prepend(newCard)
+
+    const newSection = document.createElement('div')
+    newSection.className = 'trigger-section trigger-section-new'
+    const newRow = document.createElement('div')
+    newRow.className = 'trigger-cards'
+    newRow.appendChild(newCard)
+    newSection.appendChild(newRow)
+    grid.appendChild(newSection)
   }
+
+  TRIGGER_GROUPS.forEach((group) => {
+    const cards = buckets.get(group.id)
+    if (!cards || cards.length === 0) return
+
+    const section = document.createElement('div')
+    section.className = 'trigger-section'
+
+    const heading = document.createElement('div')
+    heading.className = 'trigger-heading'
+    heading.innerHTML = `
+      <i data-lucide="${group.icon}" class="trigger-heading-icon"></i>
+      <span class="trigger-heading-label">${group.label}</span>
+      <span class="trigger-heading-count">${cards.length}</span>
+    `
+
+    const row = document.createElement('div')
+    row.className = 'trigger-cards'
+
+    cards.forEach((shortcut) => {
+      row.appendChild(buildShortcutCard(shortcut, {
+        onRun:    (s) => startRun(s),
+        onEdit:   (s) => openEditor(s),
+        onDelete: (s) => deleteShortcut(s),
+      }))
+    })
+
+    section.appendChild(heading)
+    section.appendChild(row)
+    grid.appendChild(section)
+  })
 
   refreshIcons(grid)
 }
