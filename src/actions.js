@@ -47,9 +47,18 @@ export const ACTION_REGISTRY = [
     icon: 'file-search',
     color: '#0A84FF',
     outputType: 'file',
-    defaults: { buttonLabel: 'Select' },
+    defaults: { buttonLabel: 'Select', multiple: false },
     params: [
       { name: 'buttonLabel', label: 'Button Label', kind: 'text', placeholder: 'Select' },
+      {
+        name: 'multiple',
+        label: 'Allow multiple files',
+        kind: 'select',
+        options: [
+          { value: false, label: 'No' },
+          { value: true, label: 'Yes' },
+        ],
+      },
     ],
   },
   {
@@ -1146,6 +1155,40 @@ export const ACTION_REGISTRY = [
     params: [
       { name: 'table', label: 'Table name', kind: 'text', placeholder: 'tasks' },
       { name: 'filter', label: 'Filter (e.g. id=eq.10)', kind: 'text', placeholder: 'id=eq.{{result}}', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'supabase-rpc',
+    title: 'Supabase — RPC',
+    desc: 'Call a PostgreSQL function (RPC) → result',
+    icon: 'database-zap',
+    color: '#3ECF8E',
+    outputType: 'json',
+    defaults: {
+      functionName: '',
+      params: '{}',
+    },
+    params: [
+      { name: 'functionName', label: 'Function name', kind: 'text', placeholder: 'my_function' },
+      { name: 'params', label: 'Parameters (JSON object)', kind: 'textarea', placeholder: '{"id": 1}', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'supabase-upload',
+    title: 'Supabase — Upload',
+    desc: 'Upload a local file to a storage bucket → result (URL)',
+    icon: 'upload-cloud',
+    color: '#3ECF8E',
+    outputType: 'text',
+    defaults: {
+      bucket: '',
+      path: '{{result}}',
+      destPath: '',
+    },
+    params: [
+      { name: 'bucket', label: 'Bucket ID', kind: 'text', placeholder: 'uploads' },
+      { name: 'path', label: 'Local File Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'destPath', label: 'Destination Path (optional)', kind: 'text', placeholder: 'folder/file.ext', acceptsVars: true },
     ],
   },
 

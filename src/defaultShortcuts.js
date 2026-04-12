@@ -1474,4 +1474,48 @@ else: print('\\n'.join(results))
       step('show-result', { title: 'Trend Report', label: 'Niche Insights' }),
     ],
   },
+  {
+    id: 81,
+    name: 'Share to Tondro',
+    icon: 'share-2',
+    color: 'bg-blue',
+    category: 'personal',
+    favorite: true,
+    steps: [
+      step('file-picker', { title: 'Pick Files', buttonLabel: 'Share', multiple: true }),
+      step('supabase-upload', { title: 'Uploading to Tondro...', bucket: 'tondro_app_uploads' }),
+      step('set-var', { title: 'Save Content List', varName: 'contentNames' }),
+      step('user-input', {
+        title: 'Share Title',
+        label: 'Enter a title for this share:',
+        prefill: 'My shared files',
+      }),
+      step('set-var', { title: 'Save Title', varName: 'shareTitle' }),
+      step('user-input', {
+        title: 'Password protection',
+        label: 'Enter a password (leave empty for none):',
+        placeholder: 'password123',
+        prefill: '',
+      }),
+      step('set-var', { title: 'Save Password', varName: 'sharePassword' }),
+      step('shell', {
+        title: 'Calculating Expiry',
+        command: 'date -d "+1 month" --iso-8601=seconds',
+      }),
+      step('set-var', { title: 'Save Expiry', varName: 'expiresAt' }),
+      step('supabase-rpc', {
+        title: 'Creating Tondro Wave...',
+        functionName: 'tondro_app.manage_share',
+        params: '{"title_input": "{{vars.shareTitle}}", "type_input": "file", "content_input": "{{vars.contentNames}}", "password_input": "{{vars.sharePassword}}", "expires_at_input": "{{vars.expiresAt}}"}',
+      }),
+      step('json-extract', { title: 'Getting Slug', path: 'slug' }),
+      step('set-var', { title: 'Save Slug', varName: 'shareSlug' }),
+      step('shell', {
+        title: 'Generating Link',
+        command: 'echo "https://tondro.makix.fr/#view/{{vars.shareSlug}}"',
+      }),
+      step('clipboard-write', { title: 'Copy Link' }),
+      step('show-result', { title: 'Tondro Link', label: 'Share Link' }),
+    ],
+  },
 ]

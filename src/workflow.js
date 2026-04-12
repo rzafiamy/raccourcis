@@ -324,12 +324,15 @@ const EXECUTORS = {
 
   'file-picker': async (step, ctx, _opts) => {
     const s = interpolateStep(step, ctx)
+    const properties = ['openFile']
+    if (s.multiple === true || s.multiple === 'true') properties.push('multiSelections')
+    
     const res = await window.ipcRenderer.showOpenDialog({
-      properties: ['openFile'],
+      properties,
       buttonLabel: s.buttonLabel || 'Select'
     })
     if (res.canceled) throw new Error('User cancelled file selection.')
-    ctx.result = res.filePaths[0]
+    ctx.result = res.filePaths.join('\n')
   },
 
   'folder-picker': async (step, ctx, _opts) => {
@@ -1128,13 +1131,23 @@ const EXECUTORS = {
     const cfg = await loadConfig()
     if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
     const s = interpolateStep(step, ctx)
-    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}?select=${encodeURIComponent(s.select || '*')}${s.filter ? '&' + s.filter : ''}`
+    let table = s.table
+    let schema = 'public'
+    if (table.includes('.')) {
+      const parts = table.split('.')
+      schema = parts[0]
+      table = parts[1]
+    }
+
+    const key = cfg.supabaseServiceKey || cfg.supabaseAnonKey
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${table}?select=${encodeURIComponent(s.select || '*')}${s.filter ? '&' + s.filter : ''}`
     const res = await fetch(url, {
       method: 'GET',
       headers: {
-        'apikey': cfg.supabaseAnonKey,
-        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/json',
+        'Accept-Profile': schema,
       },
       signal: opts.signal,
     })
@@ -1150,14 +1163,24 @@ const EXECUTORS = {
     const cfg = await loadConfig()
     if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
     const s = interpolateStep(step, ctx)
-    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}`
+    let table = s.table
+    let schema = 'public'
+    if (table.includes('.')) {
+      const parts = table.split('.')
+      schema = parts[0]
+      table = parts[1]
+    }
+
+    const key = cfg.supabaseServiceKey || cfg.supabaseAnonKey
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${table}`
     const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'apikey': cfg.supabaseAnonKey,
-        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
+        'Content-Profile': schema,
       },
       body: s.data || ctx.result,
       signal: opts.signal,
@@ -1174,14 +1197,24 @@ const EXECUTORS = {
     const cfg = await loadConfig()
     if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
     const s = interpolateStep(step, ctx)
-    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}?${s.filter}`
+    let table = s.table
+    let schema = 'public'
+    if (table.includes('.')) {
+      const parts = table.split('.')
+      schema = parts[0]
+      table = parts[1]
+    }
+
+    const key = cfg.supabaseServiceKey || cfg.supabaseAnonKey
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${table}?${s.filter}`
     const res = await fetch(url, {
       method: 'PATCH',
       headers: {
-        'apikey': cfg.supabaseAnonKey,
-        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
+        'Content-Profile': schema,
       },
       body: s.data || ctx.result,
       signal: opts.signal,
@@ -1198,13 +1231,23 @@ const EXECUTORS = {
     const cfg = await loadConfig()
     if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
     const s = interpolateStep(step, ctx)
-    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}?${s.filter}`
+    let table = s.table
+    let schema = 'public'
+    if (table.includes('.')) {
+      const parts = table.split('.')
+      schema = parts[0]
+      table = parts[1]
+    }
+
+    const key = cfg.supabaseServiceKey || cfg.supabaseAnonKey
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${table}?${s.filter}`
     const res = await fetch(url, {
       method: 'DELETE',
       headers: {
-        'apikey': cfg.supabaseAnonKey,
-        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/json',
+        'Content-Profile': schema,
       },
       signal: opts.signal,
     })
@@ -1212,7 +1255,84 @@ const EXECUTORS = {
       const b = await res.json().catch(() => ({}))
       throw new Error(b.message || `Supabase delete failed (${res.status})`)
     }
-    ctx.result = `Deleted from ${s.table} where ${s.filter}`
+    ctx.result = `Deleted from ${table} in ${schema} where ${s.filter}`
+  },
+
+  'supabase-rpc': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
+    const s = interpolateStep(step, ctx)
+    let functionName = s.functionName
+    let schema = 'public'
+    if (functionName.includes('.')) {
+      const parts = functionName.split('.')
+      schema = parts[0]
+      functionName = parts[1]
+    }
+
+    const key = cfg.supabaseServiceKey || cfg.supabaseAnonKey
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/${functionName}`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Accept-Profile': schema,
+        'Content-Profile': schema,
+      },
+      body: s.params || '{}',
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `Supabase RPC failed (${res.status})`)
+    }
+    const data = await res.json()
+    ctx.result = JSON.stringify(data, null, 2)
+  },
+
+  'supabase-upload': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
+    const s = interpolateStep(step, ctx)
+    const rawPaths = s.path || ctx.result
+    if (!rawPaths) throw new Error('Supabase Upload: no file path provided.')
+
+    const filePaths = rawPaths.split('\n').filter(Boolean)
+    const uploadedFiles = []
+    const key = cfg.supabaseServiceKey || cfg.supabaseAnonKey
+
+    for (const filePath of filePaths) {
+      const fileName = filePath.split('/').pop()
+      const destPath = s.destPath || fileName
+      const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/storage/v1/object/${s.bucket}/${destPath}`
+
+      const base64 = await window.ipcRenderer.readFileBase64(filePath)
+      const binaryStr = atob(base64)
+      const bytes = new Uint8Array(binaryStr.length)
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/octet-stream',
+          'x-upsert': 'true'
+        },
+        body: bytes,
+        signal: opts.signal,
+      })
+
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error(b.error || b.message || `Supabase upload failed for ${fileName} (${res.status})`)
+      }
+      uploadedFiles.push(destPath)
+    }
+
+    ctx.result = uploadedFiles.join(', ')
   },
 
   'youtube-download': async (step, ctx, _opts) => {
