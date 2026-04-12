@@ -131,8 +131,8 @@ document.getElementById('navDashboard').addEventListener('click', (e) => {
 
 let dashboardTimer = null
 async function doDashboardRefresh() {
-  if (dashboardTimer) clearTimeout(dashboardTimer)
   if (currentView !== 'dashboard') return
+  if (dashboardTimer) clearTimeout(dashboardTimer)
   await refreshDashboard(shortcuts, currentView, (s) => startRun(s))
   dashboardTimer = setTimeout(doDashboardRefresh, 30000)
 }
@@ -458,6 +458,9 @@ async function startRun(shortcut) {
     shortcuts[idx].lastUsed = runAt
     await saveShortcuts(shortcuts)
   }
+
+  // Refresh dashboard stats immediately if it's the active view
+  if (currentView === 'dashboard') doDashboardRefresh()
   // Overlay stays open — user closes it manually
 }
 
