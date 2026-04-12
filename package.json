@@ -1,6 +1,6 @@
 {
   "name": "raccourcis",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Powerful shortcuts and AI workflows for Ubuntu Linux",
   "main": "dist-electron/main.js",
   "type": "module",
