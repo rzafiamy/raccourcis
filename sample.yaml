@@ -1,0 +1,26 @@
+# Raccourcis Shortcut Template (YAML)
+# This file can be generated programmatically and placed in the discovered directory.
+
+name: "My Automated Shortcut"
+icon: "zap"           # Any Lucide icon name: zap, brain, terminal, etc.
+color: "bg-blue"     # bg-blue, bg-pink, bg-purple, bg-orange, bg-green, bg-cyan, bg-red
+category: "personal"   # personal or ai
+favorite: true
+
+steps:
+  - type: "user-input"
+    title: "Input Text"
+    desc: "Ask user for text"
+    label: "What should I process?"
+    placeholder: "Enter something..."
+
+  - type: "ai-prompt"
+    title: "AI Transform"
+    desc: "Process with AI"
+    prompt: "Translate this to French: {{result}}"
+    systemPrompt: "You are a translator."
+
+  - type: "show-result"
+    title: "Display Result"
+    desc: "Show the translation"
+    label: "Translation"

@@ -242,7 +242,7 @@ export function promptUser({ label, placeholder, prefill = '' }) {
 
 // ── Confirm dialog ────────────────────────────────────────────────────────────
 
-export function showConfirm({ title, message }) {
+export function showConfirm({ title, message, confirmText = 'Delete', confirmClass = 'btn-danger' }) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
@@ -254,7 +254,7 @@ export function showConfirm({ title, message }) {
           <p style="color:var(--text-secondary);margin-bottom:30px;">${message}</p>
           <div style="display:flex;gap:12px;justify-content:center;">
             <button class="btn btn-ghost" id="confirmNo">Cancel</button>
-            <button class="btn btn-danger" id="confirmYes">Delete</button>
+            <button class="btn ${confirmClass}" id="confirmYes">${confirmText}</button>
           </div>
         </div>
       </div>
@@ -264,6 +264,29 @@ export function showConfirm({ title, message }) {
     overlay.querySelector('#confirmNo').addEventListener('click',  () => { overlay.remove(); resolve(false) })
   })
 }
+
+export function showAlert({ title, message, btnText = 'OK' }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'modal-overlay'
+    overlay.style.display = 'flex'
+    overlay.innerHTML = `
+      <div class="modal-content" style="max-width:400px;height:auto;">
+        <div class="modal-body" style="text-align:center;padding:40px 32px 24px;">
+          <h3 style="margin-bottom:12px;">${title}</h3>
+          <p style="color:var(--text-secondary);margin-bottom:30px;">${message}</p>
+          <div style="display:flex;justify-content:center;">
+            <button class="btn btn-primary" id="alertOk">${btnText}</button>
+          </div>
+        </div>
+      </div>
+    `
+    document.body.appendChild(overlay)
+    overlay.querySelector('#alertOk').addEventListener('click', () => { overlay.remove(); resolve() })
+  })
+}
+
+
 
 // ── Step card (canvas) ────────────────────────────────────────────────────────
 

@@ -1,10 +1,14 @@
-import { app, BrowserWindow, ipcMain, shell, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, clipboard, dialog } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import fs from 'node:fs'
 import os from 'node:os'
+import yaml from 'js-yaml'
+import { XMLParser } from 'fast-xml-parser'
+
+const xmlParser = new XMLParser()
 
 const execAsync = promisify(exec)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -107,7 +111,128 @@ ipcMain.on('play-audio', (_, filePath) => {
   })
 })
 
+// ── Shortcut Discovery ───────────────────────────────────────────────────────
+
+ipcMain.handle('discover-shortcuts', async () => {
+  const shortcutsDir = path.join(os.homedir(), 'Raccourcis', 'shortcuts')
+  
+  if (!fs.existsSync(shortcutsDir)) {
+    try {
+      fs.mkdirSync(shortcutsDir, { recursive: true })
+    } catch (err) {
+      console.error('[main] Failed to create shortcuts directory:', err.message)
+      return []
+    }
+  }
+
+  const files = fs.readdirSync(shortcutsDir)
+  const discovered = []
+
+  for (const file of files) {
+    const filePath = path.join(shortcutsDir, file)
+    const ext = path.extname(file).toLowerCase()
+    
+    if (ext === '.yaml' || ext === '.yml' || ext === '.json' || ext === '.xml') {
+      try {
+        const content = fs.readFileSync(filePath, 'utf8')
+        let data
+        if (ext === '.yaml' || ext === '.yml') {
+          data = yaml.load(content)
+        } else if (ext === '.xml') {
+          const parsed = xmlParser.parse(content)
+          data = parsed.shortcut
+          // Ensure steps is an array
+          if (data && data.steps && data.steps.step) {
+            data.steps = Array.isArray(data.steps.step) ? data.steps.step : [data.steps.step]
+          }
+        } else {
+          data = JSON.parse(content)
+        }
+
+        if (data && data.name && data.steps) {
+          // Normalize and ensure ID
+          data.id = `fs-${file}`
+          data.isFileSystem = true // Flag for UI if needed
+          discovered.push(data)
+        }
+      } catch (err) {
+        console.warn(`[main] Failed to parse shortcut file ${file}:`, err.message)
+      }
+    }
+  }
+
+  return discovered
+})
+
+// ── Import / Export Dialogs ─────────────────────────────────────────────────
+
+ipcMain.handle('show-open-dialog', async (_, options) => {
+  return await dialog.showOpenDialog(win, options)
+})
+
+ipcMain.handle('show-save-dialog', async (_, options) => {
+  return await dialog.showSaveDialog(win, options)
+})
+
+ipcMain.handle('write-file', async (_, { filePath, content }) => {
+  try {
+    fs.writeFileSync(filePath, content, 'utf8')
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('read-file', async (_, filePath) => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8')
+    return { ok: true, content }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+// ── Persistent Storage (File System) ─────────────────────────────────────────
+
+const DATA_DIR = path.join(os.homedir(), '.raccourcis')
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json')
+const SHORTCUTS_FILE = path.join(DATA_DIR, 'shortcuts.json')
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+ipcMain.handle('store-save-shortcuts', async (_, shortcuts) => {
+  ensureDataDir()
+  fs.writeFileSync(SHORTCUTS_FILE, JSON.stringify(shortcuts, null, 2))
+})
+
+ipcMain.handle('store-load-shortcuts', async () => {
+  if (!fs.existsSync(SHORTCUTS_FILE)) return null
+  try {
+    return JSON.parse(fs.readFileSync(SHORTCUTS_FILE, 'utf8'))
+  } catch {
+    return null
+  }
+})
+
+ipcMain.handle('store-save-config', async (_, config) => {
+  ensureDataDir()
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
+})
+
+ipcMain.handle('store-load-config', async () => {
+  if (!fs.existsSync(CONFIG_FILE)) return null
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))
+  } catch {
+    return null
+  }
+})
+
 // ── Shell execution ───────────────────────────────────────────────────────────
+
+
 // Only available when the app is used by the local user (no network exposure).
 // Commands run in a restricted shell with a 30s timeout.
 
@@ -132,3 +257,4 @@ ipcMain.handle('shell-exec', async (_, command) => {
     }
   }
 })
+

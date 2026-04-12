@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shortcut>
+    <name>XML Powered Shortcut</name>
+    <icon>zap</icon>
+    <color>bg-indigo</color>
+    <category>personal</category>
+    <favorite>true</favorite>
+    <steps>
+        <step>
+            <type>user-input</type>
+            <title>Input From XML</title>
+            <desc>Asking user...</desc>
+            <label>Whats your name?</label>
+            <placeholder>John Doe</placeholder>
+        </step>
+        <step>
+            <type>show-result</type>
+            <title>Hello Result</title>
+            <desc>Greeting...</desc>
+            <label>Greeting</label>
+        </step>
+    </steps>
+</shortcut>

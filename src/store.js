@@ -826,33 +826,51 @@ export const DEFAULT_SHORTCUTS = [
 
 // --- Shortcuts ---
 
-export function loadShortcuts() {
+export async function loadShortcuts() {
   try {
+    const fsData = await window.ipcRenderer.store.loadShortcuts()
+    if (fsData && Array.isArray(fsData)) return fsData
     const raw = localStorage.getItem(KEYS.shortcuts)
-    return raw ? JSON.parse(raw) : DEFAULT_SHORTCUTS
+    if (raw) {
+      const data = JSON.parse(raw)
+      await window.ipcRenderer.store.saveShortcuts(data)
+      return data
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS))
   } catch {
-    return DEFAULT_SHORTCUTS
+    return JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS))
   }
 }
 
-export function saveShortcuts(shortcuts) {
+export async function saveShortcuts(shortcuts) {
   localStorage.setItem(KEYS.shortcuts, JSON.stringify(shortcuts))
+  await window.ipcRenderer.store.saveShortcuts(shortcuts)
 }
 
 // --- Config ---
 
-export function loadConfig() {
+export async function loadConfig() {
   try {
+    const fsConfig = await window.ipcRenderer.store.loadConfig()
+    if (fsConfig) return { ...DEFAULT_CONFIG, ...fsConfig }
     const raw = localStorage.getItem(KEYS.config)
-    return raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : { ...DEFAULT_CONFIG }
+    if (raw) {
+      const data = JSON.parse(raw)
+      const merged = { ...DEFAULT_CONFIG, ...data }
+      await window.ipcRenderer.store.saveConfig(merged)
+      return merged
+    }
+    return { ...DEFAULT_CONFIG }
   } catch {
     return { ...DEFAULT_CONFIG }
   }
 }
 
-export function saveConfig(config) {
+export async function saveConfig(config) {
   localStorage.setItem(KEYS.config, JSON.stringify(config))
+  await window.ipcRenderer.store.saveConfig(config)
 }
+
 
 // --- Run history (last 20) ---
 
@@ -874,11 +892,11 @@ export function appendRun(run) {
 
 // --- Export / Import ---
 
-export function exportData() {
+export async function exportData() {
   return JSON.stringify(
     {
-      shortcuts: loadShortcuts(),
-      config: { ...loadConfig(), apiKey: '***' }, // never export key
+      shortcuts: await loadShortcuts(),
+      config: { ...(await loadConfig()), apiKey: '***' }, // never export key
       exportedAt: new Date().toISOString(),
     },
     null,
@@ -886,9 +904,11 @@ export function exportData() {
   )
 }
 
-export function importData(json) {
+export async function importData(json) {
   const data = JSON.parse(json)
-  if (data.shortcuts) saveShortcuts(data.shortcuts)
+  if (data.shortcuts) await saveShortcuts(data.shortcuts)
   // config intentionally not imported (API key security)
   return data
 }
+
+

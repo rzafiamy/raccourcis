@@ -56,10 +56,20 @@
   <main class="main-content" id="mainContent">
     <header class="header">
       <h1>All Shortcuts</h1>
-      <div class="search-container">
-        <i data-lucide="search"></i>
-        <input class="search-input" type="text" placeholder="Search…" autocomplete="off">
+      <div class="header-actions">
+        <button class="action-btn-text" id="importShortcuts" title="Import Shortcuts">
+          <i data-lucide="upload-cloud"></i>
+        </button>
+        <button class="action-btn-text" id="exportShortcuts" title="Export Shortcuts">
+          <i data-lucide="download-cloud"></i>
+        </button>
+        <div class="search-container">
+
+          <i data-lucide="search"></i>
+          <input class="search-input" type="text" placeholder="Search…" autocomplete="off">
+        </div>
       </div>
+
     </header>
     <div class="shortcut-grid" id="shortcutGrid"></div>
   </main>
@@ -163,7 +173,7 @@
           <i data-lucide="search"></i><span>Google</span>
         </button>
         <button class="settings-nav-item" data-tab="youtube">
-          <i data-lucide="youtube"></i><span>YouTube</span>
+          <i data-lucide="video"></i><span>YouTube</span>
         </button>
         <button class="settings-nav-item" data-tab="weather">
           <i data-lucide="cloud-sun"></i><span>Weather</span>
@@ -376,9 +386,11 @@
 
     <!-- Footer -->
     <div class="modal-footer">
-      <button class="btn btn-danger" id="restoreDefaults">Restore Default Shortcuts</button>
+      <button class="btn btn-danger" id="restoreDefaults">Restore Defaults</button>
       <button class="btn btn-primary" id="saveSettings">Save Settings</button>
     </div>
+
+
   </div>
 </div>
 

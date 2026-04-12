@@ -139,7 +139,28 @@ Open **Settings** (sidebar → Settings) to configure each service:
 | GitLab | Instance URL + Personal Access Token |
 | Nextcloud | Instance URL + username + app password |
 
-All credentials are stored in `localStorage` — never logged or exported in plaintext.
+All credentials and application data are stored securely on the local filesystem:
+- **Location**: `~/.raccourcis/`
+- **Config**: `config.json` (API keys, service endpoints)
+- **Library**: `shortcuts.json` (Custom shortcuts created via the app)
+
+---
+
+## Shortcut Discovery — "File-System First"
+
+Raccourcis automatically discovers and merges shortcuts from the following directory on every launch:
+- **Path**: `~/Raccourcis/shortcuts/`
+- **Supported Formats**: `.yaml`, `.yml`, `.json`, `.xml`
+
+This allows you to create shortcuts programmatically or manage them via Git. See `sample.yaml` or `sample.xml` in the root for the schema.
+
+---
+
+## Library Management
+
+The main header includes actions for:
+- **Import**: Merge a `.json` shortcut library into your local database.
+- **Export**: Backup your entire shortcut collection to a single file.
 
 ---
 
@@ -147,18 +168,20 @@ All credentials are stored in `localStorage` — never logged or exported in pla
 
 ```
 raccourcis/
-├── electron/          # Electron main process (IPC handlers, shell, SMTP)
+├── electron/          # Electron main process (IPC, FS Storage, Shell)
 ├── src/
-│   ├── actions.js     # Action registry — definitions & params
-│   ├── workflow.js    # Workflow executor — step runners & service calls
-│   ├── store.js       # Persistence — localStorage abstraction
-│   ├── ui.js          # Rendering helpers — cards, overlays, palette
-│   ├── renderer.js    # Main orchestrator — routing, settings, editor
-│   └── style.css      # Design system — tokens, layout, components
-├── index.html         # App shell + settings modal
-├── RELEASE_NOTES.md   # Changelog
-└── vite.config.js
+│   ├── actions.js     # Action registry & definition logic
+│   ├── workflow.js    # Sequence executor & API service wrappers
+│   ├── store.js       # FS-based persistence layer (Async)
+│   ├── ui.js          # Component factory & custom modal system
+│   ├── renderer.js    # UI orchestration & event logic
+│   └── style.css      # Premium glassmorphic design system
+├── index.html         # HTML5 shell structure
+├── sample.yaml        # Template for external shortcut creation
+├── RELEASE_NOTES.md   # Version history
+└── vite.config.js     # Build pipeline configuration
 ```
+
 
 ---
 

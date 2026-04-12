@@ -10,15 +10,18 @@ import {
   createRunOverlay,
   promptUser,
   showConfirm,
+  showAlert,
   buildStepCard,
+
   buildPaletteList,
   refreshIcons,
 } from './ui.js'
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let shortcuts = loadShortcuts()
+let shortcuts = []
 let currentCategory = 'all'
+
 let editingShortcut = null   // deep-copy of shortcut being edited
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
@@ -90,10 +93,11 @@ document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
   })
 })
 
-document.getElementById('openSettings').addEventListener('click', (e) => {
+document.getElementById('openSettings').addEventListener('click', async (e) => {
   e.preventDefault()
-  openSettings()
+  await openSettings()
 })
+
 
 // ── Settings Tab Switching ───────────────────────────────────────────────────
 
@@ -191,9 +195,10 @@ async function deleteShortcut(shortcut) {
   })
   if (!confirmed) return
   shortcuts = shortcuts.filter((s) => s.id !== shortcut.id)
-  saveShortcuts(shortcuts)
+  await saveShortcuts(shortcuts)
   renderGrid()
 }
+
 
 // ── Editor panel ──────────────────────────────────────────────────────────────
 
@@ -338,26 +343,27 @@ colorSwatches.forEach((sw) => {
 
 editorBackBtn.addEventListener('click', closeEditor)
 
-editorSaveBtn.addEventListener('click', () => {
+editorSaveBtn.addEventListener('click', async () => {
   if (!editingShortcut) return
   if (!editingShortcut.name.trim()) editingShortcut.name = 'Untitled'
   const idx = shortcuts.findIndex((s) => s.id === editingShortcut.id)
   if (idx !== -1) shortcuts[idx] = editingShortcut
   else shortcuts.push(editingShortcut)
-  saveShortcuts(shortcuts)
+  await saveShortcuts(shortcuts)
   renderGrid()
   closeEditor()
 })
 
-editorRunBtn.addEventListener('click', () => {
+editorRunBtn.addEventListener('click', async () => {
   if (!editingShortcut) return
   // Save first so the run uses current state
   if (!editingShortcut.name.trim()) editingShortcut.name = 'Untitled'
   const idx = shortcuts.findIndex((s) => s.id === editingShortcut.id)
   if (idx !== -1) shortcuts[idx] = editingShortcut
   else shortcuts.push(editingShortcut)
-  saveShortcuts(shortcuts)
+  await saveShortcuts(shortcuts)
   renderGrid()
+
   const snapshot = JSON.parse(JSON.stringify(editingShortcut))
   closeEditor()
   startRun(snapshot)
@@ -365,11 +371,13 @@ editorRunBtn.addEventListener('click', () => {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
-function openSettings() {
-  const cfg = loadConfig()
+async function openSettings() {
+  const cfg = await loadConfig()
   settingsBaseUrl.value = cfg.baseUrl
   settingsApiKey.value  = cfg.apiKey
   settingsModel.value   = cfg.model
+  // ... (rest of field updates)
+
   // Services
   sFirecrawlKey.value   = cfg.firecrawlApiKey || ''
   sFirecrawlUrl.value   = cfg.firecrawlBaseUrl || ''
@@ -402,8 +410,8 @@ document.getElementById('closeSettings').addEventListener('click', () => {
   settingsModal.style.display = 'none'
 })
 
-document.getElementById('saveSettings').addEventListener('click', () => {
-  saveConfig({
+document.getElementById('saveSettings').addEventListener('click', async () => {
+  await saveConfig({
     baseUrl:              settingsBaseUrl.value.trim(),
     apiKey:               settingsApiKey.value.trim(),
     model:                settingsModel.value.trim(),
@@ -428,20 +436,93 @@ document.getElementById('saveSettings').addEventListener('click', () => {
     nextcloudPass:        sNextcloudPass.value,
   })
   settingsModal.style.display = 'none'
+  showAlert({ title: 'Settings Saved', message: 'Configuration has been updated.' })
 })
+
 
 
 document.getElementById('restoreDefaults').addEventListener('click', async () => {
   const confirmed = await showConfirm({
     title:   'Restore default shortcuts?',
-    message: 'This will replace all your current shortcuts with the 20 built-in defaults. This cannot be undone.',
+    message: 'This will replace all your current shortcuts with the builtin defaults. This cannot be undone.',
   })
   if (!confirmed) return
   shortcuts = JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS))
-  saveShortcuts(shortcuts)
+  await saveShortcuts(shortcuts)
   settingsModal.style.display = 'none'
   renderGrid()
 })
+
+
+document.getElementById('exportShortcuts').addEventListener('click', async () => {
+  const { filePath, canceled } = await window.ipcRenderer.showSaveDialog({
+    title: 'Export Shortcuts',
+    defaultPath: 'raccourcis_backup.json',
+    filters: [
+      { name: 'JSON Files', extensions: ['json'] }
+    ]
+  })
+
+  if (canceled || !filePath) return
+
+  const content = JSON.stringify(shortcuts, null, 2)
+  const res = await window.ipcRenderer.writeFile(filePath, content)
+  if (res.ok) {
+    showAlert({ title: 'Export Success', message: 'Shortcuts exported successfully!' })
+  } else {
+    showAlert({ title: 'Export Failed', message: 'Error: ' + res.error })
+  }
+})
+
+
+document.getElementById('importShortcuts').addEventListener('click', async () => {
+  const { filePaths, canceled } = await window.ipcRenderer.showOpenDialog({
+    title: 'Import Shortcuts',
+    filters: [
+      { name: 'JSON Files', extensions: ['json'] }
+    ],
+    properties: ['openFile']
+  })
+
+  if (canceled || !filePaths || filePaths.length === 0) return
+
+  const res = await window.ipcRenderer.readFile(filePaths[0])
+  if (res.ok) {
+    try {
+      const imported = JSON.parse(res.content)
+      if (Array.isArray(imported)) {
+        const confirmed = await showConfirm({
+          title: 'Import Shortcuts?',
+          message: `This will add ${imported.length} shortcuts to your library.`,
+          confirmText: 'Import',
+          confirmClass: 'btn-primary'
+        })
+
+        if (!confirmed) return
+        
+        // Merge without duplicates based on name if desired, or just add
+        imported.forEach(s => {
+          if (!s.id || typeof s.id === 'string' && s.id.startsWith('fs-')) {
+            s.id = Date.now() + Math.random()
+          }
+          shortcuts.push(s)
+        })
+        
+        saveShortcuts(shortcuts)
+        renderGrid()
+        showAlert({ title: 'Import Success', message: `Successfully imported ${imported.length} shortcuts.` })
+      } else {
+        showAlert({ title: 'Import Failed', message: 'Invalid shortcut file format.' })
+      }
+    } catch (err) {
+      showAlert({ title: 'Import Failed', message: 'Failed to parse shortcut file.' })
+    }
+  } else {
+    showAlert({ title: 'Import Failed', message: 'Read failed: ' + res.error })
+  }
+})
+
+
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 
@@ -466,6 +547,29 @@ document.addEventListener('keydown', (e) => {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
-renderGrid()
-refreshIcons()
-console.log('[Raccourcis] renderer ready')
+async function init() {
+  shortcuts = await loadShortcuts()
+  await loadAndMergeShortcuts()
+  renderGrid()
+
+  refreshIcons()
+  console.log('[Raccourcis] renderer ready')
+}
+
+async function loadAndMergeShortcuts() {
+  const discovered = await window.ipcRenderer.discoverShortcuts()
+  if (discovered && discovered.length > 0) {
+    // Merge: file-system shortcuts override or supplement local ones by ID
+    discovered.forEach(ds => {
+      const existingIdx = shortcuts.findIndex(s => s.id === ds.id)
+      if (existingIdx !== -1) {
+        shortcuts[existingIdx] = ds
+      } else {
+        shortcuts.push(ds)
+      }
+    })
+  }
+}
+
+init()
+

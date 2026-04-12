@@ -44,7 +44,7 @@ function interpolateStep(step, ctx) {
 // ── AI call ───────────────────────────────────────────────────────────────────
 
 async function callAI(prompt, systemPrompt, signal) {
-  const cfg = loadConfig()
+  const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
@@ -75,7 +75,7 @@ async function callAI(prompt, systemPrompt, signal) {
 // ── TTS call ──────────────────────────────────────────────────────────────────
 
 async function callTTS(text, voice, model, signal) {
-  const cfg = loadConfig()
+  const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   const res = await fetch(`${cfg.baseUrl}/audio/speech`, {
@@ -101,7 +101,7 @@ async function callTTS(text, voice, model, signal) {
 // ── ASR call ──────────────────────────────────────────────────────────────────
 
 async function callASR(fileBase64, fileName, language, signal) {
-  const cfg = loadConfig()
+  const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   // Rebuild binary from base64
@@ -134,7 +134,7 @@ async function callASR(fileBase64, fileName, language, signal) {
 // ── Image generation call ─────────────────────────────────────────────────────
 
 async function callImageGen(prompt, size, quality, signal) {
-  const cfg = loadConfig()
+  const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   const res = await fetch(`${cfg.baseUrl}/images/generations`, {
@@ -165,7 +165,7 @@ async function callImageGen(prompt, size, quality, signal) {
 // ── Vision call ───────────────────────────────────────────────────────────────
 
 async function callVision(imageUrl, prompt, systemPrompt, signal) {
-  const cfg = loadConfig()
+  const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
@@ -307,7 +307,7 @@ const EXECUTORS = {
   // ── Services ──────────────────────────────────────────────────────────────────
 
   'firecrawl-scrape': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.firecrawlApiKey) throw new Error('Firecrawl API key not set. Open Settings → Services.')
     const s = interpolateStep(step, ctx)
     const url = s.url || ctx.result
@@ -330,7 +330,7 @@ const EXECUTORS = {
   },
 
   'google-search': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.googleApiKey) throw new Error('Google API key not set. Open Settings → Services.')
     if (!cfg.googleCseId) throw new Error('Google CSE ID not set. Open Settings → Services.')
     const s = interpolateStep(step, ctx)
@@ -351,7 +351,7 @@ const EXECUTORS = {
   },
 
   'youtube-search': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.youtubeApiKey) throw new Error('YouTube API key not set. Open Settings → Services.')
     const s = interpolateStep(step, ctx)
     const query = s.query || ctx.result
@@ -397,7 +397,7 @@ const EXECUTORS = {
   },
 
   'google-calendar-list': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.googleCalendarToken) throw new Error('Google Calendar token not set. Open Settings → Services.')
     const s = interpolateStep(step, ctx)
     const maxResults = Math.max(Number(s.maxResults) || 10, 1)
@@ -423,7 +423,7 @@ const EXECUTORS = {
   },
 
   'gmail-send': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.gmailToken) throw new Error('Gmail token not set. Open Settings → Services.')
     const s = interpolateStep(step, ctx)
     if (!s.to) throw new Error('Gmail: recipient address is required.')
@@ -449,7 +449,7 @@ const EXECUTORS = {
   },
 
   weather: async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.openWeatherApiKey) throw new Error('OpenWeatherMap API key not set. Open Settings → Services.')
     const s = interpolateStep(step, ctx)
     const location = s.location || ctx.result
@@ -474,7 +474,7 @@ const EXECUTORS = {
   },
 
   'smtp-send': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.smtpHost) throw new Error('SMTP host not set. Open Settings → SMTP.')
     const s = interpolateStep(step, ctx)
     if (!s.to) throw new Error('SMTP: recipient address is required.')
@@ -496,7 +496,7 @@ const EXECUTORS = {
   // ── GitLab ────────────────────────────────────────────────────────────────────
 
   'gitlab-list-issues': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
     const s = interpolateStep(step, ctx)
     const projectId = encodeURIComponent(s.projectId || ctx.result)
@@ -519,7 +519,7 @@ const EXECUTORS = {
   },
 
   'gitlab-create-issue': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
     const s = interpolateStep(step, ctx)
     const projectId = encodeURIComponent(s.projectId || '')
@@ -542,7 +542,7 @@ const EXECUTORS = {
 
   'gitlab-list-mrs': async (step, ctx, opts) => {
 
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
     const s = interpolateStep(step, ctx)
     const projectId = encodeURIComponent(s.projectId || ctx.result)
@@ -565,7 +565,7 @@ const EXECUTORS = {
   },
 
   'gitlab-pipelines': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
     const s = interpolateStep(step, ctx)
     const projectId = encodeURIComponent(s.projectId || ctx.result)
@@ -605,7 +605,7 @@ const EXECUTORS = {
   // ── Nextcloud ─────────────────────────────────────────────────────────────────
 
   'nextcloud-list-files': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const remotePath = (s.path || '/').replace(/\/+$/, '') || '/'
@@ -630,7 +630,7 @@ const EXECUTORS = {
   },
 
   'nextcloud-upload': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const localPath  = s.localPath || ctx.result
@@ -654,7 +654,7 @@ const EXECUTORS = {
   },
 
   'nextcloud-note': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const base  = cfg.nextcloudUrl.replace(/\/$/, '')
@@ -677,7 +677,7 @@ const EXECUTORS = {
   },
 
   'nextcloud-create-folder': async (step, ctx, opts) => {
-    const cfg = loadConfig()
+    const cfg = await loadConfig()
     if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const remotePath = (s.path || '/New Folder').replace(/\/+$/, '')

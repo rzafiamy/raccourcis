@@ -26,6 +26,8 @@
     "vite-plugin-electron-renderer": "^0.14.5"
   },
   "dependencies": {
+    "fast-xml-parser": "^5.5.11",
+    "js-yaml": "^4.1.1",
     "openai": "^6.34.0"
   }
 }

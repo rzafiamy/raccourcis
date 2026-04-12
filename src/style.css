@@ -168,6 +168,32 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.action-btn-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 36px;
+  height: 36px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.action-btn-text svg { width: 14px; height: 14px; }
+.action-btn-text:hover { background: rgba(255,255,255,0.1); color: var(--text); border-color: rgba(255,255,255,0.2); }
+.action-btn-text:active { transform: scale(0.97); }
+
 .search-container {
   display: flex;
   align-items: center;
@@ -176,16 +202,18 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 8px 14px;
-  width: 240px;
+  width: 200px;
   transition: width 0.2s, border-color 0.2s, background 0.2s;
   -webkit-app-region: no-drag;
+  height: 36px;
 }
 .search-container svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
-.search-container:focus-within { width: 280px; border-color: var(--blue); background: rgba(255,255,255,0.09); }
+.search-container:focus-within { width: 240px; border-color: var(--blue); background: rgba(255,255,255,0.09); }
 .search-input {
   background: none; border: none; color: var(--text); font-size: 13px; outline: none; width: 100%;
 }
 .search-input::placeholder { color: var(--text-muted); }
+
 
 /* ── Shortcut grid ────────────────────────────────────────────────── */
 .shortcut-grid {

@@ -352,7 +352,8 @@ export const ACTION_REGISTRY = [
     type: 'youtube-search',
     title: 'YouTube Search',
     desc: 'Search YouTube for videos → result with titles and URLs',
-    icon: 'youtube',
+    icon: 'video',
+
     color: '#FF0000',
     defaults: {
       query: '{{result}}',
