@@ -3,166 +3,184 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://unpkg.com;">
+  <meta http-equiv="Content-Security-Policy"
+    content="script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
   <title>Raccourci</title>
   <link rel="stylesheet" href="./src/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <div id="app">
-    <aside class="sidebar">
-      <div class="window-controls">
-        <div class="control close" id="winClose"></div>
-        <div class="control minimize" id="winMinimize"></div>
-        <div class="control maximize" id="winMaximize"></div>
+<div id="app">
+
+  <!-- ── Sidebar ────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="window-controls">
+      <div class="control close"    id="winClose"></div>
+      <div class="control minimize" id="winMinimize"></div>
+      <div class="control maximize" id="winMaximize"></div>
+    </div>
+
+    <div class="sidebar-logo">
+      <i data-lucide="zap"></i>
+      <span>Raccourci</span>
+    </div>
+
+    <div class="sidebar-section-label">Library</div>
+    <a href="#" class="nav-item active" data-category="all">
+      <i data-lucide="layout-grid"></i><span>All Shortcuts</span>
+    </a>
+    <a href="#" class="nav-item" data-category="favorites">
+      <i data-lucide="star"></i><span>Favorites</span>
+    </a>
+    <a href="#" class="nav-item" data-category="recent">
+      <i data-lucide="history"></i><span>Recent</span>
+    </a>
+
+    <div class="sidebar-section-label">Automation</div>
+    <a href="#" class="nav-item" data-category="ai">
+      <i data-lucide="sparkles"></i><span>AI Workflows</span>
+    </a>
+    <a href="#" class="nav-item" data-category="personal">
+      <i data-lucide="zap"></i><span>Personal</span>
+    </a>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-section-label">System</div>
+    <a href="#" class="nav-item" id="openSettings">
+      <i data-lucide="settings"></i><span>Settings</span>
+    </a>
+  </aside>
+
+  <!-- ── Main content ──────────────────────────────── -->
+  <main class="main-content">
+    <header class="header">
+      <h1>All Shortcuts</h1>
+      <div class="search-container">
+        <i data-lucide="search"></i>
+        <input class="search-input" type="text" placeholder="Search…" autocomplete="off">
       </div>
-      <div class="sidebar-title">Library</div>
-      <a href="#" class="nav-item active" data-category="all">
-        <i data-lucide="layout-grid"></i>
-        <span>All Shortcuts</span>
-      </a>
-      <a href="#" class="nav-item" data-category="recent">
-        <i data-lucide="history"></i>
-        <span>Recent</span>
-      </a>
-      <a href="#" class="nav-item" data-category="favorites">
-        <i data-lucide="star"></i>
-        <span>Favorites</span>
-      </a>
+    </header>
 
-      <div class="sidebar-title">Automation</div>
-      <a href="#" class="nav-item" data-category="personal">
-        <i data-lucide="zap"></i>
-        <span>Personal</span>
-      </a>
-      <a href="#" class="nav-item" data-category="ai">
-        <i data-lucide="bot"></i>
-        <span>AI Workflows</span>
-      </a>
+    <div class="shortcut-grid" id="shortcutGrid"></div>
+  </main>
+</div>
 
-      <div class="sidebar-title">System</div>
-      <a href="#" class="nav-item" id="openSettings">
-        <i data-lucide="settings"></i>
-        <span>Settings</span>
-      </a>
-    </aside>
+<!-- ══════════════════════════════════════════════════════
+     Workflow Editor Modal
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="editorModal">
+  <div class="modal-content editor-modal">
 
-    <main class="main-content">
-      <header class="header">
-        <h1>All Shortcuts</h1>
-        <div class="search-container">
-          <i data-lucide="search"></i>
-          <input type="text" placeholder="Search shortcuts">
-        </div>
-      </header>
+    <div class="modal-header">
+      <input class="modal-title-input" id="editorName" type="text" placeholder="Shortcut name">
+      <button class="action-btn" id="closeEditorModal" title="Close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
 
-      <div class="shortcut-grid" id="shortcutGrid">
-        <!-- Shortcuts will be injected here -->
-      </div>
-    </main>
-  </div>
+    <div class="modal-body">
 
-  <!-- Workflow Editor Modal -->
-  <div class="modal-overlay" id="editorModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modalTitle">New Shortcut</h2>
-        <button class="action-btn" id="closeModal"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group" style="margin-bottom: 30px;">
-          <label>Appearance</label>
-          <div class="color-picker" id="colorPicker">
-            <div class="color-swatch bg-blue" data-color="bg-blue"></div>
-            <div class="color-swatch bg-pink" data-color="bg-pink"></div>
+      <!-- Appearance row -->
+      <div class="editor-meta-row">
+        <div class="form-group">
+          <label>Color</label>
+          <div class="color-picker">
+            <div class="color-swatch bg-blue"   data-color="bg-blue"></div>
+            <div class="color-swatch bg-pink"   data-color="bg-pink"></div>
             <div class="color-swatch bg-purple" data-color="bg-purple"></div>
             <div class="color-swatch bg-orange" data-color="bg-orange"></div>
-            <div class="color-swatch bg-green" data-color="bg-green"></div>
-            <div class="color-swatch bg-cyan" data-color="bg-cyan"></div>
+            <div class="color-swatch bg-green"  data-color="bg-green"></div>
+            <div class="color-swatch bg-cyan"   data-color="bg-cyan"></div>
             <div class="color-swatch bg-indigo" data-color="bg-indigo"></div>
           </div>
         </div>
 
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 30px;">
-          <input type="checkbox" id="editFavorite" style="width: 20px; height: 20px; accent-color: var(--accent-blue);">
-          <label style="margin-bottom: 0;">Add to Favorites</label>
+        <div class="form-group" style="display:flex;gap:12px;align-items:center;">
+          <div>
+            <label>Category</label>
+            <select class="input-field select-field" id="editorCategory">
+              <option value="personal">Personal</option>
+              <option value="ai">AI Workflow</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:24px;">
+            <input type="checkbox" id="editorFavorite">
+            <label style="margin:0;text-transform:none;font-size:14px;">Favorite</label>
+          </div>
         </div>
+      </div>
 
-        <div class="workflow-steps" id="workflowSteps">
-          <!-- Workflow steps here -->
-        </div>
-        <div class="add-step-btn" id="addStep">
-          <i class="fas fa-plus"></i>
+      <!-- Steps -->
+      <div class="form-group">
+        <label>Actions</label>
+        <div id="editorSteps"></div>
+        <button class="add-step-btn" id="addStep">
+          <i data-lucide="plus"></i>
           <span>Add Action</span>
-        </div>
-      </div>
-      <div class="modal-header" style="justify-content: flex-end; gap: 10px;">
-        <button class="nav-item" style="background: var(--card-bg); border: none;">Run</button>
-        <button class="nav-item" style="background: var(--accent-blue); border: none; font-weight: 600;">Save</button>
+        </button>
       </div>
     </div>
-  </div>
 
-  <!-- Settings Modal -->
-  <div class="modal-overlay" id="settingsModal">
-    <div class="modal-content" style="max-width: 500px; height: auto;">
-      <div class="modal-header">
-        <h2>AI Settings</h2>
-        <button class="action-btn" id="closeSettings"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>OpenAI Base URL</label>
-          <input type="text" id="aiBaseUrl" placeholder="https://api.openai.com/v1" class="input-field">
-        </div>
-        <div class="form-group">
-          <label>API Key</label>
-          <input type="password" id="aiApiKey" placeholder="sk-..." class="input-field">
-        </div>
-        <div class="form-group">
-          <label>Default Model</label>
-          <input type="text" id="aiModel" placeholder="gpt-4-turbo" class="input-field">
-        </div>
-      </div>
-      <div class="modal-header" style="justify-content: flex-end;">
-        <button class="nav-item" id="saveSettings" style="background: var(--accent-blue); border: none; font-weight: 600;">Save Settings</button>
-      </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"    id="editorRunBtn">Run now</button>
+      <button class="btn btn-primary"  id="editorSaveBtn">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     Action Picker Modal
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="actionPickerModal">
+  <div class="modal-content picker-modal">
+    <div class="modal-header">
+      <h2>Add Action</h2>
+      <button class="action-btn" id="closeActionPicker" title="Close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="actionPickerContent"></div>
     </div>
   </div>
+</div>
 
-  <!-- Action Picker Modal -->
-  <div class="modal-overlay" id="actionPickerModal">
-    <div class="modal-content" style="max-width: 500px; height: 70%;">
-      <div class="modal-header">
-        <h2>Add Action</h2>
-        <button class="action-btn" id="closeActionPicker"><i class="fas fa-times"></i></button>
+<!-- ══════════════════════════════════════════════════════
+     Settings Modal
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-content settings-modal">
+    <div class="modal-header">
+      <h2>AI Settings</h2>
+      <button class="action-btn" id="closeSettings" title="Close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="settings-hint">
+        Works with any OpenAI-compatible endpoint (OpenAI, Mistral, Ollama, etc.)
+      </p>
+      <div class="form-group">
+        <label>Base URL</label>
+        <input class="input-field" id="aiBaseUrl" type="text" placeholder="https://api.openai.com/v1">
       </div>
-      <div class="modal-body">
-        <div id="actionList" class="workflow-steps">
-          <!-- Available actions will be injected here -->
-        </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input class="input-field" id="aiApiKey" type="password" placeholder="sk-…">
+      </div>
+      <div class="form-group">
+        <label>Model</label>
+        <input class="input-field" id="aiModel" type="text" placeholder="gpt-4o-mini">
       </div>
     </div>
-  </div>
-
-  <!-- Custom Dialog Modal -->
-  <div class="modal-overlay" id="dialogModal">
-    <div class="modal-content" style="max-width: 400px; height: auto;">
-      <div class="modal-body" style="text-align: center; padding: 40px 30px;">
-        <div id="dialogIcon" style="font-size: 48px; margin-bottom: 20px; color: var(--accent-blue);">
-          <i class="fas fa-info-circle"></i>
-        </div>
-        <h3 id="dialogTitle" style="margin-bottom: 12px; font-size: 20px;">Notice</h3>
-        <p id="dialogMessage" style="color: var(--text-secondary); margin-bottom: 30px; line-height: 1.5;"></p>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-          <button class="nav-item" id="dialogCancel" style="background: var(--card-bg); border: none; min-width: 100px; display: none;">Cancel</button>
-          <button class="nav-item" id="dialogConfirm" style="background: var(--accent-blue); border: none; min-width: 100px;">OK</button>
-        </div>
-      </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="saveSettings">Save Settings</button>
     </div>
   </div>
+</div>
 
-  <script type="module" src="./src/renderer.js"></script>
+<script type="module" src="./src/renderer.js"></script>
 </body>
 </html>
