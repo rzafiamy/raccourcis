@@ -222,13 +222,13 @@ function renderGrid() {
     grid.appendChild(card)
   })
 
-  // "+ New" card
+  // "+ New" card — always first so it's reachable regardless of content length
   if (currentCategory === 'all' || currentCategory === 'personal' || currentCategory === 'ai' || currentCategory === 'media' || currentCategory === 'comm') {
     const newCard = document.createElement('div')
     newCard.className = 'shortcut-card card-new'
     newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
     newCard.addEventListener('click', () => openEditor(null))
-    grid.appendChild(newCard)
+    grid.prepend(newCard)
   }
 
   refreshIcons(grid)
