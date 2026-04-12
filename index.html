@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+  <title>Raccourci</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="sidebar-title">Library</div>
+      <a href="#" class="nav-item active">
+        <i class="fas fa-grid-2"></i>
+        <span>All Shortcuts</span>
+      </a>
+      <a href="#" class="nav-item">
+        <i class="fas fa-clock"></i>
+        <span>Recent</span>
+      </a>
+      <a href="#" class="nav-item">
+        <i class="fas fa-star"></i>
+        <span>Favorites</span>
+      </a>
+
+      <div class="sidebar-title">Automation</div>
+      <a href="#" class="nav-item">
+        <i class="fas fa-bolt"></i>
+        <span>Personal</span>
+      </a>
+      <a href="#" class="nav-item">
+        <i class="fas fa-robot"></i>
+        <span>AI Workflows</span>
+      </a>
+
+      <div class="sidebar-title">System</div>
+      <a href="#" class="nav-item" id="openSettings">
+        <i class="fas fa-cog"></i>
+        <span>Settings</span>
+      </a>
+    </aside>
+
+    <main class="main-content">
+      <header class="header">
+        <h1>All Shortcuts</h1>
+        <div class="search-container">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search shortcuts">
+        </div>
+      </header>
+
+      <div class="shortcut-grid" id="shortcutGrid">
+        <!-- Shortcuts will be injected here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Workflow Editor Modal -->
+  <div class="modal-overlay" id="editorModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">New Shortcut</h2>
+        <button class="action-btn" id="closeModal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="workflow-steps" id="workflowSteps">
+          <!-- Workflow steps here -->
+        </div>
+        <div class="add-step-btn" id="addStep">
+          <i class="fas fa-plus"></i>
+          <span>Add Action</span>
+        </div>
+      </div>
+      <div class="modal-header" style="justify-content: flex-end; gap: 10px;">
+        <button class="nav-item" style="background: var(--card-bg); border: none;">Run</button>
+        <button class="nav-item" style="background: var(--accent-blue); border: none; font-weight: 600;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content" style="max-width: 500px; height: auto;">
+      <div class="modal-header">
+        <h2>AI Settings</h2>
+        <button class="action-btn" id="closeSettings"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>OpenAI Base URL</label>
+          <input type="text" id="aiBaseUrl" placeholder="https://api.openai.com/v1" class="input-field">
+        </div>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="aiApiKey" placeholder="sk-..." class="input-field">
+        </div>
+        <div class="form-group">
+          <label>Default Model</label>
+          <input type="text" id="aiModel" placeholder="gpt-4-turbo" class="input-field">
+        </div>
+      </div>
+      <div class="modal-header" style="justify-content: flex-end;">
+        <button class="nav-item" id="saveSettings" style="background: var(--accent-blue); border: none; font-weight: 600;">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/renderer.js"></script>
+</body>
+</html>
