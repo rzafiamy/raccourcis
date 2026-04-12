@@ -606,6 +606,41 @@ export const ACTION_REGISTRY = [
     ],
   },
 
+  {
+    type: 'plot-chart',
+    title: 'Plot Chart',
+    desc: 'Generate a chart from JSON data',
+    icon: 'bar-chart',
+    color: '#32D74B',
+    outputType: 'chart',
+    defaults: {
+      data: '{{result}}',
+      chartType: 'bar',
+      title: 'My Chart',
+      xAxis: 'label',
+      yAxis: 'value',
+    },
+    params: [
+      { name: 'data', label: 'JSON Data (array or object)', kind: 'textarea', placeholder: '[{"label":"A", "value":10}, {"label":"B", "value":20}]', acceptsVars: true },
+      {
+        name: 'chartType',
+        label: 'Chart Type',
+        kind: 'select',
+        options: [
+          { value: 'bar', label: 'Bar' },
+          { value: 'line', label: 'Line' },
+          { value: 'pie', label: 'Pie' },
+          { value: 'doughnut', label: 'Doughnut' },
+          { value: 'polarArea', label: 'Polar Area' },
+          { value: 'radar', label: 'Radar' },
+        ],
+      },
+      { name: 'title', label: 'Chart Title', kind: 'text', placeholder: 'My Chart', acceptsVars: true },
+      { name: 'xAxis', label: 'Key for Labels (X-Axis)', kind: 'text', placeholder: 'name' },
+      { name: 'yAxis', label: 'Key for Values (Y-Axis)', kind: 'text', placeholder: 'value' },
+    ],
+  },
+
   // ── Data / Text utilities ──────────────────────────────────────
   {
     type: 'http-request',

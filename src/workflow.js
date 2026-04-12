@@ -550,6 +550,37 @@ const EXECUTORS = {
     ctx.result = folder
   },
 
+  'plot-chart': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const rawData = s.data || ctx.result
+    if (!rawData) throw new Error('Plot Chart: no data provided.')
+
+    let data
+    try {
+      let cleanData = rawData
+      if (typeof cleanData === 'string') {
+        // Strip markdown code blocks if present
+        cleanData = cleanData.replace(/^```[a-z]*\n([\s\S]*)\n```$/m, '$1').trim()
+        // If it starts with ``` and ends with ``` but the line breaks are different
+        cleanData = cleanData.replace(/^```[a-z]*\s+([\s\S]+?)\s+```$/m, '$1').trim()
+      }
+      data = (typeof cleanData === 'string') ? JSON.parse(cleanData) : cleanData
+    } catch (e) {
+      throw new Error(`Plot Chart: invalid JSON data. ${e.message}`)
+    }
+
+    // We pass everything as a JSON string result, but flagged as chart in outputType
+    ctx.result = JSON.stringify({
+      chartType: s.chartType || 'bar',
+      data: data,
+      title: s.title || 'Chart',
+      xAxis: s.xAxis || 'label',
+      yAxis: s.yAxis || 'value'
+    })
+
+    if (opts.onShowResult) opts.onShowResult(ctx.result, 'chart')
+  },
+
   'set-var': async (step, ctx, _opts) => {
     const name = step.varName || 'result'
     ctx.vars[name] = ctx.result

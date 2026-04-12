@@ -79,8 +79,11 @@ export function detectKind(content) {
   // Local file path (non-audio)
   if (LOCAL_PATH_RE.test(s) && !s.includes('\n')) return 'file'
 
-  // JSON
-  if (looksLikeJson(s)) return 'json'
+  // JSON / Chart
+  if (looksLikeJson(s)) {
+    if (s.includes('"xAxis"') && s.includes('"yAxis"') && s.includes('"chartType"')) return 'chart'
+    return 'json'
+  }
 
   // Markdown (check before code — MD headers win)
   if (looksLikeMarkdown(s)) return 'markdown'
@@ -332,6 +335,99 @@ function renderAudio(src) {
   return `<audio controls class="or-audio"><source src="${escapeHtml(resolved)}"></audio>`
 }
 
+// ── Chart renderer ─────────────────────────────────────────────────────────────
+
+function renderChart(str) {
+  let config
+  try {
+    config = JSON.parse(str)
+  } catch {
+    return renderError('Chart: Invalid configuration JSON.')
+  }
+
+  const chartId = `chart-${Math.random().toString(36).substr(2, 9)}`
+  
+  // Create a canvas container
+  // We use a RAF to ensure the canvas is in DOM before initializing Chart.js
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById(chartId)
+    if (!canvas || !window.Chart) return
+
+    const { chartType, data, title, xAxis, yAxis } = config
+    
+    // Transform data: expect array of objects
+    let labels = []
+    let values = []
+
+    if (Array.isArray(data)) {
+      labels = data.map(item => item[xAxis] || 'unknown')
+      values = data.map(item => item[yAxis] || 0)
+    } else if (typeof data === 'object') {
+      labels = Object.keys(data)
+      values = Object.values(data)
+    }
+
+    const themeColors = [
+      'rgba(10, 132, 255, 0.7)',  // blue
+      'rgba(191, 90, 242, 0.7)',  // purple
+      'rgba(255, 55, 95, 0.7)',   // pink
+      'rgba(50, 215, 75, 0.7)',   // green
+      'rgba(255, 159, 10, 0.7)',  // orange
+      'rgba(100, 210, 255, 0.7)', // cyan
+      'rgba(94, 92, 230, 0.7)',   // indigo
+      'rgba(255, 214, 10, 0.7)',  // yellow
+    ]
+
+    new window.Chart(canvas, {
+      type: chartType || 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: title || 'Values',
+          data: values,
+          backgroundColor: chartType === 'line' || chartType === 'radar' ? themeColors[0] : themeColors,
+          borderColor: themeColors[0],
+          borderWidth: 1,
+          tension: 0.3,
+          fill: chartType === 'line' ? 'origin' : false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: !(['bar', 'line'].includes(chartType)),
+            labels: { color: 'rgba(255,255,255,0.7)' }
+          },
+          title: {
+            display: !!title,
+            text: title,
+            color: '#fff',
+            font: { size: 16, weight: 'bold' }
+          }
+        },
+        scales: (chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea' || chartType === 'radar') ? {} : {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255,255,255,0.1)' },
+            ticks: { color: 'rgba(255,255,255,0.5)' }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.5)' }
+          }
+        }
+      }
+    })
+  })
+
+  return `
+    <div class="or-chart-container">
+      <canvas id="${chartId}"></canvas>
+    </div>`
+}
+
 // ── Plain text ────────────────────────────────────────────────────────────────
 
 function renderText(str) {
@@ -432,6 +528,10 @@ export function renderOutput(content, kind = 'text') {
       break
     case 'file':
       html = renderFile(content)
+      copyText = content
+      break
+    case 'chart':
+      html = renderChart(content)
       copyText = content
       break
     case 'list':

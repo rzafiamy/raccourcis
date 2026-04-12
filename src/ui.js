@@ -666,7 +666,7 @@ const PALETTE_GROUPS = [
   { label: 'Control',  types: ['wait', 'set-var', 'confirm-dialog', 'text-transform', 'text-join'] },
   { label: 'Files',    types: ['file-read', 'folder-list', 'image-clean', 'file-rename', 'file-move', 'file-delete'] },
   { label: 'Media',    types: ['screenshot-capture'] },
-  { label: 'Data',     types: ['http-request', 'json-extract', 'regex-extract'] },
+  { label: 'Data',     types: ['http-request', 'json-extract', 'regex-extract', 'plot-chart'] },
   { label: 'Git',      types: ['git-clone', 'git-init'] },
   { label: 'System',   types: ['shell'] },
   { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'weather', 'qr-code'] },
