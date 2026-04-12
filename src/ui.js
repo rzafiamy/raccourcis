@@ -4,6 +4,7 @@
 
 import { ACTION_REGISTRY, getActionDef } from './actions.js'
 import { buildVarField, buildInlineTokens, buildTypeBadge, TYPE_META } from './varPicker.js'
+import { renderOutput, detectKind } from './outputRender.js'
 
 // ── Lucide icon helper ────────────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ export function createRunOverlay(shortcut, onCancel) {
   const copyBtn    = overlay.querySelector('#runCopyBtn')
 
   copyBtn.addEventListener('click', async () => {
-    const kind = copyBtn.dataset.kind || 'text'
+    const kind    = copyBtn.dataset.kind || 'text'
     const content = copyBtn.dataset.content || ''
 
     if (kind === 'image') {
@@ -153,8 +154,7 @@ export function createRunOverlay(shortcut, onCancel) {
       copyBtn.textContent = res.ok ? 'Saved!' : 'Download'
       if (res.ok) setTimeout(() => (copyBtn.textContent = 'Download'), 1500)
     } else {
-      const text = outputText.textContent || outputText.innerText
-      window.ipcRenderer.clipboard.writeText(text)
+      window.ipcRenderer.clipboard.writeText(content)
       copyBtn.textContent = 'Copied!'
       setTimeout(() => (copyBtn.textContent = 'Copy'), 1500)
     }
@@ -179,33 +179,22 @@ export function createRunOverlay(shortcut, onCancel) {
     showOutput(content, kind = 'text') {
       outputEl.style.display = 'block'
       outputText.innerHTML = ''
-      copyBtn.style.display = 'block'
-      copyBtn.dataset.kind = kind
-      copyBtn.dataset.content = content
 
-      if (kind === 'image') {
-        copyBtn.textContent = 'Download'
-        const img = document.createElement('img')
-        img.src = content
-        img.className = 'run-output-image'
-        img.alt = 'Generated image'
-        // Error handling for "empty" image
-        img.onerror = () => {
-          outputText.innerHTML = '<div class="error-text">Failed to load image. It may have expired or the URL is invalid.</div>'
-        }
-        outputText.appendChild(img)
-      } else if (kind === 'audio') {
-        const audio = document.createElement('audio')
-        audio.controls = true
-        audio.src = `file://${content}`
-        audio.className = 'run-output-audio'
-        outputText.appendChild(audio)
+      const { el, copyText, kind: resolvedKind } = renderOutput(content, kind)
+      outputText.appendChild(el)
+
+      // Configure copy button per kind
+      copyBtn.dataset.content = copyText
+      copyBtn.dataset.kind    = resolvedKind
+
+      if (resolvedKind === 'image') {
+        copyBtn.style.display = 'block'
+        copyBtn.textContent   = 'Download'
+      } else if (resolvedKind === 'audio' || resolvedKind === 'file') {
         copyBtn.style.display = 'none'
       } else {
-        const pre = document.createElement('pre')
-        pre.className = 'run-output-pre'
-        pre.textContent = content
-        outputText.appendChild(pre)
+        copyBtn.style.display = 'block'
+        copyBtn.textContent   = 'Copy'
       }
     },
     setDone(ok, result, errorMsg) {
@@ -219,12 +208,7 @@ export function createRunOverlay(shortcut, onCancel) {
         outputText.innerHTML = `<pre class="run-output-pre error-text">${errorMsg}</pre>`
         copyBtn.style.display = 'none'
       } else if (ok && result) {
-        // More robust image detection
-        const isImageUrl = typeof result === 'string' && (
-          (result.startsWith('http') && (result.includes('oaidalleapiprodscus') || result.includes('replicate.delivery') || result.includes('together.xyz') || /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(result))) ||
-          result.startsWith('data:image/')
-        )
-        this.showOutput(result, isImageUrl ? 'image' : 'text')
+        this.showOutput(result, detectKind(result))
       }
     },
     dismiss() { overlay.remove() },
