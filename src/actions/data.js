@@ -1,0 +1,96 @@
+// Data / Text utilities — HTTP, JSON, regex, text join, app launch
+export default [
+  {
+    type: 'http-request',
+    title: 'HTTP Request',
+    desc: 'Send an HTTP request and return the response body → result',
+    icon: 'globe',
+    color: '#5E5CE6',
+    outputType: 'text',
+    defaults: {
+      url: '{{result}}',
+      method: 'GET',
+      headers: '',
+      body: '',
+    },
+    params: [
+      { name: 'url', label: 'URL', kind: 'text', placeholder: 'https://api.example.com/data', acceptsVars: true },
+      {
+        name: 'method',
+        label: 'Method',
+        kind: 'select',
+        options: [
+          { value: 'GET',    label: 'GET' },
+          { value: 'POST',   label: 'POST' },
+          { value: 'PUT',    label: 'PUT' },
+          { value: 'PATCH',  label: 'PATCH' },
+          { value: 'DELETE', label: 'DELETE' },
+        ],
+      },
+      { name: 'headers', label: 'Headers (JSON object, optional)', kind: 'textarea', placeholder: '{"Authorization": "Bearer {{vars.token}}"}', acceptsVars: true },
+      { name: 'body', label: 'Request body (optional)', kind: 'textarea', placeholder: '{"key": "value"}', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'json-extract',
+    title: 'Extract from JSON',
+    desc: 'Extract a value from JSON using a dot-path → result',
+    icon: 'braces',
+    color: '#32D74B',
+    outputType: 'text',
+    defaults: { json: '{{result}}', path: '' },
+    params: [
+      { name: 'json', label: 'JSON input', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'path', label: 'Dot-path (e.g. data.items.0.name)', kind: 'text', placeholder: 'data.name' },
+    ],
+  },
+  {
+    type: 'regex-extract',
+    title: 'Regex Extract',
+    desc: 'Extract text using a regular expression → result (first match or all matches)',
+    icon: 'scan-text',
+    color: '#FF9F0A',
+    outputType: 'text',
+    defaults: { text: '{{result}}', pattern: '', flags: 'g', mode: 'first' },
+    params: [
+      { name: 'text', label: 'Input text', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'pattern', label: 'Regex pattern', kind: 'text', placeholder: '\\d+' },
+      { name: 'flags', label: 'Flags (e.g. g, gi, gm)', kind: 'text', placeholder: 'g' },
+      {
+        name: 'mode',
+        label: 'Mode',
+        kind: 'select',
+        options: [
+          { value: 'first',   label: 'First match' },
+          { value: 'all',     label: 'All matches (newline-separated)' },
+          { value: 'groups',  label: 'Capture groups (JSON array)' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'text-join',
+    title: 'Join Text',
+    desc: 'Concatenate multiple values with a separator → result',
+    icon: 'combine',
+    color: '#32D74B',
+    outputType: 'text',
+    defaults: { parts: '{{result}}', separator: '\n' },
+    params: [
+      { name: 'parts', label: 'Values (one per line, or use {{vars.x}})', kind: 'textarea', placeholder: '{{vars.firstName}}\n{{vars.lastName}}', acceptsVars: true },
+      { name: 'separator', label: 'Separator', kind: 'text', placeholder: ' ' },
+    ],
+  },
+  {
+    type: 'app-launch',
+    title: 'Launch App',
+    desc: 'Open an application or file with its default handler',
+    icon: 'rocket',
+    color: '#FF9F0A',
+    outputType: null,
+    defaults: { target: '' },
+    params: [
+      { name: 'target', label: 'App name, command, or file path', kind: 'text', placeholder: 'gedit, /usr/bin/vlc, or /home/user/doc.pdf', acceptsVars: true },
+    ],
+  },
+]

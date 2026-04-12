@@ -1,0 +1,93 @@
+// Multimedia actions — tagging, merging, extracting, converting, compressing media
+export default [
+  {
+    type: 'media-metadata-tag',
+    title: 'Tag Media File',
+    desc: 'Apply metadata tags (title, artist, album) to an audio/video file',
+    icon: 'tag',
+    color: '#FF9F0A',
+    outputType: 'file',
+    defaults: { filePath: '{{result}}', title: '', artist: '', album: '' },
+    params: [
+      { name: 'filePath', label: 'File Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'title', label: 'Title', kind: 'text', placeholder: 'Song Title', acceptsVars: true },
+      { name: 'artist', label: 'Artist', kind: 'text', placeholder: 'Artist Name', acceptsVars: true },
+      { name: 'album', label: 'Album', kind: 'text', placeholder: 'Album Name', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'media-merge-poster',
+    title: 'Merge Audio + Image',
+    desc: 'Create a video from an audio file and a static image poster',
+    icon: 'film',
+    color: '#BF5AF2',
+    outputType: 'file',
+    defaults: { audioPath: '', imagePath: '', outputPath: '' },
+    params: [
+      { name: 'audioPath', label: 'Audio File', kind: 'text', placeholder: '/path/to/audio.mp3', acceptsVars: true },
+      { name: 'imagePath', label: 'Image Poster', kind: 'text', placeholder: '/path/to/poster.jpg', acceptsVars: true },
+      { name: 'outputPath', label: 'Output Video Path (optional)', kind: 'text', placeholder: '/path/to/output.mp4', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'media-extract-audio',
+    title: 'Extract Audio',
+    desc: 'Extract audio track from a video file → audio file',
+    icon: 'music',
+    color: '#32D74B',
+    outputType: 'audio',
+    defaults: { videoPath: '{{result}}', format: 'mp3' },
+    params: [
+      { name: 'videoPath', label: 'Video File Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      {
+        name: 'format',
+        label: 'Output Format',
+        kind: 'select',
+        options: [
+          { value: 'mp3', label: 'MP3' },
+          { value: 'aac', label: 'AAC' },
+          { value: 'wav', label: 'WAV' },
+          { value: 'flac', label: 'FLAC' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'media-convert',
+    title: 'Convert Media',
+    desc: 'Convert audio or video to a different format',
+    icon: 'refresh-cw',
+    color: '#0A84FF',
+    outputType: 'file',
+    defaults: { inputPath: '{{result}}', format: 'mp4' },
+    params: [
+      { name: 'inputPath', label: 'Input File Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      {
+        name: 'format',
+        label: 'Target Format',
+        kind: 'select',
+        options: [
+          { value: 'mp4',  label: 'MP4 (Video)' },
+          { value: 'mkv',  label: 'MKV (Video)' },
+          { value: 'webm', label: 'WebM (Video)' },
+          { value: 'mp3',  label: 'MP3 (Audio)' },
+          { value: 'wav',  label: 'WAV (Audio)' },
+          { value: 'ogg',  label: 'OGG (Audio)' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'image-compress',
+    title: 'Compress Image',
+    desc: 'Reduce image file size by adjusting quality/compression',
+    icon: 'minimize-2',
+    color: '#32D74B',
+    outputType: 'file',
+    defaults: { filePath: '{{result}}', quality: 80 },
+    params: [
+      { name: 'filePath', label: 'Image File Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'quality', label: 'Quality (1-100)', kind: 'number', placeholder: '80' },
+    ],
+  },
+]
