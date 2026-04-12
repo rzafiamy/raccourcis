@@ -232,132 +232,886 @@
 
     <!-- Help View -->
     <div id="helpView" class="view-content" style="display: none;">
-      <div class="help-landing">
-        
-        <!-- Hero Section -->
-        <section class="help-hero-section">
-          <div class="help-hero-text">
-            <h1>Master Your <span class="text-gradient">Workflow</span></h1>
-            <p>Welcome to the Raccourcis Help Center. Learn how to automate your Ubuntu Linux experience with powerful shortcuts and AI-driven workflows.</p>
-            <div class="help-hero-badges">
-              <span class="badge-glass"><i data-lucide="zap"></i> Fast</span>
-              <span class="badge-glass"><i data-lucide="sparkles"></i> AI-Powered</span>
-              <span class="badge-glass"><i data-lucide="shield-check"></i> Private</span>
-            </div>
-          </div>
-          <div class="help-hero-image">
-            <img src="./src/assets/help_hero.png" alt="Automation Hero">
-          </div>
-        </section>
+      <div class="help-shell">
 
-        <!-- Concept Grid -->
-        <section class="help-grid-section">
-          <h2 class="section-title">The Hierarchy of Automation</h2>
-          <div class="concept-cards-grid">
-            <div class="concept-card-large">
-              <div class="concept-card-icon bg-blue-soft"><i data-lucide="zap"></i></div>
-              <h3>Shortcut</h3>
-              <p>The top-level container. Your named workflow, ready to be triggered manually or via cron.</p>
-              <img src="./src/assets/help_workflow.png" class="concept-card-img" alt="Workflow Concept">
-            </div>
-            <div class="concept-card-list">
-              <div class="concept-card-mini">
-                <div class="mini-icon bg-purple-soft"><i data-lucide="layers"></i></div>
-                <div>
-                  <h4>Actions</h4>
-                  <p>Individual tasks like reading clipboard or calling AI.</p>
+        <!-- ── Help Tab Bar ── -->
+        <nav class="help-tabs">
+          <button class="help-tab active" data-help-tab="overview"><i data-lucide="book-open"></i> Overview</button>
+          <button class="help-tab" data-help-tab="concepts"><i data-lucide="layers"></i> Core Concepts</button>
+          <button class="help-tab" data-help-tab="actions"><i data-lucide="zap"></i> Actions Reference</button>
+          <button class="help-tab" data-help-tab="variables"><i data-lucide="braces"></i> Variables</button>
+          <button class="help-tab" data-help-tab="cron"><i data-lucide="calendar-clock"></i> Scheduling</button>
+          <button class="help-tab" data-help-tab="recipes"><i data-lucide="sparkles"></i> Recipes</button>
+          <button class="help-tab" data-help-tab="ecosystem"><i data-lucide="plug"></i> Ecosystem</button>
+        </nav>
+
+        <!-- ── TAB: Overview ── -->
+        <div class="help-tab-panel active" id="help-panel-overview">
+          <div class="help-landing">
+
+            <section class="help-hero-section">
+              <div class="help-hero-text">
+                <h1>Build Your <span class="text-gradient">Automation Layer</span></h1>
+                <p>Raccourcis is a programmable shortcut engine for Linux. Compose visual workflows from building-block actions — no code required. Connect AI, shell scripts, files, APIs, and services into repeatable one-click automations.</p>
+                <div class="help-hero-badges">
+                  <span class="badge-glass"><i data-lucide="zap"></i> Fast</span>
+                  <span class="badge-glass"><i data-lucide="sparkles"></i> AI-Powered</span>
+                  <span class="badge-glass"><i data-lucide="shield-check"></i> Local-First</span>
+                  <span class="badge-glass"><i data-lucide="plug"></i> Extensible</span>
                 </div>
               </div>
-              <div class="concept-card-mini">
-                <div class="mini-icon bg-green-soft"><i data-lucide="list"></i></div>
-                <div>
-                  <h4>Steps</h4>
-                  <p>The sequence of actions. Data flows from top to bottom.</p>
+              <div class="help-hero-image">
+                <img src="./src/assets/help_hero.png" alt="Automation Hero">
+              </div>
+            </section>
+
+            <!-- What is Raccourcis -->
+            <section class="help-explainer-section">
+              <h2 class="section-title">What is Raccourcis?</h2>
+              <p class="section-subtitle">Think of it as a visual scripting engine that lives on your desktop. Instead of writing Bash one-liners or Python scripts for repetitive tasks, you compose <strong>Shortcuts</strong> — named, saveable, re-runnable pipelines of <strong>Actions</strong>.</p>
+              <div class="explainer-grid">
+                <div class="explainer-card">
+                  <div class="explainer-icon bg-blue-soft"><i data-lucide="layers"></i></div>
+                  <h4>Visual Pipeline</h4>
+                  <p>Each shortcut is a linear pipeline. Data flows top-to-bottom through actions. The output of step N becomes the <code>{{result}}</code> available in step N+1.</p>
+                </div>
+                <div class="explainer-card">
+                  <div class="explainer-icon bg-purple-soft"><i data-lucide="sparkles"></i></div>
+                  <h4>AI as a First-Class Action</h4>
+                  <p>LLMs are native building blocks. Send a prompt, summarize a file, generate images, transcribe audio — all without leaving the pipeline.</p>
+                </div>
+                <div class="explainer-card">
+                  <div class="explainer-icon bg-green-soft"><i data-lucide="terminal"></i></div>
+                  <h4>Full Shell Access</h4>
+                  <p>The <em>Run Shell Command</em> action gives you unrestricted Bash. Combine GUI convenience with the raw power of the Linux terminal.</p>
+                </div>
+                <div class="explainer-card">
+                  <div class="explainer-icon bg-orange-soft"><i data-lucide="calendar-clock"></i></div>
+                  <h4>Scheduled Automations</h4>
+                  <p>Any shortcut can run on a cron schedule — daily reports, periodic backups, morning briefings — fully automated, zero interaction needed.</p>
                 </div>
               </div>
-              <div class="concept-card-mini">
-                <div class="mini-icon bg-cyan-soft"><i data-lucide="terminal"></i></div>
-                <div>
-                  <h4>Output</h4>
-                  <p>The final result (Text, Image, etc.).</p>
+            </section>
+
+            <!-- The Execution Model -->
+            <section>
+              <h2 class="section-title">The Execution Model</h2>
+              <div class="exec-model-card">
+                <div class="exec-flow">
+                  <div class="exec-step">
+                    <div class="exec-step-badge">TRIGGER</div>
+                    <div class="exec-step-body">
+                      <strong>Manual click</strong> or <strong>Cron schedule</strong><br>
+                      <span class="text-muted-sm">Starts the pipeline. Initial context: <code>{ result: "", clipboard: "…", vars: {} }</code></span>
+                    </div>
+                  </div>
+                  <div class="exec-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="exec-step">
+                    <div class="exec-step-badge">STEP 1</div>
+                    <div class="exec-step-body">
+                      <strong>Action runs</strong> — e.g. Read Clipboard<br>
+                      <span class="text-muted-sm">Writes its output into <code>result</code>. Available to all subsequent steps via <code>{{result}}</code>.</span>
+                    </div>
+                  </div>
+                  <div class="exec-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="exec-step">
+                    <div class="exec-step-badge">STEP N</div>
+                    <div class="exec-step-body">
+                      <strong>Variable substitution</strong> — params support <code>{{result}}</code>, <code>{{clipboard}}</code>, <code>{{vars.myVar}}</code><br>
+                      <span class="text-muted-sm">Use <em>Save to Variable</em> to snapshot a value and reference it multiple steps later.</span>
+                    </div>
+                  </div>
+                  <div class="exec-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="exec-step">
+                    <div class="exec-step-badge">OUTPUT</div>
+                    <div class="exec-step-body">
+                      <strong>Show Result</strong>, <strong>Copy to Clipboard</strong>, <strong>Write File</strong>, or any terminal action<br>
+                      <span class="text-muted-sm">The shortcut completes. Traces are logged in the Traces view.</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
 
-        <!-- Features Section -->
-        <section class="help-features-section">
-          <div class="help-feature-split">
-            <div class="help-feature-content">
-              <h2>Action Categories</h2>
-              <p>Explore dozens of actions to build your perfect automation.</p>
-              <div class="category-pills">
-                <span class="cat-pill"><i data-lucide="sparkles"></i> AI & Text</span>
-                <span class="cat-pill"><i data-lucide="folder"></i> File Ops</span>
-                <span class="cat-pill"><i data-lucide="mail"></i> Email</span>
-                <span class="cat-pill"><i data-lucide="globe"></i> Web</span>
-                <span class="cat-pill"><i data-lucide="terminal"></i> Shell</span>
+            <!-- Quick-start -->
+            <section>
+              <h2 class="section-title">Your First Shortcut in 4 Steps</h2>
+              <div class="quickstart-steps">
+                <div class="qs-step">
+                  <div class="qs-num">1</div>
+                  <div class="qs-body">
+                    <h4>Click <strong>+</strong> in the top-right</h4>
+                    <p>This opens the Shortcut Editor. Give it a name, choose a colour, pick a category.</p>
+                  </div>
+                </div>
+                <div class="qs-step">
+                  <div class="qs-num">2</div>
+                  <div class="qs-body">
+                    <h4>Add actions from the right palette</h4>
+                    <p>Search for "clipboard", "AI Prompt", "Show Result" — drag or click to add each one to the canvas.</p>
+                  </div>
+                </div>
+                <div class="qs-step">
+                  <div class="qs-num">3</div>
+                  <div class="qs-body">
+                    <h4>Configure each step</h4>
+                    <p>Click a step card to expand its parameters. Use the <code>{v}</code> variable picker to wire outputs between steps.</p>
+                  </div>
+                </div>
+                <div class="qs-step">
+                  <div class="qs-num">4</div>
+                  <div class="qs-body">
+                    <h4>Hit <strong>Run</strong> or <strong>Save</strong></h4>
+                    <p>Run it immediately to test, or save it to the grid. It's now a one-click automation on your dashboard.</p>
+                  </div>
+                </div>
               </div>
-              <p class="mt-4">Chain them together: Use the <strong>Variable Picker</strong> <code>{v}</code> to pass data between steps.</p>
-            </div>
-            <div class="help-feature-visual">
-              <img src="./src/assets/help_ai.png" alt="AI Assistant">
-            </div>
-          </div>
-        </section>
+            </section>
 
-        <!-- Tips and Tricks -->
-        <section class="help-tips-section">
-          <h2 class="section-title">Tips & Tricks</h2>
-          <div class="tips-grid-modern">
-            <div class="tip-modern-card">
-              <i data-lucide="mouse-pointer-2"></i>
-              <h4>Quick Edit</h4>
-              <p>Shift + Click on any shortcut card to open the editor instantly.</p>
-            </div>
-            <div class="tip-modern-card">
-              <i data-lucide="repeat"></i>
-              <h4>Auto-Pilot</h4>
-              <p>Use the Cron Tasks view to schedule backups or daily reports.</p>
-            </div>
-            <div class="tip-modern-card">
-              <i data-lucide="copy"></i>
-              <h4>Variable Chaining</h4>
-              <p>Any step that produces output can be referenced in later steps.</p>
-            </div>
+            <footer class="help-footer">
+              <button class="btn btn-ghost" id="backToGrid">Back to Shortcuts</button>
+            </footer>
           </div>
-        </section>
+        </div>
 
-        <!-- Possibilities & Limits -->
-        <section class="help-limits-section">
-          <div class="limits-card-dual">
-            <div class="limits-half">
-              <h3><i data-lucide="check-circle" class="text-green"></i> What's Possible</h3>
-              <ul>
-                <li>Local file management</li>
-                <li>System shell scripts</li>
-                <li>AI content generation</li>
-                <li>Web scraping & search</li>
-              </ul>
-            </div>
-            <div class="limits-divider"></div>
-            <div class="limits-half">
-              <h3><i data-lucide="alert-triangle" class="text-pink"></i> Known Limits</h3>
-              <ul>
-                <li>Requires API keys for AI</li>
-                <li>Restricted sudo access</li>
-                <li>No UI manipulation</li>
-                <li>Ubuntu specific actions</li>
-              </ul>
-            </div>
+        <!-- ── TAB: Core Concepts ── -->
+        <div class="help-tab-panel" id="help-panel-concepts">
+          <div class="help-landing">
+
+            <section>
+              <h2 class="section-title">Core Concepts</h2>
+              <p class="section-subtitle">Understanding these five building blocks is all you need to master Raccourcis.</p>
+            </section>
+
+            <!-- Concept: Shortcut -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-blue-soft"><i data-lucide="zap"></i></div>
+                <div>
+                  <h3>Shortcut</h3>
+                  <p class="text-muted-sm">The top-level unit. A named, saveable workflow that can be triggered manually or on a schedule.</p>
+                </div>
+              </div>
+              <div class="concept-deep-body">
+                <p>A <strong>Shortcut</strong> is the container for your automation. It has a name, an icon colour, a category, and an ordered list of Steps. Think of it like a named function — you call it, it executes its steps in sequence, and produces a final result.</p>
+                <div class="concept-props-grid">
+                  <div class="concept-prop"><span class="prop-label">name</span><span class="prop-desc">Human-readable label shown on the card grid</span></div>
+                  <div class="concept-prop"><span class="prop-label">category</span><span class="prop-desc">Groups cards in the sidebar (AI, Dev, Personal…)</span></div>
+                  <div class="concept-prop"><span class="prop-label">color</span><span class="prop-desc">Visual identity — 7 accent colours available</span></div>
+                  <div class="concept-prop"><span class="prop-label">favorite</span><span class="prop-desc">Pins the shortcut to the Favorites filter</span></div>
+                  <div class="concept-prop"><span class="prop-label">steps[ ]</span><span class="prop-desc">Ordered array of action configurations</span></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Concept: Action -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-purple-soft"><i data-lucide="layers"></i></div>
+                <div>
+                  <h3>Action</h3>
+                  <p class="text-muted-sm">A typed, parameterised unit of work. The vocabulary of the pipeline.</p>
+                </div>
+              </div>
+              <div class="concept-deep-body">
+                <p>An <strong>Action</strong> is a registered capability — like a function signature — defined in the Action Registry (<code>src/actions/</code>). Each action has a <code>type</code>, a set of parameters it accepts, and an <code>outputType</code> describing what it produces.</p>
+                <div class="concept-code-block">
+                  <div class="code-label">Action definition shape (from the registry)</div>
+                  <pre>{
+  type:       "ai-prompt",          // unique key
+  title:      "AI Prompt",          // display name in the palette
+  desc:       "Send a prompt…",     // shown as a tooltip
+  icon:       "sparkles",           // Lucide icon name
+  color:      "#FF375F",            // badge colour
+  outputType: "text",               // text | image | audio | file | list | null
+  defaults:   { prompt: "{{result}}", … },
+  params:     [ { name, label, kind, options? } ]
+}</pre>
+                </div>
+                <p>When you add an action to a workflow, a <strong>Step</strong> is created — a copy of the action definition merged with its <code>defaults</code>, ready to be customised.</p>
+              </div>
+            </section>
+
+            <!-- Concept: Context -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-green-soft"><i data-lucide="database"></i></div>
+                <div>
+                  <h3>Execution Context</h3>
+                  <p class="text-muted-sm">The shared state object that flows through every step.</p>
+                </div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Every action receives and can modify a shared <strong>context object</strong>. Understanding this is the key to composing powerful pipelines.</p>
+                <div class="concept-code-block">
+                  <div class="code-label">Context object</div>
+                  <pre>{
+  result:    string | null,   // ← output of the last step (most important)
+  clipboard: string,          // ← system clipboard content at launch time
+  vars:      { [name]: any }, // ← named variables (set with "Save to Variable")
+  log:       string[]         // ← per-run trace log
+}</pre>
+                </div>
+                <div class="context-rules">
+                  <div class="context-rule"><i data-lucide="arrow-right"></i><span><code>result</code> is overwritten by each action that produces output. Actions with <code>outputType: null</code> leave it unchanged.</span></div>
+                  <div class="context-rule"><i data-lucide="arrow-right"></i><span><code>clipboard</code> is captured once at shortcut launch and never changes mid-run.</span></div>
+                  <div class="context-rule"><i data-lucide="arrow-right"></i><span><code>vars</code> persists across all steps. Use <em>Save to Variable</em> to snapshot <code>result</code> before it gets overwritten.</span></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Concept: Variable Substitution -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-cyan-soft"><i data-lucide="braces"></i></div>
+                <div>
+                  <h3>Variable Substitution</h3>
+                  <p class="text-muted-sm">Template syntax for wiring data between steps.</p>
+                </div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Any string parameter that has <code>acceptsVars: true</code> in its definition supports <strong>double-brace template syntax</strong>. Before an action executes, the engine replaces placeholders with live context values.</p>
+                <div class="var-examples-grid">
+                  <div class="var-example-card"><code class="var-token">{{result}}</code><p>Output of the previous step</p></div>
+                  <div class="var-example-card"><code class="var-token">{{clipboard}}</code><p>System clipboard at launch</p></div>
+                  <div class="var-example-card"><code class="var-token">{{vars.myVar}}</code><p>A named variable you saved earlier</p></div>
+                  <div class="var-example-card"><code class="var-token">{{vars.url}}</code><p>Another named variable — name is yours</p></div>
+                </div>
+                <p class="mt-4">Click the <strong>{v}</strong> button next to any parameter field to open the <em>Variable Picker</em>, which shows all available tokens in real time.</p>
+              </div>
+            </section>
+
+            <!-- Concept: Output Types -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-orange-soft"><i data-lucide="box"></i></div>
+                <div>
+                  <h3>Output Types</h3>
+                  <p class="text-muted-sm">The typed contract between actions in a pipeline.</p>
+                </div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Every action declares an <code>outputType</code>. This determines how the result is rendered and what downstream actions should expect as input.</p>
+                <div class="output-types-grid">
+                  <div class="output-type-badge ot-text"><code>text</code><span>Plain string — the most common type. Feeds directly into AI prompts, shell commands, file writes.</span></div>
+                  <div class="output-type-badge ot-file"><code>file</code><span>Absolute file path as string. Pass to file-read, media actions, or shell commands.</span></div>
+                  <div class="output-type-badge ot-image"><code>image</code><span>URL or file path to an image. Rendered in-app; usable with Image Vision.</span></div>
+                  <div class="output-type-badge ot-audio"><code>audio</code><span>File path to an audio file. Feed into Speech-to-Text or shell players.</span></div>
+                  <div class="output-type-badge ot-list"><code>list</code><span>Newline-separated items or JSON array. AI prompts handle both formats well.</span></div>
+                  <div class="output-type-badge ot-json"><code>json</code><span>Structured JSON string. Use a shell step with <code>jq</code> to extract fields.</span></div>
+                  <div class="output-type-badge ot-null"><code>null</code><span>Action produces no output (e.g. notifications, confirmations). <code>result</code> is unchanged.</span></div>
+                </div>
+              </div>
+            </section>
+
+            <footer class="help-footer">
+              <button class="btn btn-ghost" id="backToGrid2">Back to Shortcuts</button>
+            </footer>
           </div>
-        </section>
+        </div>
 
-        <footer class="help-footer">
-          <p>Created with ❤️ by the Raccourcis Team</p>
-          <button class="btn btn-ghost" id="backToGrid">Back to Shortcuts</button>
-        </footer>
+        <!-- ── TAB: Actions Reference ── -->
+        <div class="help-tab-panel" id="help-panel-actions">
+          <div class="help-landing">
+            <section>
+              <h2 class="section-title">Actions Reference</h2>
+              <p class="section-subtitle">Every action available in the palette, grouped by category. Each action's output becomes <code>{{result}}</code> for the next step.</p>
+            </section>
+
+            <!-- Input -->
+            <section class="actions-category-section">
+              <div class="actions-cat-header">
+                <div class="actions-cat-icon bg-blue-soft"><i data-lucide="clipboard"></i></div>
+                <div><h3>Input &amp; File</h3><p>Read data into your pipeline — from the clipboard, filesystem, or the user.</p></div>
+              </div>
+              <div class="actions-table">
+                <div class="actions-row header-row"><span>Action</span><span>Output</span><span>Description</span></div>
+                <div class="actions-row"><span><i data-lucide="clipboard"></i> Read Clipboard</span><span class="ot-badge ot-text">text</span><span>Reads the current clipboard content into <code>result</code>.</span></div>
+                <div class="actions-row"><span><i data-lucide="file-search"></i> Pick File</span><span class="ot-badge ot-file">file</span><span>Opens a native file picker. Single or multi-select. Returns absolute path(s).</span></div>
+                <div class="actions-row"><span><i data-lucide="folder-search"></i> Pick Folder</span><span class="ot-badge ot-file">file</span><span>Opens a native folder picker. Returns the selected directory path.</span></div>
+                <div class="actions-row"><span><i data-lucide="folder-open"></i> List Folder</span><span class="ot-badge ot-list">list</span><span>Lists files/subdirs in a directory. Supports <code>{{result}}</code> as path. Optional hidden files.</span></div>
+                <div class="actions-row"><span><i data-lucide="file-text"></i> Read File</span><span class="ot-badge ot-text">text</span><span>Reads a text file at a given path. Supports UTF-8, ASCII, Base64 encoding.</span></div>
+                <div class="actions-row"><span><i data-lucide="keyboard"></i> User Input</span><span class="ot-badge ot-text">text</span><span>Shows a text-input dialog at runtime. Great for dynamic prompts.</span></div>
+                <div class="actions-row"><span><i data-lucide="help-circle"></i> Ask to Continue</span><span class="ot-badge ot-null">null</span><span>Shows a yes/no confirmation dialog. Aborts the pipeline if the user cancels.</span></div>
+                <div class="actions-row"><span><i data-lucide="bell"></i> Show Notification</span><span class="ot-badge ot-null">null</span><span>Sends a system desktop notification with a title and body.</span></div>
+              </div>
+            </section>
+
+            <!-- AI -->
+            <section class="actions-category-section">
+              <div class="actions-cat-header">
+                <div class="actions-cat-icon bg-pink-soft"><i data-lucide="sparkles"></i></div>
+                <div><h3>AI &amp; Media Intelligence</h3><p>LLM text generation, image creation and analysis, speech synthesis and recognition.</p></div>
+              </div>
+              <div class="actions-table">
+                <div class="actions-row header-row"><span>Action</span><span>Output</span><span>Description</span></div>
+                <div class="actions-row"><span><i data-lucide="sparkles"></i> AI Prompt</span><span class="ot-badge ot-text">text</span><span>Sends a prompt (with optional system instructions) to the configured LLM. Supports plain, list, markdown, JSON output formats.</span></div>
+                <div class="actions-row"><span><i data-lucide="image"></i> Image Generation</span><span class="ot-badge ot-image">image</span><span>Generates an image via DALL·E. Configurable size (up to 1792×1024) and HD quality.</span></div>
+                <div class="actions-row"><span><i data-lucide="eye"></i> Image Vision</span><span class="ot-badge ot-text">text</span><span>Analyses an image (URL or local file) with GPT-4o Vision. Describe, extract text, count objects.</span></div>
+                <div class="actions-row"><span><i data-lucide="volume-2"></i> Text to Speech</span><span class="ot-badge ot-audio">audio</span><span>Converts text to spoken audio using OpenAI TTS. 6 voices, standard and HD quality.</span></div>
+                <div class="actions-row"><span><i data-lucide="mic"></i> Speech to Text</span><span class="ot-badge ot-text">text</span><span>Transcribes an audio file using OpenAI Whisper. Multi-language support.</span></div>
+                <div class="actions-row"><span><i data-lucide="mic"></i> Record Audio</span><span class="ot-badge ot-audio">audio</span><span>Records from the system microphone for up to N seconds. Returns the file path.</span></div>
+              </div>
+            </section>
+
+            <!-- System -->
+            <section class="actions-category-section">
+              <div class="actions-cat-header">
+                <div class="actions-cat-icon bg-orange-soft"><i data-lucide="terminal"></i></div>
+                <div><h3>System &amp; Shell</h3><p>Full access to Linux: shell commands, file operations, screenshots, variables.</p></div>
+              </div>
+              <div class="actions-table">
+                <div class="actions-row header-row"><span>Action</span><span>Output</span><span>Description</span></div>
+                <div class="actions-row"><span><i data-lucide="terminal"></i> Run Shell Command</span><span class="ot-badge ot-text">text</span><span>Executes any Bash command. Captures stdout as <code>result</code>. Fully supports <code>{{result}}</code> interpolation in the command string.</span></div>
+                <div class="actions-row"><span><i data-lucide="save"></i> Save to Variable</span><span class="ot-badge ot-null">null</span><span>Snapshots the current <code>result</code> into a named variable. Access later via <code>{{vars.name}}</code>.</span></div>
+                <div class="actions-row"><span><i data-lucide="camera"></i> Take Screenshot</span><span class="ot-badge ot-image">image</span><span>Captures the primary display. Returns the saved file path.</span></div>
+                <div class="actions-row"><span><i data-lucide="shield-check"></i> Clean Image</span><span class="ot-badge ot-file">file</span><span>Strips all EXIF/metadata from an image and subtly alters pixels to break AI watermarks.</span></div>
+                <div class="actions-row"><span><i data-lucide="edit-3"></i> Rename File</span><span class="ot-badge ot-file">file</span><span>Renames a file at the given path. Returns the new path.</span></div>
+              </div>
+            </section>
+
+            <!-- Output -->
+            <section class="actions-category-section">
+              <div class="actions-cat-header">
+                <div class="actions-cat-icon bg-green-soft"><i data-lucide="monitor"></i></div>
+                <div><h3>Output &amp; Clipboard</h3><p>Surface results to the user or pass data to other applications.</p></div>
+              </div>
+              <div class="actions-table">
+                <div class="actions-row header-row"><span>Action</span><span>Output</span><span>Description</span></div>
+                <div class="actions-row"><span><i data-lucide="monitor"></i> Show Result</span><span class="ot-badge ot-null">null</span><span>Renders the final result in the output panel (text, image, audio, markdown). The most common terminal action.</span></div>
+                <div class="actions-row"><span><i data-lucide="copy"></i> Copy to Clipboard</span><span class="ot-badge ot-null">null</span><span>Writes the current <code>result</code> to the system clipboard.</span></div>
+                <div class="actions-row"><span><i data-lucide="file-output"></i> Write File</span><span class="ot-badge ot-file">file</span><span>Writes text content to a file at the specified path.</span></div>
+              </div>
+            </section>
+
+            <!-- Services -->
+            <section class="actions-category-section">
+              <div class="actions-cat-header">
+                <div class="actions-cat-icon bg-cyan-soft"><i data-lucide="globe"></i></div>
+                <div><h3>Web Services &amp; APIs</h3><p>Integrate with the web — scrape, search, calendar, email, messaging, developer tools.</p></div>
+              </div>
+              <div class="actions-table">
+                <div class="actions-row header-row"><span>Action</span><span>Output</span><span>Description</span></div>
+                <div class="actions-row"><span><i data-lucide="flame"></i> Firecrawl Scrape</span><span class="ot-badge ot-text">text</span><span>Scrapes a URL and returns clean Markdown, HTML, or raw HTML using the Firecrawl API.</span></div>
+                <div class="actions-row"><span><i data-lucide="search"></i> Google Search</span><span class="ot-badge ot-list">list</span><span>Queries Google Custom Search API. Returns titles, snippets, and URLs as a list.</span></div>
+                <div class="actions-row"><span><i data-lucide="video"></i> YouTube Search</span><span class="ot-badge ot-list">list</span><span>Searches YouTube Data API for videos matching a query.</span></div>
+                <div class="actions-row"><span><i data-lucide="book-open"></i> Wikipedia</span><span class="ot-badge ot-text">text</span><span>Fetches a Wikipedia article summary or full introduction.</span></div>
+                <div class="actions-row"><span><i data-lucide="calendar-days"></i> Google Calendar</span><span class="ot-badge ot-list">list/null</span><span>Create, list, update, or delete calendar events via the Google Calendar API.</span></div>
+                <div class="actions-row"><span><i data-lucide="mail"></i> Gmail / SMTP</span><span class="ot-badge ot-null">null</span><span>Send emails via Gmail OAuth or a custom SMTP server.</span></div>
+                <div class="actions-row"><span><i data-lucide="send"></i> Telegram</span><span class="ot-badge ot-null">null</span><span>Send messages or files to a Telegram chat via Bot API.</span></div>
+                <div class="actions-row"><span><i data-lucide="git-merge"></i> GitLab</span><span class="ot-badge ot-json">json</span><span>Interact with GitLab — list MRs, create issues, trigger pipelines.</span></div>
+                <div class="actions-row"><span><i data-lucide="database"></i> Supabase</span><span class="ot-badge ot-json">json</span><span>Query tables, call RPC functions, or upload files to Supabase Storage.</span></div>
+                <div class="actions-row"><span><i data-lucide="cloud"></i> Nextcloud</span><span class="ot-badge ot-text">text/null</span><span>Upload or download files from your Nextcloud instance via WebDAV.</span></div>
+                <div class="actions-row"><span><i data-lucide="qr-code"></i> QR Code</span><span class="ot-badge ot-image">image</span><span>Generates a QR code image from any text or URL.</span></div>
+              </div>
+            </section>
+
+            <!-- Multimedia -->
+            <section class="actions-category-section">
+              <div class="actions-cat-header">
+                <div class="actions-cat-icon bg-indigo-soft"><i data-lucide="film"></i></div>
+                <div><h3>Multimedia Processing</h3><p>Tag, merge, extract, convert, and compress audio and video files using FFmpeg.</p></div>
+              </div>
+              <div class="actions-table">
+                <div class="actions-row header-row"><span>Action</span><span>Output</span><span>Description</span></div>
+                <div class="actions-row"><span><i data-lucide="tag"></i> Tag Media</span><span class="ot-badge ot-file">file</span><span>Write ID3/MP4 metadata tags (title, artist, album, artwork) to an audio or video file.</span></div>
+                <div class="actions-row"><span><i data-lucide="merge"></i> Merge Media</span><span class="ot-badge ot-file">file</span><span>Concatenate multiple audio or video files into a single output file.</span></div>
+                <div class="actions-row"><span><i data-lucide="scissors"></i> Extract Segment</span><span class="ot-badge ot-file">file</span><span>Cut a time segment (start/end) from an audio or video file.</span></div>
+                <div class="actions-row"><span><i data-lucide="refresh-cw"></i> Convert Format</span><span class="ot-badge ot-file">file</span><span>Re-encode a media file to a different format (mp3, mp4, wav, webm…).</span></div>
+                <div class="actions-row"><span><i data-lucide="minimize-2"></i> Compress Media</span><span class="ot-badge ot-file">file</span><span>Reduce file size using configurable quality/bitrate settings.</span></div>
+              </div>
+            </section>
+
+            <footer class="help-footer">
+              <button class="btn btn-ghost" id="backToGrid3">Back to Shortcuts</button>
+            </footer>
+          </div>
+        </div>
+
+        <!-- ── TAB: Variables ── -->
+        <div class="help-tab-panel" id="help-panel-variables">
+          <div class="help-landing">
+            <section>
+              <h2 class="section-title">Variables &amp; Data Flow</h2>
+              <p class="section-subtitle">Variables are how you wire data across multiple steps without losing context. Master them and you can build any workflow.</p>
+            </section>
+
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-cyan-soft"><i data-lucide="arrow-right-left"></i></div>
+                <div><h3>How <code>result</code> flows</h3></div>
+              </div>
+              <div class="concept-deep-body">
+                <p>The most important variable is <code>{{result}}</code>. It is a single slot — like a register in a CPU. Every action that produces output overwrites it. The diagram below shows a realistic pipeline:</p>
+                <div class="data-flow-diagram">
+                  <div class="df-step"><div class="df-icon bg-blue-soft"><i data-lucide="clipboard"></i></div><div class="df-label">Read Clipboard</div><div class="df-output">result = <em>"https://example.com/article"</em></div></div>
+                  <div class="df-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="df-step"><div class="df-icon bg-cyan-soft"><i data-lucide="save"></i></div><div class="df-label">Save to Variable <code>url</code></div><div class="df-output">vars.url = <em>"https://example.com/article"</em></div></div>
+                  <div class="df-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="df-step"><div class="df-icon bg-orange-soft"><i data-lucide="flame"></i></div><div class="df-label">Firecrawl Scrape <code>{{vars.url}}</code></div><div class="df-output">result = <em>"# Article Title\n…markdown…"</em></div></div>
+                  <div class="df-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="df-step"><div class="df-icon bg-pink-soft"><i data-lucide="sparkles"></i></div><div class="df-label">AI Prompt <code>Summarise: {{result}}</code></div><div class="df-output">result = <em>"3-bullet summary…"</em></div></div>
+                  <div class="df-arrow"><i data-lucide="arrow-down"></i></div>
+                  <div class="df-step"><div class="df-icon bg-green-soft"><i data-lucide="monitor"></i></div><div class="df-label">Show Result</div><div class="df-output">Displays the summary in the output panel</div></div>
+                </div>
+                <p class="mt-4">Notice how <em>Save to Variable</em> was used after step 1 — because after Firecrawl ran, <code>result</code> was replaced. The original URL was preserved in <code>vars.url</code>.</p>
+              </div>
+            </section>
+
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-purple-soft"><i data-lucide="braces"></i></div>
+                <div><h3>All Variable Tokens</h3></div>
+              </div>
+              <div class="concept-deep-body">
+                <div class="vars-full-table">
+                  <div class="vars-row header-row"><span>Token</span><span>Value</span><span>When to use</span></div>
+                  <div class="vars-row"><span><code>{{result}}</code></span><span>Output of the immediately preceding step</span><span>Standard pipe — the default way to chain steps</span></div>
+                  <div class="vars-row"><span><code>{{clipboard}}</code></span><span>System clipboard captured at shortcut launch</span><span>When you want the original clipboard regardless of later changes to <code>result</code></span></div>
+                  <div class="vars-row"><span><code>{{vars.NAME}}</code></span><span>A value stored earlier with <em>Save to Variable</em></span><span>When you need to reference a value from N steps ago</span></div>
+                </div>
+                <div class="info-box mt-4">
+                  <i data-lucide="lightbulb"></i>
+                  <p><strong>Tip:</strong> Variable names are case-sensitive. <code>{{vars.url}}</code> and <code>{{vars.URL}}</code> are different variables. Use consistent lowercase names.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-orange-soft"><i data-lucide="code-2"></i></div>
+                <div><h3>Using Variables in Shell Commands</h3></div>
+              </div>
+              <div class="concept-deep-body">
+                <p>The <em>Run Shell Command</em> action expands <code>{{…}}</code> tokens before passing the command to Bash. This lets you build dynamic shell pipelines:</p>
+                <div class="concept-code-block">
+                  <div class="code-label">Example — count words in a file</div>
+                  <pre>wc -w "{{result}}"</pre>
+                </div>
+                <div class="concept-code-block">
+                  <div class="code-label">Example — send a file to another machine</div>
+                  <pre>scp "{{vars.filePath}}" user@server:/backups/</pre>
+                </div>
+                <div class="concept-code-block">
+                  <div class="code-label">Example — use AI output as a filename</div>
+                  <pre>mv /tmp/draft.txt "/home/user/notes/{{result}}.txt"</pre>
+                </div>
+                <div class="info-box warning mt-4">
+                  <i data-lucide="alert-triangle"></i>
+                  <p><strong>Security note:</strong> Values substituted into shell commands are not shell-escaped. Avoid injecting untrusted user input directly into shell actions. Prefer writing the value to a temp file and referencing that.</p>
+                </div>
+              </div>
+            </section>
+
+            <footer class="help-footer">
+              <button class="btn btn-ghost" id="backToGrid4">Back to Shortcuts</button>
+            </footer>
+          </div>
+        </div>
+
+        <!-- ── TAB: Scheduling / Cron ── -->
+        <div class="help-tab-panel" id="help-panel-cron">
+          <div class="help-landing">
+            <section>
+              <h2 class="section-title">Scheduling with Cron</h2>
+              <p class="section-subtitle">Any shortcut can run automatically on a schedule — no daemon required. Raccourcis manages the scheduler internally.</p>
+            </section>
+
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-orange-soft"><i data-lucide="calendar-clock"></i></div>
+                <div><h3>Creating a Scheduled Task</h3></div>
+              </div>
+              <div class="concept-deep-body">
+                <div class="quickstart-steps">
+                  <div class="qs-step">
+                    <div class="qs-num">1</div>
+                    <div class="qs-body"><h4>Navigate to <strong>Cron Tasks</strong> in the sidebar</h4><p>This view shows all your active scheduled tasks and their next-run time.</p></div>
+                  </div>
+                  <div class="qs-step">
+                    <div class="qs-num">2</div>
+                    <div class="qs-body"><h4>Click <strong>New Task</strong></h4><p>Select the shortcut to schedule from the dropdown.</p></div>
+                  </div>
+                  <div class="qs-step">
+                    <div class="qs-num">3</div>
+                    <div class="qs-body"><h4>Set a cron expression</h4><p>Use standard 5-field cron syntax. The UI shows a human-readable interpretation as you type.</p></div>
+                  </div>
+                  <div class="qs-step">
+                    <div class="qs-num">4</div>
+                    <div class="qs-body"><h4>Save and enable</h4><p>The task is stored in <code>cron.json</code> and will fire according to your schedule, even if the main window is minimised.</p></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-purple-soft"><i data-lucide="code-2"></i></div>
+                <div><h3>Cron Expression Reference</h3></div>
+              </div>
+              <div class="concept-deep-body">
+                <div class="concept-code-block">
+                  <div class="code-label">Format — 5 fields separated by spaces</div>
+                  <pre>┌─── minute (0-59)
+│  ┌── hour (0-23)
+│  │  ┌─ day of month (1-31)
+│  │  │  ┌ month (1-12)
+│  │  │  │  ┌ day of week (0-6, Sun=0)
+│  │  │  │  │
+*  *  *  *  *</pre>
+                </div>
+                <div class="cron-examples-grid">
+                  <div class="cron-example"><code>0 9 * * 1-5</code><span>Weekdays at 9:00 AM</span></div>
+                  <div class="cron-example"><code>*/15 * * * *</code><span>Every 15 minutes</span></div>
+                  <div class="cron-example"><code>0 8 * * *</code><span>Every day at 8:00 AM</span></div>
+                  <div class="cron-example"><code>0 0 1 * *</code><span>First of every month at midnight</span></div>
+                  <div class="cron-example"><code>30 18 * * 5</code><span>Fridays at 6:30 PM</span></div>
+                  <div class="cron-example"><code>0 */6 * * *</code><span>Every 6 hours</span></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-green-soft"><i data-lucide="list-tree"></i></div>
+                <div><h3>Traces &amp; Debugging</h3></div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Every time a shortcut runs — whether manually or via cron — an entry is appended to the <strong>Traces</strong> view. Each trace shows:</p>
+                <div class="concept-props-grid">
+                  <div class="concept-prop"><span class="prop-label">Timestamp</span><span class="prop-desc">When the run started</span></div>
+                  <div class="concept-prop"><span class="prop-label">Shortcut name</span><span class="prop-desc">Which shortcut was triggered</span></div>
+                  <div class="concept-prop"><span class="prop-label">Status</span><span class="prop-desc">Success / Error</span></div>
+                  <div class="concept-prop"><span class="prop-label">Step log</span><span class="prop-desc">Per-step output so you can pinpoint failures</span></div>
+                  <div class="concept-prop"><span class="prop-label">Final result</span><span class="prop-desc">The last value in <code>result</code> at completion</span></div>
+                </div>
+                <p class="mt-4">If a cron task silently fails, check the Traces view — it will contain the error message and which step threw it.</p>
+              </div>
+            </section>
+
+            <footer class="help-footer">
+              <button class="btn btn-ghost" id="backToGrid5">Back to Shortcuts</button>
+            </footer>
+          </div>
+        </div>
+
+        <!-- ── TAB: Recipes ── -->
+        <div class="help-tab-panel" id="help-panel-recipes">
+          <div class="help-landing">
+            <section>
+              <h2 class="section-title">Workflow Recipes</h2>
+              <p class="section-subtitle">Copy these step-by-step recipes to get up and running fast. Each recipe is a fully working shortcut you can recreate in minutes.</p>
+            </section>
+
+            <div class="recipes-grid">
+
+              <!-- Recipe 1 -->
+              <div class="recipe-card">
+                <div class="recipe-header">
+                  <div class="recipe-icon bg-pink-soft"><i data-lucide="sparkles"></i></div>
+                  <div>
+                    <h4>Clipboard Summariser</h4>
+                    <p>Copy any text, run this shortcut, get a clean bullet-point summary.</p>
+                  </div>
+                </div>
+                <div class="recipe-steps">
+                  <div class="recipe-step"><span class="rs-num">1</span><span class="rs-action">Read Clipboard</span><span class="rs-note">→ <code>result</code> = copied text</span></div>
+                  <div class="recipe-step"><span class="rs-num">2</span><span class="rs-action">AI Prompt</span><span class="rs-note">Prompt: <em>"Summarise in 5 bullets: {{result}}"</em></span></div>
+                  <div class="recipe-step"><span class="rs-num">3</span><span class="rs-action">Show Result</span><span class="rs-note">Renders markdown in the output panel</span></div>
+                </div>
+              </div>
+
+              <!-- Recipe 2 -->
+              <div class="recipe-card">
+                <div class="recipe-header">
+                  <div class="recipe-icon bg-orange-soft"><i data-lucide="flame"></i></div>
+                  <div>
+                    <h4>URL → Summary</h4>
+                    <p>Paste a URL, scrape the article, get an AI summary.</p>
+                  </div>
+                </div>
+                <div class="recipe-steps">
+                  <div class="recipe-step"><span class="rs-num">1</span><span class="rs-action">Read Clipboard</span><span class="rs-note">→ <code>result</code> = the URL</span></div>
+                  <div class="recipe-step"><span class="rs-num">2</span><span class="rs-action">Firecrawl Scrape</span><span class="rs-note">URL: <code>{{result}}</code> → clean markdown</span></div>
+                  <div class="recipe-step"><span class="rs-num">3</span><span class="rs-action">AI Prompt</span><span class="rs-note"><em>"Write a 3-paragraph summary: {{result}}"</em></span></div>
+                  <div class="recipe-step"><span class="rs-num">4</span><span class="rs-action">Show Result</span><span class="rs-note">Display the summary</span></div>
+                </div>
+              </div>
+
+              <!-- Recipe 3 -->
+              <div class="recipe-card">
+                <div class="recipe-header">
+                  <div class="recipe-icon bg-green-soft"><i data-lucide="terminal"></i></div>
+                  <div>
+                    <h4>Code Explainer</h4>
+                    <p>Copy code, get an explanation and potential bug report.</p>
+                  </div>
+                </div>
+                <div class="recipe-steps">
+                  <div class="recipe-step"><span class="rs-num">1</span><span class="rs-action">Read Clipboard</span><span class="rs-note">→ <code>result</code> = code snippet</span></div>
+                  <div class="recipe-step"><span class="rs-num">2</span><span class="rs-action">AI Prompt</span><span class="rs-note">System: <em>"Senior engineer"</em>. Prompt: <em>"Explain and find bugs in: ```{{result}}```"</em></span></div>
+                  <div class="recipe-step"><span class="rs-num">3</span><span class="rs-action">Show Result</span><span class="rs-note">Renders markdown explanation</span></div>
+                </div>
+              </div>
+
+              <!-- Recipe 4 -->
+              <div class="recipe-card">
+                <div class="recipe-header">
+                  <div class="recipe-icon bg-blue-soft"><i data-lucide="calendar-days"></i></div>
+                  <div>
+                    <h4>Morning Briefing (Cron)</h4>
+                    <p>Every morning at 8 AM, get today's calendar + weather summary.</p>
+                  </div>
+                </div>
+                <div class="recipe-steps">
+                  <div class="recipe-step"><span class="rs-num">1</span><span class="rs-action">Google Calendar — List Events</span><span class="rs-note">→ today's events as a list</span></div>
+                  <div class="recipe-step"><span class="rs-num">2</span><span class="rs-action">AI Prompt</span><span class="rs-note"><em>"Turn this into a morning agenda: {{result}}"</em></span></div>
+                  <div class="recipe-step"><span class="rs-num">3</span><span class="rs-action">Show Notification</span><span class="rs-note">Pops a desktop notification with the summary</span></div>
+                </div>
+                <div class="recipe-cron-badge"><i data-lucide="calendar-clock"></i> Schedule: <code>0 8 * * *</code></div>
+              </div>
+
+              <!-- Recipe 5 -->
+              <div class="recipe-card">
+                <div class="recipe-header">
+                  <div class="recipe-icon bg-purple-soft"><i data-lucide="mic"></i></div>
+                  <div>
+                    <h4>Voice Note → Text File</h4>
+                    <p>Record your voice, transcribe it, save it as a dated text file.</p>
+                  </div>
+                </div>
+                <div class="recipe-steps">
+                  <div class="recipe-step"><span class="rs-num">1</span><span class="rs-action">Record Audio</span><span class="rs-note">→ <code>result</code> = audio file path</span></div>
+                  <div class="recipe-step"><span class="rs-num">2</span><span class="rs-action">Speech to Text</span><span class="rs-note">→ <code>result</code> = transcript text</span></div>
+                  <div class="recipe-step"><span class="rs-num">3</span><span class="rs-action">Run Shell Command</span><span class="rs-note"><code>echo "{{result}}" &gt; ~/notes/$(date +%Y-%m-%d).txt</code></span></div>
+                  <div class="recipe-step"><span class="rs-num">4</span><span class="rs-action">Show Notification</span><span class="rs-note">Confirm note was saved</span></div>
+                </div>
+              </div>
+
+              <!-- Recipe 6 -->
+              <div class="recipe-card">
+                <div class="recipe-header">
+                  <div class="recipe-icon bg-indigo-soft"><i data-lucide="database"></i></div>
+                  <div>
+                    <h4>Supabase Data Reporter</h4>
+                    <p>Query a Supabase table and send the result to Telegram.</p>
+                  </div>
+                </div>
+                <div class="recipe-steps">
+                  <div class="recipe-step"><span class="rs-num">1</span><span class="rs-action">Supabase Query</span><span class="rs-note">SELECT count(*) FROM signups WHERE date = today</span></div>
+                  <div class="recipe-step"><span class="rs-num">2</span><span class="rs-action">AI Prompt</span><span class="rs-note"><em>"Format this data as a brief report: {{result}}"</em></span></div>
+                  <div class="recipe-step"><span class="rs-num">3</span><span class="rs-action">Telegram Send</span><span class="rs-note">Message: <code>{{result}}</code> → your ops chat</span></div>
+                </div>
+                <div class="recipe-cron-badge"><i data-lucide="calendar-clock"></i> Schedule: <code>0 18 * * *</code></div>
+              </div>
+
+            </div>
+
+            <footer class="help-footer">
+              <button class="btn btn-ghost" id="backToGrid6">Back to Shortcuts</button>
+            </footer>
+          </div>
+        </div>
+
+        <!-- ── TAB: Ecosystem / Developer ── -->
+        <div class="help-tab-panel" id="help-panel-ecosystem">
+          <div class="help-landing">
+
+            <section class="help-hero-section">
+              <div class="help-hero-text">
+                <h1>The Developer <span class="text-gradient">Ecosystem</span></h1>
+                <p>Raccourcis is designed to grow with a community of contributors. Actions are plain JavaScript modules. Adding a new integration is a single file and a few lines of code.</p>
+                <div class="help-hero-badges">
+                  <span class="badge-glass"><i data-lucide="code-2"></i> Open Architecture</span>
+                  <span class="badge-glass"><i data-lucide="plug"></i> Plugin-Ready</span>
+                  <span class="badge-glass"><i data-lucide="git-fork"></i> Composable</span>
+                </div>
+              </div>
+              <div class="help-hero-image">
+                <img src="./src/assets/help_workflow.png" alt="Developer Ecosystem">
+              </div>
+            </section>
+
+            <!-- Architecture overview -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-blue-soft"><i data-lucide="folder-tree"></i></div>
+                <div><h3>Project Architecture</h3><p class="text-muted-sm">How the codebase is structured — where to look for what.</p></div>
+              </div>
+              <div class="concept-deep-body">
+                <div class="arch-tree">
+                  <div class="arch-node arch-root"><i data-lucide="folder"></i> <strong>src/</strong></div>
+                  <div class="arch-children">
+                    <div class="arch-node"><i data-lucide="folder"></i> <strong>actions/</strong> <span class="arch-note">— Action Registry. One file per category.</span></div>
+                    <div class="arch-children">
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> input.js <span class="arch-note">clipboard, file picker, user input, notifications</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> ai.js <span class="arch-note">AI prompt, image gen/vision, TTS, STT</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> system.js <span class="arch-note">shell, variables, screenshot, file ops</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> output.js <span class="arch-note">show result, copy clipboard, write file</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> services.js <span class="arch-note">APIs — Google, Firecrawl, GitLab, Supabase…</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> multimedia.js <span class="arch-note">FFmpeg wrappers — tag, merge, cut, convert</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> productivity.js <span class="arch-note">data transforms, JSON, regex, templates</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> office.js <span class="arch-note">Docs / spreadsheet generation</span></div>
+                      <div class="arch-node leaf"><i data-lucide="file-code"></i> index.js <span class="arch-note">Assembles and exports ACTION_REGISTRY</span></div>
+                    </div>
+                    <div class="arch-node"><i data-lucide="folder"></i> <strong>shortcuts/</strong> <span class="arch-note">— Default shortcut presets per category.</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> renderer.js <span class="arch-note">Main renderer process — event wiring, IPC calls</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> workflow.js <span class="arch-note">Pipeline executor — runs steps in sequence</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> ui.js <span class="arch-note">DOM helpers, icon rendering, step cards</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> varPicker.js <span class="arch-note">Variable picker UI, type badges</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> store.js <span class="arch-note">Persistent storage (shortcuts, settings)</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> cron.js <span class="arch-note">Cron task scheduler</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> traces.js <span class="arch-note">Execution trace log viewer</span></div>
+                    <div class="arch-node leaf"><i data-lucide="file-code"></i> dashboard.js <span class="arch-note">Dashboard stats and charts</span></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Adding an action -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-green-soft"><i data-lucide="plus-circle"></i></div>
+                <div><h3>Adding a Custom Action</h3><p class="text-muted-sm">Extend the Action Registry with your own integration in under 20 lines.</p></div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Every action is a plain JavaScript object in one of the files under <code>src/actions/</code>. To add your own:</p>
+                <div class="concept-code-block">
+                  <div class="code-label">src/actions/services.js — add to the exported array</div>
+                  <pre>{
+  type:       'my-api-call',          // unique string ID
+  title:      'My API',               // shown in the palette
+  desc:       'Calls My API → result', // tooltip description
+  icon:       'globe',                // any Lucide icon name
+  color:      '#0A84FF',              // hex accent colour
+  outputType: 'text',                 // text|image|audio|file|list|json|null
+  defaults: {
+    url: 'https://api.example.com',
+    param: '{{result}}',
+  },
+  params: [
+    { name: 'url',   label: 'Endpoint URL', kind: 'text' },
+    { name: 'param', label: 'Query param',  kind: 'text', acceptsVars: true },
+  ],
+}</pre>
+                </div>
+                <p>Then register the executor in the main process (IPC handler) — the action <code>type</code> maps 1:1 to an IPC channel. That's the full contract.</p>
+
+                <div class="info-box mt-4">
+                  <i data-lucide="lightbulb"></i>
+                  <p><strong>Param kinds:</strong> <code>text</code>, <code>textarea</code>, <code>number</code>, <code>select</code> (provide <code>options: [{value, label}]</code>). Set <code>acceptsVars: true</code> to enable the variable picker button on that field.</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- Data contract -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-purple-soft"><i data-lucide="arrow-right-left"></i></div>
+                <div><h3>The IPC Contract</h3><p class="text-muted-sm">How the renderer talks to the main process to execute actions.</p></div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Actions are executed in Electron's <strong>main process</strong> (Node.js environment) via IPC. The renderer sends a message and awaits the result:</p>
+                <div class="concept-code-block">
+                  <div class="code-label">Renderer side (src/workflow.js)</div>
+                  <pre>const result = await window.electronAPI.runAction({
+  type:    step.type,          // e.g. "shell"
+  params:  resolvedParams,     // after {{var}} substitution
+  context: { result, clipboard, vars }
+})</pre>
+                </div>
+                <div class="concept-code-block">
+                  <div class="code-label">Main process — register your handler (main.js)</div>
+                  <pre>ipcMain.handle('run-action', async (event, { type, params, context }) => {
+  if (type === 'my-api-call') {
+    const data = await fetch(params.url + '?q=' + params.param)
+    return { result: await data.text() }
+  }
+  // … other handlers
+})</pre>
+                </div>
+                <p>Return <code>{ result: string|null }</code>. Throw an <code>Error</code> to mark the step as failed — it will be caught, logged to traces, and the pipeline will halt.</p>
+              </div>
+            </section>
+
+            <!-- Export format -->
+            <section class="concept-deep-section">
+              <div class="concept-deep-header">
+                <div class="concept-deep-icon bg-cyan-soft"><i data-lucide="download-cloud"></i></div>
+                <div><h3>Shortcut Exchange Format</h3><p class="text-muted-sm">Export, share, and import shortcuts as portable JSON.</p></div>
+              </div>
+              <div class="concept-deep-body">
+                <p>Shortcuts are stored as JSON and can be exported/imported via the toolbar. The format is a self-describing array — each shortcut is fully portable across installations as long as both have the required action types registered.</p>
+                <div class="concept-code-block">
+                  <div class="code-label">Shortcut JSON schema</div>
+                  <pre>[
+  {
+    "id": 42,
+    "name": "Summarise Clipboard",
+    "icon": "sparkles",
+    "color": "bg-pink",
+    "category": "ai",
+    "favorite": false,
+    "steps": [
+      { "type": "clipboard-read", "title": "Read Clipboard" },
+      {
+        "type": "ai-prompt",
+        "title": "Summarise",
+        "prompt": "Summarise in 5 bullets:\n\n{{result}}",
+        "systemPrompt": "You are a helpful assistant.",
+        "outputFormat": "list"
+      },
+      { "type": "show-result", "title": "Output", "label": "Summary" }
+    ]
+  }
+]</pre>
+                </div>
+                <div class="info-box mt-4">
+                  <i data-lucide="share-2"></i>
+                  <p><strong>Sharing shortcuts:</strong> Export your shortcuts JSON and share it with others. They can import it directly from the toolbar. This is the primary distribution mechanism for the community.</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- Possibilities vs Limits -->
+            <section>
+              <h2 class="section-title">Possibilities &amp; Limits</h2>
+              <div class="limits-card-dual">
+                <div class="limits-half">
+                  <h3><i data-lucide="check-circle" class="text-green"></i> What's Possible</h3>
+                  <ul>
+                    <li>Full Linux shell access — any Bash command</li>
+                    <li>AI text, image, audio (OpenAI-compatible APIs)</li>
+                    <li>Web scraping and search via Firecrawl + Google</li>
+                    <li>Calendar, email, messaging integrations</li>
+                    <li>Database queries (Supabase, Nextcloud)</li>
+                    <li>Multimedia processing via FFmpeg</li>
+                    <li>Scheduled automations with cron</li>
+                    <li>Custom actions via the registry + IPC</li>
+                    <li>Export/import shortcut libraries as JSON</li>
+                  </ul>
+                </div>
+                <div class="limits-divider"></div>
+                <div class="limits-half">
+                  <h3><i data-lucide="alert-triangle" class="text-pink"></i> Current Limits</h3>
+                  <ul>
+                    <li>AI actions require a compatible API key</li>
+                    <li>Shell actions run as current user (no sudo bypass)</li>
+                    <li>No GUI automation (no xdotool-style control)</li>
+                    <li>No conditional branching yet (if/else in pipelines)</li>
+                    <li>No parallel step execution</li>
+                    <li>Linux / Ubuntu primary target</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <footer class="help-footer">
+              <p>Built to grow with the community — add actions, share shortcuts, extend the ecosystem.</p>
+              <button class="btn btn-ghost" id="backToGrid7">Back to Shortcuts</button>
+            </footer>
+          </div>
+        </div>
 
       </div>
     </div>

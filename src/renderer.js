@@ -205,9 +205,28 @@ document.getElementById('navHelp').addEventListener('click', (e) => {
   refreshIcons(document.getElementById('helpView'))
 })
 
-document.getElementById('backToGrid').addEventListener('click', () => {
-  const allNav = document.querySelector('.nav-item[data-category="all"]')
-  if (allNav) allNav.click()
+// Back-to-grid buttons (one per tab panel)
+;['backToGrid','backToGrid2','backToGrid3','backToGrid4','backToGrid5','backToGrid6','backToGrid7'].forEach(id => {
+  const el = document.getElementById(id)
+  if (el) el.addEventListener('click', () => {
+    const allNav = document.querySelector('.nav-item[data-category="all"]')
+    if (allNav) allNav.click()
+  })
+})
+
+// Help tab switching
+document.querySelectorAll('.help-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.help-tab').forEach((b) => b.classList.remove('active'))
+    document.querySelectorAll('.help-tab-panel').forEach((p) => p.classList.remove('active'))
+    btn.classList.add('active')
+    const panelId = 'help-panel-' + btn.dataset.helpTab
+    const panel = document.getElementById(panelId)
+    if (panel) {
+      panel.classList.add('active')
+      refreshIcons(panel)
+    }
+  })
 })
 
 // Help Modal logic removed (Help is now a view)
