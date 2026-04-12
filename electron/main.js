@@ -707,3 +707,89 @@ app.on('ready', () => {
   setupCrons()
 })
 
+// ── Messaging IPC ─────────────────────────────────────────────────────────────
+
+// Signal — send a message via signal-cli subprocess
+ipcMain.handle('signal-cli-send', async (_, { sender, recipient, message }) => {
+  try {
+    if (!sender || !recipient || !message) {
+      return { ok: false, error: 'signal-cli-send: sender, recipient, and message are all required.' }
+    }
+    // Escape single quotes in message to prevent shell injection
+    const safeMessage = message.replace(/'/g, "'\\''")
+    const cmd = `signal-cli -u "${sender}" send -m '${safeMessage}' "${recipient}"`
+    const { stdout, stderr, exitCode } = await execAsync(cmd, { timeout: 30_000 })
+    if (exitCode !== 0) return { ok: false, error: stderr || 'signal-cli exited with error' }
+    return { ok: true, output: stdout.trim() }
+  } catch (err) {
+    console.error('[main] signal-cli-send error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+
+// Telegram — send a local file using multipart/form-data
+ipcMain.handle('telegram-send-file', async (_, { token, chatId, filePath, caption }) => {
+  try {
+    const { FormData, Blob } = await import('node:buffer').then(() => globalThis).catch(() => ({}))
+    const fileBuffer = fs.readFileSync(filePath)
+    const fileName = path.basename(filePath)
+    const ext = fileName.split('.').pop().toLowerCase()
+
+    // Choose the right Telegram endpoint based on file type
+    let endpoint = 'sendDocument'
+    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) endpoint = 'sendPhoto'
+    else if (['mp3', 'ogg', 'm4a', 'aac', 'flac', 'wav'].includes(ext)) endpoint = 'sendAudio'
+    else if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) endpoint = 'sendVideo'
+
+    const fieldName = endpoint === 'sendPhoto' ? 'photo'
+      : endpoint === 'sendAudio' ? 'audio'
+      : endpoint === 'sendVideo' ? 'video'
+      : 'document'
+
+    // Build multipart body via boundary
+    const boundary = `----FormBoundary${Date.now()}`
+    const CRLF = '\r\n'
+    const parts = []
+
+    const addField = (name, value) => {
+      parts.push(
+        `--${boundary}${CRLF}` +
+        `Content-Disposition: form-data; name="${name}"${CRLF}${CRLF}` +
+        `${value}${CRLF}`
+      )
+    }
+    addField('chat_id', chatId)
+    if (caption) addField('caption', caption)
+
+    const fileHeader = (
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="${fieldName}"; filename="${fileName}"${CRLF}` +
+      `Content-Type: application/octet-stream${CRLF}${CRLF}`
+    )
+    const fileFooter = `${CRLF}--${boundary}--${CRLF}`
+
+    const headerBuf   = Buffer.from(parts.join('') + fileHeader)
+    const footerBuf   = Buffer.from(fileFooter)
+    const body        = Buffer.concat([headerBuf, fileBuffer, footerBuf])
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${token}/${endpoint}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body,
+      }
+    )
+
+    const data = await response.json()
+    if (!data.ok) return { ok: false, error: data.description || 'Telegram file send failed' }
+
+    const msg = data.result
+    const messageId = msg?.message_id
+    return { ok: true, messageId }
+  } catch (err) {
+    console.error('[main] telegram-send-file error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+

@@ -92,6 +92,14 @@ const sSupabaseUrl     = document.getElementById('supabaseUrl')
 const sSupabaseAnon    = document.getElementById('supabaseAnonKey')
 const sSupabaseService = document.getElementById('supabaseServiceKey')
 const sSupabaseUser    = document.getElementById('supabaseUserId')
+
+// Messaging settings fields
+const sTelegramToken      = document.getElementById('telegramBotToken')
+const sSignalSender       = document.getElementById('signalSender')
+const sTwitterOAuth       = document.getElementById('twitterOAuthToken')
+const sLinkedinToken      = document.getElementById('linkedinAccessToken')
+const sLinkedinUrn        = document.getElementById('linkedinPersonUrn')
+
 const aboutModal       = document.getElementById('aboutModal')
 // helpModal removed, now a view
 
@@ -219,6 +227,46 @@ document.querySelectorAll('.settings-nav-item').forEach((btn) => {
     if (pane) pane.classList.add('active')
     refreshIcons(pane)
   })
+})
+
+// ── Settings Sidebar Search ───────────────────────────────────────────────────
+
+document.getElementById('settingsSearch').addEventListener('input', (e) => {
+  const query = e.target.value.trim().toLowerCase()
+  const navItems = document.querySelectorAll('.settings-nav-item')
+  const groupLabels = document.querySelectorAll('.settings-nav-group-label')
+
+  if (!query) {
+    // Show everything
+    navItems.forEach((btn) => btn.classList.remove('settings-hidden'))
+    groupLabels.forEach((lbl) => lbl.classList.remove('settings-hidden'))
+    return
+  }
+
+  // Show/hide nav items by matching their text label
+  navItems.forEach((btn) => {
+    const label = btn.querySelector('span')?.textContent.toLowerCase() || ''
+    const tab = btn.dataset.tab || ''
+    const matches = label.includes(query) || tab.includes(query)
+    btn.classList.toggle('settings-hidden', !matches)
+  })
+
+  // Hide group labels whose every sibling nav item is hidden
+  groupLabels.forEach((lbl) => {
+    // Collect all nav items until the next group label
+    const siblings = []
+    let el = lbl.nextElementSibling
+    while (el && !el.classList.contains('settings-nav-group-label')) {
+      if (el.classList.contains('settings-nav-item')) siblings.push(el)
+      el = el.nextElementSibling
+    }
+    const allHidden = siblings.length > 0 && siblings.every((s) => s.classList.contains('settings-hidden'))
+    lbl.classList.toggle('settings-hidden', allHidden)
+  })
+
+  // Auto-switch to the first visible match
+  const firstVisible = document.querySelector('.settings-nav-item:not(.settings-hidden)')
+  if (firstVisible) firstVisible.click()
 })
 
 
@@ -724,15 +772,31 @@ async function openSettings() {
   sSupabaseService.value= cfg.supabaseServiceKey || ''
   sSupabaseUser.value   = cfg.supabaseUserId || ''
 
+  // Messaging
+  sTelegramToken.value  = cfg.telegramBotToken || ''
+  sSignalSender.value   = cfg.signalSender || ''
+  sTwitterOAuth.value   = cfg.twitterOAuthToken || ''
+  sLinkedinToken.value  = cfg.linkedinAccessToken || ''
+  sLinkedinUrn.value    = cfg.linkedinPersonUrn || ''
 
   settingsModal.style.display = 'flex'
   refreshIcons(settingsModal)
+  // Focus the search box after icons are rendered
+  setTimeout(() => document.getElementById('settingsSearch')?.focus(), 50)
 }
 
 
 document.getElementById('closeSettings').addEventListener('click', () => {
   settingsModal.style.display = 'none'
+  _resetSettingsSearch()
 })
+
+function _resetSettingsSearch() {
+  const input = document.getElementById('settingsSearch')
+  if (!input || !input.value) return
+  input.value = ''
+  input.dispatchEvent(new Event('input'))
+}
 
 document.getElementById('saveSettings').addEventListener('click', async () => {
   await saveConfig({
@@ -771,6 +835,12 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
     supabaseAnonKey:      sSupabaseAnon.value.trim(),
     supabaseServiceKey:   sSupabaseService.value.trim(),
     supabaseUserId:       sSupabaseUser.value.trim(),
+    // Messaging
+    telegramBotToken:     sTelegramToken.value.trim(),
+    signalSender:         sSignalSender.value.trim(),
+    twitterOAuthToken:    sTwitterOAuth.value.trim(),
+    linkedinAccessToken:  sLinkedinToken.value.trim(),
+    linkedinPersonUrn:    sLinkedinUrn.value.trim(),
   })
   showAlert({ title: 'Settings Saved', message: 'Configuration has been updated.' })
 })
@@ -868,6 +938,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (settingsModal.style.display === 'flex') {
       settingsModal.style.display = 'none'
+      _resetSettingsSearch()
     } else if (aboutModal.style.display === 'flex') {
       aboutModal.style.display = 'none'
     } else if (editorPanel.classList.contains('open')) {

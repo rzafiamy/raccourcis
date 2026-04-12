@@ -1618,6 +1618,169 @@ const EXECUTORS = {
     if (exitCode !== 0) throw new Error(`Website to PDF failed: ${stderr}`)
     ctx.result = outPdf
   },
+
+  // ── Messaging ─────────────────────────────────────────────────────────────
+
+  'telegram-send': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.telegramBotToken) throw new Error('Telegram bot token not set. Open Settings → Services.')
+    const s = interpolateStep(step, ctx)
+    const chatId = s.chatId
+    if (!chatId) throw new Error('Telegram: chat ID is required.')
+    const text = s.text || ctx.result
+    if (!text) throw new Error('Telegram: message text is required.')
+    const body = { chat_id: chatId, text }
+    if (s.parseMode) body.parse_mode = s.parseMode
+    const res = await fetch(`https://api.telegram.org/bot${cfg.telegramBotToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: opts.signal,
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.description || `Telegram sendMessage failed (${res.status})`)
+    }
+    const data = await res.json()
+    ctx.result = `Message sent (id: ${data.result?.message_id})`
+  },
+
+  'telegram-send-file': async (step, ctx, _opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.telegramBotToken) throw new Error('Telegram bot token not set. Open Settings → Services.')
+    const s = interpolateStep(step, ctx)
+    const chatId = s.chatId
+    if (!chatId) throw new Error('Telegram: chat ID is required.')
+    const filePath = s.filePath || ctx.result
+    if (!filePath) throw new Error('Telegram Send File: no file path provided.')
+
+    const result = await window.ipcRenderer.invoke('telegram-send-file', {
+      token: cfg.telegramBotToken,
+      chatId,
+      filePath,
+      caption: s.caption || '',
+    })
+    if (!result.ok) throw new Error(result.error || 'Telegram file send failed')
+    ctx.result = `File sent (id: ${result.messageId})`
+  },
+
+  'signal-cli-send': async (step, ctx, _opts) => {
+    const cfg = await loadConfig()
+    const sender = cfg.signalSender
+    if (!sender) throw new Error('Signal sender number not set. Open Settings → Services.')
+    const s = interpolateStep(step, ctx)
+    const recipient = s.recipient
+    if (!recipient) throw new Error('Signal: recipient is required.')
+    const message = s.message || ctx.result
+    if (!message) throw new Error('Signal: message is required.')
+
+    const result = await window.ipcRenderer.invoke('signal-cli-send', {
+      sender,
+      recipient,
+      message,
+    })
+    if (!result.ok) throw new Error(result.error || 'signal-cli send failed')
+    ctx.result = `Signal message sent to ${recipient}`
+  },
+
+  'twitter-post': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.twitterBearerToken && !cfg.twitterOAuthToken) throw new Error('Twitter credentials not set. Open Settings → Services.')
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    if (!text) throw new Error('Twitter: tweet text is required.')
+    if (text.length > 280) throw new Error(`Twitter: tweet is ${text.length} chars, max is 280.`)
+
+    // Prefer OAuth 1.0a user context token (needed to post); bearer is read-only
+    const authHeader = cfg.twitterOAuthToken
+      ? `OAuth ${cfg.twitterOAuthToken}`
+      : `Bearer ${cfg.twitterBearerToken}`
+
+    const res = await fetch('https://api.twitter.com/2/tweets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader,
+      },
+      signal: opts.signal,
+      body: JSON.stringify({ text }),
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      const msg = b.detail || b.errors?.[0]?.message || `Twitter post failed (${res.status})`
+      throw new Error(msg)
+    }
+    const data = await res.json()
+    const tweetId = data.data?.id
+    ctx.result = tweetId
+      ? `https://twitter.com/i/web/status/${tweetId}`
+      : 'Tweet posted.'
+  },
+
+  'linkedin-post': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.linkedinAccessToken || !cfg.linkedinPersonUrn) throw new Error('LinkedIn access token / person URN not set. Open Settings → Services.')
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    if (!text) throw new Error('LinkedIn: post content is required.')
+    const visibility = s.visibility || 'PUBLIC'
+
+    const body = {
+      author: cfg.linkedinPersonUrn,
+      lifecycleState: 'PUBLISHED',
+      specificContent: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: { text },
+          shareMediaCategory: 'NONE',
+        },
+      },
+      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': visibility },
+    }
+    const res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.linkedinAccessToken}`,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+      signal: opts.signal,
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `LinkedIn post failed (${res.status})`)
+    }
+    const postUrn = res.headers.get('x-restli-id') || 'unknown'
+    ctx.result = `LinkedIn post published (URN: ${postUrn})`
+  },
+
+  'webhook-post': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const url = s.url
+    if (!url) throw new Error('Webhook POST: URL is required.')
+    const rawBody = s.body || JSON.stringify({ text: ctx.result })
+
+    let extraHeaders = {}
+    if (s.headers) {
+      try { extraHeaders = JSON.parse(s.headers) } catch { throw new Error('Webhook POST: headers must be valid JSON.') }
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...extraHeaders,
+      },
+      signal: opts.signal,
+      body: rawBody,
+    })
+    if (!res.ok) {
+      const b = await res.text().catch(() => '')
+      throw new Error(`Webhook POST failed (${res.status}): ${b.slice(0, 200)}`)
+    }
+    const responseText = await res.text()
+    ctx.result = responseText || `Webhook delivered (${res.status})`
+  },
 }
 
 

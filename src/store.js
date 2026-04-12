@@ -52,6 +52,15 @@ const DEFAULT_CONFIG = {
   supabaseAnonKey: '',
   supabaseServiceKey: '',
   supabaseUserId: '',
+  // Telegram
+  telegramBotToken: '',
+  // Signal
+  signalSender: '',
+  // Twitter / X
+  twitterOAuthToken: '',
+  // LinkedIn
+  linkedinAccessToken: '',
+  linkedinPersonUrn: '',
   // AI Models settings
   asrModel: 'whisper-large-v3',
   imageGenModel: 'flux-klein',

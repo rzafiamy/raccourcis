@@ -1207,6 +1207,44 @@ input[type="checkbox"]:checked::after {
   margin-top: 8px;
 }
 .settings-info-box svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.settings-info-box code { font-family: monospace; background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+/* ── Settings sidebar search ───────────────────────────────────────────────── */
+
+.settings-search-wrap {
+  position: relative;
+  padding: 10px 10px 6px;
+}
+
+.settings-search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.settings-search-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 8px 6px 28px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.settings-search-input::placeholder { color: var(--text-muted); }
+.settings-search-input:focus { border-color: var(--blue); }
+
+/* Hide nav items/groups filtered out by search */
+.settings-nav-group-label.settings-hidden { display: none; }
+.settings-nav-item.settings-hidden { display: none; }
 
 .label-optional {
   font-size: 10px;

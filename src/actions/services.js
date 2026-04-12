@@ -446,4 +446,129 @@ export default [
       { name: 'destPath', label: 'Destination Path (optional)', kind: 'text', placeholder: 'folder/file.ext', acceptsVars: true },
     ],
   },
+
+  // ── Messaging ─────────────────────────────────────────────────────────────────
+
+  {
+    type: 'telegram-send',
+    title: 'Telegram — Send Message',
+    desc: 'Send a message via Telegram Bot API → result',
+    icon: 'send',
+    color: '#2AABEE',
+    outputType: 'text',
+    defaults: {
+      chatId: '',
+      text: '{{result}}',
+      parseMode: 'Markdown',
+    },
+    params: [
+      { name: 'chatId', label: 'Chat ID (user, group, or @channel)', kind: 'text', placeholder: '123456789 or @mychannel', acceptsVars: true },
+      { name: 'text', label: 'Message text', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+      {
+        name: 'parseMode',
+        label: 'Parse mode',
+        kind: 'select',
+        options: [
+          { value: 'Markdown', label: 'Markdown' },
+          { value: 'HTML', label: 'HTML' },
+          { value: '', label: 'Plain text' },
+        ],
+      },
+    ],
+  },
+
+  {
+    type: 'telegram-send-file',
+    title: 'Telegram — Send File',
+    desc: 'Send a local file (photo, document, audio) via Telegram Bot API',
+    icon: 'file-up',
+    color: '#2AABEE',
+    outputType: 'text',
+    defaults: {
+      chatId: '',
+      filePath: '{{result}}',
+      caption: '',
+    },
+    params: [
+      { name: 'chatId', label: 'Chat ID', kind: 'text', placeholder: '123456789 or @mychannel', acceptsVars: true },
+      { name: 'filePath', label: 'Local file path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'caption', label: 'Caption (optional)', kind: 'text', placeholder: 'Here is your file', acceptsVars: true },
+    ],
+  },
+
+  {
+    type: 'signal-cli-send',
+    title: 'Signal — Send Message',
+    desc: 'Send a Signal message via signal-cli (must be installed)',
+    icon: 'shield-check',
+    color: '#3A76F0',
+    outputType: 'text',
+    defaults: {
+      recipient: '',
+      message: '{{result}}',
+    },
+    params: [
+      { name: 'recipient', label: 'Recipient phone (+E.164) or group ID', kind: 'text', placeholder: '+33612345678', acceptsVars: true },
+      { name: 'message', label: 'Message', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+    ],
+  },
+
+  {
+    type: 'twitter-post',
+    title: 'Twitter/X — Post Tweet',
+    desc: 'Post a tweet via Twitter API v2 → tweet URL',
+    icon: 'twitter',
+    color: '#1DA1F2',
+    outputType: 'text',
+    defaults: {
+      text: '{{result}}',
+    },
+    params: [
+      { name: 'text', label: 'Tweet text (max 280 chars)', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+    ],
+  },
+
+  {
+    type: 'linkedin-post',
+    title: 'LinkedIn — Share Post',
+    desc: 'Share a post on LinkedIn via API → post URN',
+    icon: 'linkedin',
+    color: '#0A66C2',
+    outputType: 'text',
+    defaults: {
+      text: '{{result}}',
+      visibility: 'PUBLIC',
+    },
+    params: [
+      { name: 'text', label: 'Post content', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+      {
+        name: 'visibility',
+        label: 'Visibility',
+        kind: 'select',
+        options: [
+          { value: 'PUBLIC', label: 'Public' },
+          { value: 'CONNECTIONS', label: 'Connections only' },
+        ],
+      },
+    ],
+  },
+
+  {
+    type: 'webhook-post',
+    title: 'Webhook POST',
+    desc: 'POST JSON payload to any webhook URL (Slack, Discord, ntfy, custom…)',
+    icon: 'webhook',
+    color: '#6E40C9',
+    outputType: 'text',
+    defaults: {
+      url: '',
+      body: '{"text":"{{result}}"}',
+      headers: '',
+    },
+    params: [
+      { name: 'url', label: 'Webhook URL', kind: 'text', placeholder: 'https://hooks.slack.com/...', acceptsVars: true },
+      { name: 'body', label: 'JSON body', kind: 'textarea', placeholder: '{"text":"{{result}}"}', acceptsVars: true },
+      { name: 'headers', label: 'Extra headers (JSON object, optional)', kind: 'textarea', placeholder: '{"Authorization":"Bearer token"}', acceptsVars: true },
+    ],
+  },
 ]

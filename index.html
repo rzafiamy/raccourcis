@@ -450,6 +450,13 @@
 
       <!-- ── Settings sidebar nav ── -->
       <nav class="settings-nav">
+
+        <!-- Search filter -->
+        <div class="settings-search-wrap">
+          <i data-lucide="search" class="settings-search-icon"></i>
+          <input class="settings-search-input" id="settingsSearch" type="text" placeholder="Search settings…" autocomplete="off">
+        </div>
+
         <div class="settings-nav-group-label">General</div>
         <button class="settings-nav-item active" data-tab="general">
           <i data-lucide="settings"></i><span>General</span>
@@ -495,6 +502,20 @@
           <i data-lucide="database"></i><span>Supabase</span>
         </button>
 
+
+        <div class="settings-nav-group-label">Messaging</div>
+        <button class="settings-nav-item" data-tab="telegram">
+          <i data-lucide="send"></i><span>Telegram</span>
+        </button>
+        <button class="settings-nav-item" data-tab="signal">
+          <i data-lucide="shield-check"></i><span>Signal</span>
+        </button>
+        <button class="settings-nav-item" data-tab="twitter">
+          <i data-lucide="twitter"></i><span>Twitter / X</span>
+        </button>
+        <button class="settings-nav-item" data-tab="linkedin">
+          <i data-lucide="linkedin"></i><span>LinkedIn</span>
+        </button>
 
         <div class="settings-nav-group-label">Email & Utilities</div>
         <button class="settings-nav-item" data-tab="smtp">
@@ -734,6 +755,69 @@
           <div class="settings-info-box">
             <i data-lucide="info"></i>
             <span>The QR Code action works out of the box. No configuration required.</span>
+          </div>
+        </div>
+
+        <!-- Telegram -->
+        <div class="settings-tab" id="tab-telegram">
+          <div class="settings-tab-title">Telegram</div>
+          <p class="settings-hint">Send messages and files via a Telegram Bot. Create your bot and get a token from <strong>@BotFather</strong> on Telegram.</p>
+          <div class="settings-info-box">
+            <i data-lucide="info"></i>
+            <span>After creating your bot, invite it to the chat or channel you want to message. Get the Chat ID by forwarding a message from that chat to <strong>@userinfobot</strong>.</span>
+          </div>
+          <div class="form-group">
+            <label>Bot Token</label>
+            <input class="input-field" id="telegramBotToken" type="password" placeholder="123456:ABC-DEF1234…">
+          </div>
+        </div>
+
+        <!-- Signal -->
+        <div class="settings-tab" id="tab-signal">
+          <div class="settings-tab-title">Signal</div>
+          <p class="settings-hint">Sends encrypted messages via <strong>signal-cli</strong>, a command-line tool that must be installed and registered on this machine.</p>
+          <div class="settings-info-box">
+            <i data-lucide="terminal"></i>
+            <span>Install signal-cli and register your number first:<br>
+              <code>signal-cli -u +YOURNUMBER register</code><br>
+              <code>signal-cli -u +YOURNUMBER verify CODE</code>
+            </span>
+          </div>
+          <div class="form-group">
+            <label>Sender Phone Number <span class="label-optional">registered with signal-cli</span></label>
+            <input class="input-field" id="signalSender" type="text" placeholder="+33612345678">
+          </div>
+        </div>
+
+        <!-- Twitter / X -->
+        <div class="settings-tab" id="tab-twitter">
+          <div class="settings-tab-title">Twitter / X</div>
+          <p class="settings-hint">Posting tweets requires a Twitter Developer App with <strong>OAuth 1.0a User Context</strong>. Bearer tokens are read-only. Create your app at <strong>developer.twitter.com</strong>.</p>
+          <div class="settings-info-box">
+            <i data-lucide="info"></i>
+            <span>You need an <strong>OAuth 1.0a Access Token</strong> (not Bearer Token) to post. Generate one in the "Keys and Tokens" section of your app in the Developer Portal. Format it as:<br><code>oauth_consumer_key="…", oauth_token="…", …</code></span>
+          </div>
+          <div class="form-group">
+            <label>OAuth 1.0a Token String</label>
+            <input class="input-field" id="twitterOAuthToken" type="password" placeholder="OAuth oauth_consumer_key=&quot;…&quot;, oauth_token=&quot;…&quot;">
+          </div>
+        </div>
+
+        <!-- LinkedIn -->
+        <div class="settings-tab" id="tab-linkedin">
+          <div class="settings-tab-title">LinkedIn</div>
+          <p class="settings-hint">Publish posts via the LinkedIn UGC Posts API. You need a LinkedIn Developer App with the <strong>w_member_social</strong> permission.</p>
+          <div class="settings-info-box">
+            <i data-lucide="info"></i>
+            <span>Get your access token from the <strong>LinkedIn Developer Portal</strong> (OAuth 2.0). Your Person URN looks like <code>urn:li:person:XXXXXX</code> — find it in your profile API response.</span>
+          </div>
+          <div class="form-group">
+            <label>Access Token</label>
+            <input class="input-field" id="linkedinAccessToken" type="password" placeholder="AQV…">
+          </div>
+          <div class="form-group">
+            <label>Person URN</label>
+            <input class="input-field" id="linkedinPersonUrn" type="text" placeholder="urn:li:person:XXXXXX">
           </div>
         </div>
 
