@@ -457,8 +457,8 @@ ipcMain.handle('shell-exec', async (_, command) => {
 
   try {
     const { stdout, stderr } = await execAsync(command, {
-      timeout: 30_000,
-      maxBuffer: 1024 * 512, // 512 KB
+      timeout: 300_000, // 5 minutes
+      maxBuffer: 1024 * 1024, // 1 MB
       env: { ...process.env },
       shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/bash',
     })
