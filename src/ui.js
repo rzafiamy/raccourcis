@@ -97,11 +97,23 @@ export function createRunOverlay(shortcut, onCancel) {
       <div class="run-progress-track">
         <div class="run-progress-bar" id="runProgressBar" style="width:0%"></div>
       </div>
-      <div class="run-steps-list" id="runStepsList"></div>
-      <div class="run-output" id="runOutput" style="display:none">
-        <div class="run-output-label">Output</div>
-        <div class="run-output-text" id="runOutputText"></div>
-        <button class="run-copy-btn" id="runCopyBtn">Copy</button>
+      <div class="run-body">
+        <div class="run-sidebar">
+          <div class="run-steps-list" id="runStepsList"></div>
+        </div>
+        <div class="run-content" id="runContent">
+          <div class="run-content-empty" id="runContentEmpty">
+            <div class="run-content-empty-icon"></div>
+            <span>Running…</span>
+          </div>
+          <div class="run-output" id="runOutput" style="display:none">
+            <div class="run-output-header">
+              <span class="run-output-label">Output</span>
+              <button class="run-copy-btn" id="runCopyBtn">Copy</button>
+            </div>
+            <div class="run-output-text" id="runOutputText"></div>
+          </div>
+        </div>
       </div>
     </div>
   `
@@ -117,18 +129,24 @@ export function createRunOverlay(shortcut, onCancel) {
   })
   closeBtn.addEventListener('click', () => overlay.remove())
 
-  // Pre-render step rows
+  // Pre-render step rows as timeline
   const stepsList = overlay.querySelector('#runStepsList')
   shortcut.steps.forEach((step, i) => {
     const stepDef = getActionDef(step.type)
     const stepColor = stepDef?.color ?? step.color
+    const isLast = i === shortcut.steps.length - 1
     const row = document.createElement('div')
     row.className = 'run-step-row'
     row.id = `runStep-${i}`
     row.innerHTML = `
-      <div class="run-step-badge" style="background:${stepColor}"></div>
-      <div class="run-step-title">${step.title}</div>
-      <div class="run-step-state" id="runStepState-${i}"></div>
+      <div class="run-step-timeline">
+        <div class="run-step-dot" style="--dot-color:${stepColor}"></div>
+        ${!isLast ? '<div class="run-step-line"></div>' : ''}
+      </div>
+      <div class="run-step-body">
+        <div class="run-step-title">${step.title}</div>
+        <div class="run-step-state" id="runStepState-${i}"></div>
+      </div>
     `
     stepsList.appendChild(row)
   })
@@ -136,11 +154,12 @@ export function createRunOverlay(shortcut, onCancel) {
   document.body.appendChild(overlay)
   refreshIcons(overlay)
 
-  const statusEl   = overlay.querySelector('#runStatus')
-  const progressEl = overlay.querySelector('#runProgressBar')
-  const outputEl   = overlay.querySelector('#runOutput')
-  const outputText = overlay.querySelector('#runOutputText')
-  const copyBtn    = overlay.querySelector('#runCopyBtn')
+  const statusEl    = overlay.querySelector('#runStatus')
+  const progressEl  = overlay.querySelector('#runProgressBar')
+  const outputEl    = overlay.querySelector('#runOutput')
+  const outputText  = overlay.querySelector('#runOutputText')
+  const emptyEl     = overlay.querySelector('#runContentEmpty')
+  const copyBtn     = overlay.querySelector('#runCopyBtn')
 
   copyBtn.addEventListener('click', async () => {
     const kind    = copyBtn.dataset.kind || 'text'
@@ -164,7 +183,10 @@ export function createRunOverlay(shortcut, onCancel) {
     setStepActive(i) {
       overlay.querySelectorAll('.run-step-row').forEach((r) => r.classList.remove('active'))
       const row = overlay.querySelector(`#runStep-${i}`)
-      if (row) row.classList.add('active')
+      if (row) {
+        row.classList.add('active')
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
       statusEl.textContent = shortcut.steps[i]?.title || '…'
       progressEl.style.width = `${(i / shortcut.steps.length) * 100}%`
     },
@@ -174,26 +196,26 @@ export function createRunOverlay(shortcut, onCancel) {
       row.classList.remove('active')
       row.classList.add(entry.error ? 'error' : 'done')
       const stateEl = overlay.querySelector(`#runStepState-${i}`)
-      if (stateEl) stateEl.textContent = entry.error ? '✕' : `${entry.ms}ms`
+      if (stateEl) stateEl.textContent = entry.error ? 'Failed' : `${entry.ms}ms`
     },
     showOutput(content, kind = 'text') {
-      outputEl.style.display = 'block'
+      emptyEl.style.display = 'none'
+      outputEl.style.display = 'flex'
       outputText.innerHTML = ''
 
       const { el, copyText, kind: resolvedKind } = renderOutput(content, kind)
       outputText.appendChild(el)
 
-      // Configure copy button per kind
       copyBtn.dataset.content = copyText
       copyBtn.dataset.kind    = resolvedKind
 
       if (resolvedKind === 'image') {
-        copyBtn.style.display = 'block'
+        copyBtn.style.display = 'inline-flex'
         copyBtn.textContent   = 'Download'
       } else if (resolvedKind === 'audio' || resolvedKind === 'file') {
         copyBtn.style.display = 'none'
       } else {
-        copyBtn.style.display = 'block'
+        copyBtn.style.display = 'inline-flex'
         copyBtn.textContent   = 'Copy'
       }
     },
@@ -203,12 +225,16 @@ export function createRunOverlay(shortcut, onCancel) {
       statusEl.className = `run-status ${ok ? 'done' : 'error'}`
       cancelBtn.style.display = 'none'
       closeBtn.style.display  = 'flex'
+      emptyEl.style.display   = 'none'
       if (!ok && errorMsg) {
-        outputEl.style.display = 'block'
+        outputEl.style.display = 'flex'
         outputText.innerHTML = `<pre class="run-output-pre error-text">${errorMsg}</pre>`
         copyBtn.style.display = 'none'
       } else if (ok && result) {
         this.showOutput(result, detectKind(result))
+      } else if (ok && !result) {
+        emptyEl.style.display = 'flex'
+        emptyEl.querySelector('span').textContent = 'Done — no output'
       }
     },
     dismiss() { overlay.remove() },
