@@ -160,6 +160,19 @@ function renderMarkdown(md) {
     return `<ol>${items}</ol>`
   })
 
+  // Tables
+  s = s.replace(/^[ \t]*\|(.+)\|[ \t]*\r?\n[ \t]*\|([- :|]+)\|[ \t]*\r?\n((?:[ \t]*\|.+\|[ \t]*\r?\n?)+)/gm, (match, header, separator, rows) => {
+    const headers = header.split('|').map(h => h.trim()).filter(h => h !== '')
+    const rowLines = rows.trim().split('\n')
+    const htmlRows = rowLines.map(line => {
+      // Split and filter out empty strings from start/end
+      const cells = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1)
+      return `<tr>${cells.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`
+    }).join('')
+    const htmlHeaders = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`
+    return `<div class="or-table-wrapper"><table class="or-table"><thead>${htmlHeaders}</thead><tbody>${htmlRows}</tbody></table></div>`
+  })
+
   // Paragraphs — wrap remaining text lines
   s = s.replace(/^(?!<[a-z]|%%CODE_BLOCK)(.+)$/gm, (line) => {
     if (!line.trim()) return ''

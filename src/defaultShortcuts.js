@@ -690,4 +690,63 @@ export const DEFAULT_SHORTCUTS = [
       step('notification', { title: 'Renamed', body: 'File renamed successfully' }),
     ],
   },
+  {
+    id: 38,
+    name: 'Fuel Prices (30 Days)',
+    icon: 'fuel',
+    color: 'bg-orange',
+    category: 'personal',
+    favorite: true,
+    steps: [
+      step('user-input', {
+        title: 'Postal Code',
+        label: 'Enter French Postal Code (5 digits):',
+        placeholder: '75001',
+      }),
+      step('set-var', { varName: 'postalCode' }),
+      step('user-input', {
+        title: 'Fuel Type',
+        label: 'Enter Fuel Type:',
+        placeholder: 'Gazole, SP95, SP98, E10, E85, GPLc',
+        prefill: 'Gazole',
+      }),
+      step('set-var', { varName: 'fuelType' }),
+      step('shell', {
+        title: 'Fetching 7-Day Trend',
+        command: `python3 -c "
+import datetime, urllib.request, zipfile, io, xml.etree.ElementTree as ET, sys
+target_cp = '{{vars.postalCode}}'
+target_fuel = '{{vars.fuelType}}'.lower()
+if target_fuel in ['e10', 'sp95-e10']: target_fuel = 'e10'
+results = []
+for i in range(7):
+    d = (datetime.datetime.now() - datetime.timedelta(days=i)).strftime('%Y%m%d')
+    url = f'https://donnees.roulez-eco.fr/opendata/jour/{d}'
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = resp.read()
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            xml_name = [f for f in z.namelist() if f.endswith('.xml')][0]
+            root = ET.fromstring(z.read(xml_name))
+        for pdv in root.findall('pdv'):
+            if pdv.get('cp') == target_cp:
+                addr = pdv.find('adresse').text if pdv.find('adresse') is not None else '?'
+                city = pdv.find('ville').text if pdv.find('ville') is not None else '?'
+                for p in pdv.findall('prix'):
+                    if p.get('nom').lower() == target_fuel:
+                        results.append(f'{city} ({addr}) | {p.get(\'maj\')} | {p.get(\'valeur\')} €')
+    except Exception: continue
+if not results: print('No history found for this area/fuel in the last 7 days.')
+else: print('\\n'.join(results))
+"`,
+      }),
+      step('ai-prompt', {
+        title: 'Analyze Trend',
+        prompt: 'Analyze the following 7-day fuel price history. \n1. Create a beautiful Markdown table showing the LATEST price for each station.\n2. Briefly summarize the price trend over the week.\n3. Mention the cheapest station found.\n\nData (Station | Date | Price):\n{{result}}',
+        systemPrompt: 'You are an expert fuel market analyst. Output a clear Markdown summary with a well-formatted table. You MUST start and end every table row with a pipe character (|). Use the format: | Station | Date | Price |',
+      }),
+      step('show-result', { title: 'Weekly Fuel Trend', label: 'Fuel Trend at {{vars.postalCode}}' }),
+    ],
+  },
 ]
