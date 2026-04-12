@@ -190,16 +190,20 @@ body {
 /* ── Shortcut grid ────────────────────────────────────────────────── */
 .shortcut-grid {
   flex: 1;
+  width: 100%;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  grid-auto-rows: 180px;
   gap: 16px;
   padding: 16px 36px 40px;
   align-content: start;
 }
 
 .shortcut-card {
-  aspect-ratio: 1 / 1;
+  height: 180px;
   border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
@@ -208,10 +212,12 @@ body {
   position: relative;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.1);
-  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s;
+  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s, z-index 0s;
   overflow: hidden;
+  isolation: isolate;
+  z-index: 0;
 }
-.shortcut-card:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--shadow-lg); }
+.shortcut-card:hover { transform: translateY(-3px) scale(1.02); box-shadow: var(--shadow-lg); z-index: 1; }
 .shortcut-card:active { transform: scale(0.97); }
 
 .shortcut-icon { position: absolute; top: 16px; left: 16px; }
@@ -244,6 +250,7 @@ body {
 /* Card gradients */
 .bg-blue   { background: linear-gradient(135deg, #0A84FF, #0056B3); }
 .bg-pink   { background: linear-gradient(135deg, #FF375F, #C10037); }
+.bg-red    { background: linear-gradient(135deg, #FF375F, #C10037); }
 .bg-purple { background: linear-gradient(135deg, #BF5AF2, #8E24AA); }
 .bg-orange { background: linear-gradient(135deg, #FF9F0A, #CC7000); }
 .bg-green  { background: linear-gradient(135deg, #32D74B, #1E8E3E); }

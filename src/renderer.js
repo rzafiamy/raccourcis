@@ -2,7 +2,7 @@
  * renderer.js — Main orchestrator
  */
 
-import { loadShortcuts, saveShortcuts, loadConfig, saveConfig, appendRun } from './store.js'
+import { loadShortcuts, saveShortcuts, loadConfig, saveConfig, appendRun, DEFAULT_SHORTCUTS } from './store.js'
 import { ACTION_REGISTRY, makeStep } from './actions.js'
 import { runWorkflow } from './workflow.js'
 import {
@@ -346,6 +346,18 @@ document.getElementById('saveSettings').addEventListener('click', () => {
     model:   settingsModel.value.trim(),
   })
   settingsModal.style.display = 'none'
+})
+
+document.getElementById('restoreDefaults').addEventListener('click', async () => {
+  const confirmed = await showConfirm({
+    title:   'Restore default shortcuts?',
+    message: 'This will replace all your current shortcuts with the 20 built-in defaults. This cannot be undone.',
+  })
+  if (!confirmed) return
+  shortcuts = JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS))
+  saveShortcuts(shortcuts)
+  settingsModal.style.display = 'none'
+  renderGrid()
 })
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
