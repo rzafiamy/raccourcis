@@ -87,6 +87,7 @@ const sSupabaseUrl     = document.getElementById('supabaseUrl')
 const sSupabaseAnon    = document.getElementById('supabaseAnonKey')
 const sSupabaseService = document.getElementById('supabaseServiceKey')
 const sSupabaseUser    = document.getElementById('supabaseUserId')
+const aboutModal       = document.getElementById('aboutModal')
 
 
 
@@ -112,6 +113,16 @@ document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
 document.getElementById('openSettings').addEventListener('click', async (e) => {
   e.preventDefault()
   await openSettings()
+})
+
+document.getElementById('openAbout').addEventListener('click', (e) => {
+  e.preventDefault()
+  aboutModal.style.display = 'flex'
+  refreshIcons(aboutModal)
+})
+
+document.getElementById('closeAbout').addEventListener('click', () => {
+  aboutModal.style.display = 'none'
 })
 
 
@@ -147,6 +158,7 @@ function matchesFilter(shortcut) {
   if (currentCategory === 'personal') return shortcut.category === 'personal'
   if (currentCategory === 'media') return shortcut.category === 'media'
   if (currentCategory === 'comm') return shortcut.category === 'comm'
+  if (currentCategory === 'filesystem') return !!shortcut.isFileSystem
   if (currentCategory === 'recent') return true
   return true
 }
@@ -577,6 +589,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (settingsModal.style.display === 'flex') {
       settingsModal.style.display = 'none'
+    } else if (aboutModal.style.display === 'flex') {
+      aboutModal.style.display = 'none'
     } else if (editorPanel.classList.contains('open')) {
       closeEditor()
     }

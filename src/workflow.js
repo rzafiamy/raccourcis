@@ -647,6 +647,8 @@ const EXECUTORS = {
     if (!cfg.smtpHost) throw new Error('SMTP host not set. Open Settings → SMTP.')
     const s = interpolateStep(step, ctx)
     if (!s.to) throw new Error('SMTP: recipient address is required.')
+    const body = s.body || ctx.result
+    const isHtml = /<[a-z][\s\S]*>/i.test(body)
     const result = await window.ipcRenderer.invoke('smtp-send', {
       host:     cfg.smtpHost,
       port:     Number(cfg.smtpPort) || 587,
@@ -656,7 +658,8 @@ const EXECUTORS = {
       from:     cfg.smtpFrom || cfg.smtpUser,
       to:       s.to,
       subject:  s.subject || '(no subject)',
-      text:     s.body || ctx.result,
+      text:     isHtml ? undefined : body,
+      html:     isHtml ? body : undefined,
     })
     if (!result.ok) throw new Error(result.error || 'SMTP send failed')
     ctx.result = `Email sent to ${s.to}`

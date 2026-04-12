@@ -7,6 +7,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import yaml from 'js-yaml'
 import { XMLParser } from 'fast-xml-parser'
+import nodemailer from 'nodemailer'
 
 const xmlParser = new XMLParser()
 
@@ -276,6 +277,33 @@ ipcMain.handle('read-file', async (_, filePath) => {
     const content = fs.readFileSync(filePath, 'utf8')
     return { ok: true, content }
   } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('smtp-send', async (_, options) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: options.host,
+      port: options.port,
+      secure: options.secure,
+      auth: {
+        user: options.user,
+        pass: options.pass,
+      },
+    })
+
+    const info = await transporter.sendMail({
+      from: options.from,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    })
+
+    return { ok: true, messageId: info.messageId }
+  } catch (err) {
+    console.error('[main] smtp-send error:', err.message)
     return { ok: false, error: err.message }
   }
 })

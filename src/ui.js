@@ -36,6 +36,14 @@ export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
   stepCount.className = 'shortcut-steps-count'
   stepCount.textContent = `${shortcut.steps.length} step${shortcut.steps.length !== 1 ? 's' : ''}`
 
+  if (shortcut.isFileSystem) {
+    const fsBadge = document.createElement('div')
+    fsBadge.className = 'shortcut-fs-badge'
+    fsBadge.title = 'Loaded from ~/Raccourcis/shortcuts'
+    fsBadge.textContent = 'Local'
+    card.appendChild(fsBadge)
+  }
+
   const actions = document.createElement('div')
   actions.className = 'shortcut-actions'
 

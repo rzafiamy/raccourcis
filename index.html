@@ -32,6 +32,9 @@
     <a href="#" class="nav-item" data-category="favorites">
       <i data-lucide="star"></i><span>Favorites</span>
     </a>
+    <a href="#" class="nav-item" data-category="filesystem">
+      <i data-lucide="folder-lock"></i><span>Local Files</span>
+    </a>
     <a href="#" class="nav-item" data-category="recent">
       <i data-lucide="history"></i><span>Recent</span>
     </a>
@@ -55,6 +58,9 @@
     <div class="sidebar-section-label">System</div>
     <a href="#" class="nav-item" id="openSettings">
       <i data-lucide="settings"></i><span>Settings</span>
+    </a>
+    <a href="#" class="nav-item" id="openAbout">
+      <i data-lucide="info"></i><span>About</span>
     </a>
   </aside>
 
@@ -463,6 +469,33 @@
     </div>
 
 
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     About Modal
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal-content about-modal">
+    <div class="modal-body about-body">
+      <div class="about-logo-container">
+        <img src="./src/assets/logo.png" alt="Raccourcis Logo" class="about-logo">
+      </div>
+      <div class="about-content">
+        <h1 class="about-title">Raccourcis</h1>
+        <p class="about-version">Version 1.1.0</p>
+        <p class="about-desc">
+          Powerful shortcuts and AI workflows for Ubuntu Linux. 
+          Raccourcis helps you automate repetitive tasks by chaining actions together 
+          with the power of Artificial Intelligence.
+        </p>
+        <div class="about-team">
+          <p>Created with ❤️ by <a href="https://github.com/rzafiamy" target="_blank">rzafiamy</a></p>
+          <p class="about-team-group">Part of <strong>Makix Team</strong> — AI Developers at Infodev</p>
+        </div>
+      </div>
+      <button class="btn btn-primary about-close-btn" id="closeAbout">Close</button>
+    </div>
   </div>
 </div>
 
