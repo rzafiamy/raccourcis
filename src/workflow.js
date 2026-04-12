@@ -41,11 +41,27 @@ function interpolateStep(step, ctx) {
   return out
 }
 
+async function getSystemPreamble() {
+  const cfg = await loadConfig()
+  const now = new Date()
+  const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  
+  let preamble = `Current time: ${dateStr}, ${timeStr}.\n`
+  if (cfg.preferredLanguage) preamble += `User preferred language: ${cfg.preferredLanguage}. Please respond in this language unless the task implies otherwise.\n`
+  if (cfg.userLocation) preamble += `User location: ${cfg.userLocation}.\n`
+  
+  return preamble.trim()
+}
+
 // ── AI call ───────────────────────────────────────────────────────────────────
 
 async function callAI(prompt, systemPrompt, signal) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
+
+  const preamble = await getSystemPreamble()
+  const finalSystemPrompt = `${preamble}\n\n${systemPrompt || 'You are a helpful assistant.'}`
 
   const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
     method: 'POST',
@@ -57,7 +73,8 @@ async function callAI(prompt, systemPrompt, signal) {
     body: JSON.stringify({
       model: cfg.model,
       messages: [
-        { role: 'system', content: systemPrompt || 'You are a helpful assistant.' },
+        { role: 'system', content: finalSystemPrompt },
+
         { role: 'user', content: prompt },
       ],
     }),
@@ -168,6 +185,9 @@ async function callVision(imageUrl, prompt, systemPrompt, signal) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
+  const preamble = await getSystemPreamble()
+  const finalSystemPrompt = `${preamble}\n\n${systemPrompt || 'You are a helpful vision assistant.'}`
+
   const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -178,7 +198,8 @@ async function callVision(imageUrl, prompt, systemPrompt, signal) {
     body: JSON.stringify({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: systemPrompt || 'You are a helpful vision assistant.' },
+        { role: 'system', content: finalSystemPrompt },
+
         {
           role: 'user',
           content: [
@@ -606,12 +627,18 @@ const EXECUTORS = {
 
   'nextcloud-list-files': async (step, ctx, opts) => {
     const cfg = await loadConfig()
-    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud settings incomplete. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const remotePath = (s.path || '/').replace(/\/+$/, '') || '/'
-    const base = cfg.nextcloudUrl.replace(/\/$/, '')
-    const davUrl = `${base}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}${remotePath}`
-    const creds  = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    
+    // Use user-provided WebDAV URL or construct from base URL
+    let davUrl = cfg.nextcloudWebdavUrl 
+      ? cfg.nextcloudWebdavUrl.replace(/\/$/, '') 
+      : `${cfg.nextcloudUrl.replace(/\/$/, '')}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}`
+    
+    davUrl += remotePath
+
+    const creds  = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPassword || ''}`)
     const res = await fetch(davUrl, {
       method: 'PROPFIND',
       headers: {
@@ -629,20 +656,27 @@ const EXECUTORS = {
     ctx.result = names.length > 0 ? names.join('\n') : 'Directory is empty.'
   },
 
+
   'nextcloud-upload': async (step, ctx, opts) => {
     const cfg = await loadConfig()
-    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud settings incomplete. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const localPath  = s.localPath || ctx.result
     const remotePath = s.remotePath || `/Uploads/${localPath.split('/').pop()}`
     if (!localPath) throw new Error('Nextcloud upload: no local file path provided.')
+    
     const base64 = await window.ipcRenderer.readFileBase64(localPath)
     const binaryStr = atob(base64)
     const bytes = new Uint8Array(binaryStr.length)
     for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
-    const base    = cfg.nextcloudUrl.replace(/\/$/, '')
-    const davUrl  = `${base}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}${remotePath}`
-    const creds   = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+
+    let davUrl = cfg.nextcloudWebdavUrl 
+      ? cfg.nextcloudWebdavUrl.replace(/\/$/, '') 
+      : `${cfg.nextcloudUrl.replace(/\/$/, '')}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}`
+    
+    davUrl += remotePath
+
+    const creds   = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPassword || ''}`)
     const res = await fetch(davUrl, {
       method: 'PUT',
       headers: { Authorization: `Basic ${creds}` },
@@ -653,12 +687,13 @@ const EXECUTORS = {
     ctx.result = `Uploaded to ${remotePath}`
   },
 
+
   'nextcloud-note': async (step, ctx, opts) => {
     const cfg = await loadConfig()
-    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud settings incomplete. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const base  = cfg.nextcloudUrl.replace(/\/$/, '')
-    const creds = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    const creds = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPassword || ''}`)
     const body  = { title: s.title || 'New Note', content: s.content || ctx.result }
     if (s.category) body.category = s.category
     const res = await fetch(`${base}/index.php/apps/notes/api/v1/notes`, {
@@ -676,14 +711,20 @@ const EXECUTORS = {
     ctx.result = `Note created: ${note.title} (ID: ${note.id})`
   },
 
+
   'nextcloud-create-folder': async (step, ctx, opts) => {
     const cfg = await loadConfig()
-    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud settings incomplete. Open Settings → Nextcloud.')
     const s = interpolateStep(step, ctx)
     const remotePath = (s.path || '/New Folder').replace(/\/+$/, '')
-    const base = cfg.nextcloudUrl.replace(/\/$/, '')
-    const davUrl = `${base}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}${remotePath}`
-    const creds  = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    
+    let davUrl = cfg.nextcloudWebdavUrl 
+      ? cfg.nextcloudWebdavUrl.replace(/\/$/, '') 
+      : `${cfg.nextcloudUrl.replace(/\/$/, '')}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}`
+    
+    davUrl += remotePath
+
+    const creds  = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPassword || ''}`)
     const res = await fetch(davUrl, {
       method: 'MKCOL',
       headers: { Authorization: `Basic ${creds}` },
@@ -692,7 +733,102 @@ const EXECUTORS = {
     if (!res.ok) throw new Error(`Nextcloud create folder failed (${res.status})`)
     ctx.result = `Folder created: ${remotePath}`
   },
+
+
+  // ── Supabase ──────────────────────────────────────────────────────────────────
+
+  'supabase-select': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
+    const s = interpolateStep(step, ctx)
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}?select=${encodeURIComponent(s.select || '*')}${s.filter ? '&' + s.filter : ''}`
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'apikey': cfg.supabaseAnonKey,
+        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `Supabase select failed (${res.status})`)
+    }
+    const data = await res.json()
+    ctx.result = JSON.stringify(data, null, 2)
+  },
+
+  'supabase-insert': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
+    const s = interpolateStep(step, ctx)
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.supabaseAnonKey,
+        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: s.data || ctx.result,
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `Supabase insert failed (${res.status})`)
+    }
+    const data = await res.json()
+    ctx.result = JSON.stringify(data[0] || data, null, 2)
+  },
+
+  'supabase-update': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
+    const s = interpolateStep(step, ctx)
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}?${s.filter}`
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': cfg.supabaseAnonKey,
+        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: s.data || ctx.result,
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `Supabase update failed (${res.status})`)
+    }
+    const data = await res.json()
+    ctx.result = JSON.stringify(data, null, 2)
+  },
+
+  'supabase-delete': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.supabaseUrl) throw new Error('Supabase URL not set. Open Settings → Supabase.')
+    const s = interpolateStep(step, ctx)
+    const url = `${cfg.supabaseUrl.replace(/\/$/, '')}/rest/v1/${s.table}?${s.filter}`
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'apikey': cfg.supabaseAnonKey,
+        'Authorization': `Bearer ${cfg.supabaseServiceKey || cfg.supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `Supabase delete failed (${res.status})`)
+    }
+    ctx.result = `Deleted from ${s.table} where ${s.filter}`
+  },
 }
+
 
 
 // ── Main runner ───────────────────────────────────────────────────────────────

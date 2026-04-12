@@ -161,9 +161,13 @@
       <!-- ── Settings sidebar nav ── -->
       <nav class="settings-nav">
         <div class="settings-nav-group-label">General</div>
-        <button class="settings-nav-item active" data-tab="ai">
+        <button class="settings-nav-item active" data-tab="general">
+          <i data-lucide="settings"></i><span>General</span>
+        </button>
+        <button class="settings-nav-item" data-tab="ai">
           <i data-lucide="sparkles"></i><span>AI Provider</span>
         </button>
+
 
         <div class="settings-nav-group-label">Web Services</div>
         <button class="settings-nav-item" data-tab="firecrawl">
@@ -197,6 +201,10 @@
         <button class="settings-nav-item" data-tab="nextcloud">
           <i data-lucide="cloud"></i><span>Nextcloud</span>
         </button>
+        <button class="settings-nav-item" data-tab="supabase">
+          <i data-lucide="database"></i><span>Supabase</span>
+        </button>
+
 
         <div class="settings-nav-group-label">Email & Utilities</div>
         <button class="settings-nav-item" data-tab="smtp">
@@ -209,9 +217,25 @@
 
       <!-- ── Settings pane ── -->
       <div class="settings-pane">
+        
+        <!-- General / Context -->
+        <div class="settings-tab active" id="tab-general">
+          <div class="settings-tab-title">General & Context</div>
+          <p class="settings-hint">System-wide context provided to AI actions to improve response relevance.</p>
+          <div class="form-group">
+            <label>Preferred Language</label>
+            <input class="input-field" id="prefLanguage" type="text" placeholder="e.g. English, French, Spanish…">
+          </div>
+          <div class="form-group">
+            <label>Location <span class="label-optional">optional</span></label>
+            <input class="input-field" id="userLocation" type="text" placeholder="e.g. Paris, France">
+          </div>
+        </div>
+
 
         <!-- AI Provider -->
-        <div class="settings-tab active" id="tab-ai">
+        <div class="settings-tab" id="tab-ai">
+
           <div class="settings-tab-title">AI Provider</div>
           <p class="settings-hint">Works with any OpenAI-compatible endpoint (OpenAI, Mistral, Ollama, LM Studio…)</p>
           <div class="form-group">
@@ -323,20 +347,48 @@
         <!-- Nextcloud -->
         <div class="settings-tab" id="tab-nextcloud">
           <div class="settings-tab-title">Nextcloud</div>
-          <p class="settings-hint">Connect to your Nextcloud instance. Use an <strong>App Password</strong> (Settings → Security → App passwords) instead of your main password.</p>
+          <p class="settings-hint">Connect to your Nextcloud instance. Use an <strong>App Password</strong> instead of your main password.</p>
           <div class="form-group">
-            <label>Nextcloud URL</label>
-            <input class="input-field" id="nextcloudUrl" type="text" placeholder="https://cloud.example.com">
+            <label>Instance URL</label>
+            <input class="input-field" id="nextcloudUrl" type="text" placeholder="https://nextcloud.example.com">
+          </div>
+          <div class="form-group">
+            <label>WebDAV URL</label>
+            <input class="input-field" id="nextcloudWebdavUrl" type="text" placeholder="https://…/remote.php/dav/files/user">
           </div>
           <div class="form-group">
             <label>Username</label>
-            <input class="input-field" id="nextcloudUser" type="text" placeholder="john">
+            <input class="input-field" id="nextcloudUser" type="text" placeholder="admin">
           </div>
           <div class="form-group">
-            <label>App Password</label>
-            <input class="input-field" id="nextcloudPass" type="password" placeholder="••••••••">
+            <label>Password / App Token</label>
+            <input class="input-field" id="nextcloudPassword" type="password" placeholder="xxxx-xxxx-xxxx-xxxx">
           </div>
         </div>
+
+
+        <!-- Supabase -->
+        <div class="settings-tab" id="tab-supabase">
+          <div class="settings-tab-title">Supabase</div>
+          <p class="settings-hint">Relational database and auth. Manage your tables via PostgREST.</p>
+          <div class="form-group">
+            <label>Project URL</label>
+            <input class="input-field" id="supabaseUrl" type="text" placeholder="https://xyz.supabase.co">
+          </div>
+          <div class="form-group">
+            <label>Anon Key</label>
+            <input class="input-field" id="supabaseAnonKey" type="password" placeholder="eyJ…">
+          </div>
+          <div class="form-group">
+            <label>Service / Long-Lived Key</label>
+            <input class="input-field" id="supabaseServiceKey" type="password" placeholder="eyJ…">
+          </div>
+          <div class="form-group">
+            <label>User ID <span class="label-optional">optional</span></label>
+            <input class="input-field" id="supabaseUserId" type="text" placeholder="uuid…">
+          </div>
+        </div>
+
 
         <!-- SMTP -->
         <div class="settings-tab" id="tab-smtp">

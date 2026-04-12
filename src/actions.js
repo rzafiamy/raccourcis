@@ -636,7 +636,73 @@ export const ACTION_REGISTRY = [
       { name: 'path', label: 'New folder path (e.g. /Documents/Projects)', kind: 'text', placeholder: '/Project A' },
     ],
   },
+  {
+    type: 'supabase-select',
+
+    title: 'Supabase — Select',
+    desc: 'Query a table using PostgREST → JSON array',
+    icon: 'database',
+    color: '#3ECF8E',
+    defaults: {
+      table: '',
+      select: '*',
+      filter: '',
+    },
+    params: [
+      { name: 'table', label: 'Table name', kind: 'text', placeholder: 'profiles' },
+      { name: 'select', label: 'Select (e.g. *, id, name)', kind: 'text', placeholder: '*' },
+      { name: 'filter', label: 'Filter (e.g. id=eq.5&name=ilike.*john*)', kind: 'text', placeholder: 'id=eq.{{result}}' },
+    ],
+  },
+  {
+    type: 'supabase-insert',
+    title: 'Supabase — Insert',
+    desc: 'Insert a new row into a table → inserted object',
+    icon: 'database-zap',
+    color: '#3ECF8E',
+    defaults: {
+      table: '',
+      data: '{{result}}',
+    },
+    params: [
+      { name: 'table', label: 'Table name', kind: 'text', placeholder: 'posts' },
+      { name: 'data', label: 'JSON row data', kind: 'textarea', placeholder: '{"title": "{{result}}", "user_id": "{{vars.uid}}"}' },
+    ],
+  },
+  {
+    type: 'supabase-update',
+    title: 'Supabase — Update',
+    desc: 'Update existing rows → updated objects',
+    icon: 'database-zap',
+    color: '#3ECF8E',
+    defaults: {
+      table: '',
+      filter: '',
+      data: '{{result}}',
+    },
+    params: [
+      { name: 'table', label: 'Table name', kind: 'text', placeholder: 'users' },
+      { name: 'filter', label: 'Filter (e.g. id=eq.5)', kind: 'text', placeholder: 'id=eq.{{vars.targetId}}' },
+      { name: 'data', label: 'JSON partial data', kind: 'textarea', placeholder: '{"status": "active"}' },
+    ],
+  },
+  {
+    type: 'supabase-delete',
+    title: 'Supabase — Delete',
+    desc: 'Delete rows matching a filter',
+    icon: 'database-zap',
+    color: '#3ECF8E',
+    defaults: {
+      table: '',
+      filter: '',
+    },
+    params: [
+      { name: 'table', label: 'Table name', kind: 'text', placeholder: 'tasks' },
+      { name: 'filter', label: 'Filter (e.g. id=eq.10)', kind: 'text', placeholder: 'id=eq.{{result}}' },
+    ],
+  },
 ]
+
 
 
 export function getActionDef(type) {

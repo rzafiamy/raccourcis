@@ -52,6 +52,10 @@ const settingsModal   = document.getElementById('settingsModal')
 const settingsBaseUrl = document.getElementById('aiBaseUrl')
 const settingsApiKey  = document.getElementById('aiApiKey')
 const settingsModel   = document.getElementById('aiModel')
+const sLanguage       = document.getElementById('prefLanguage')
+const sLocation       = document.getElementById('userLocation')
+
+
 
 // Service settings fields
 const sFirecrawlKey    = document.getElementById('firecrawlApiKey')
@@ -70,9 +74,17 @@ const sSmtpPass        = document.getElementById('smtpPass')
 const sSmtpFrom        = document.getElementById('smtpFrom')
 const sGitlabUrl       = document.getElementById('gitlabBaseUrl')
 const sGitlabToken     = document.getElementById('gitlabToken')
-const sNextcloudUrl    = document.getElementById('nextcloudUrl')
-const sNextcloudUser   = document.getElementById('nextcloudUser')
-const sNextcloudPass   = document.getElementById('nextcloudPass')
+const sNextcloudUrl       = document.getElementById('nextcloudUrl')
+const sNextcloudWebdav    = document.getElementById('nextcloudWebdavUrl')
+const sNextcloudUser      = document.getElementById('nextcloudUser')
+const sNextcloudPassword  = document.getElementById('nextcloudPassword')
+
+const sSupabaseUrl     = document.getElementById('supabaseUrl')
+const sSupabaseAnon    = document.getElementById('supabaseAnonKey')
+const sSupabaseService = document.getElementById('supabaseServiceKey')
+const sSupabaseUser    = document.getElementById('supabaseUserId')
+
+
 
 // ── Window controls ───────────────────────────────────────────────────────────
 
@@ -376,6 +388,10 @@ async function openSettings() {
   settingsBaseUrl.value = cfg.baseUrl
   settingsApiKey.value  = cfg.apiKey
   settingsModel.value   = cfg.model
+  
+  sLanguage.value = cfg.preferredLanguage || 'English'
+  sLocation.value = cfg.userLocation || ''
+
   // ... (rest of field updates)
 
   // Services
@@ -397,9 +413,16 @@ async function openSettings() {
   sGitlabUrl.value      = cfg.gitlabBaseUrl || 'https://gitlab.com'
   sGitlabToken.value    = cfg.gitlabToken || ''
   // Nextcloud
-  sNextcloudUrl.value   = cfg.nextcloudUrl || ''
-  sNextcloudUser.value  = cfg.nextcloudUser || ''
-  sNextcloudPass.value  = cfg.nextcloudPass || ''
+  sNextcloudUrl.value      = cfg.nextcloudUrl || ''
+  sNextcloudWebdav.value   = cfg.nextcloudWebdavUrl || ''
+  sNextcloudUser.value     = cfg.nextcloudUser || ''
+  sNextcloudPassword.value = cfg.nextcloudPassword || ''
+
+  sSupabaseUrl.value    = cfg.supabaseUrl || ''
+  sSupabaseAnon.value   = cfg.supabaseAnonKey || ''
+  sSupabaseService.value= cfg.supabaseServiceKey || ''
+  sSupabaseUser.value   = cfg.supabaseUserId || ''
+
 
   settingsModal.style.display = 'flex'
   refreshIcons(settingsModal)
@@ -415,7 +438,10 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
     baseUrl:              settingsBaseUrl.value.trim(),
     apiKey:               settingsApiKey.value.trim(),
     model:                settingsModel.value.trim(),
+    preferredLanguage:    sLanguage.value.trim(),
+    userLocation:         sLocation.value.trim(),
     firecrawlApiKey:      sFirecrawlKey.value.trim(),
+
     firecrawlBaseUrl:     sFirecrawlUrl.value.trim(),
     googleApiKey:         sGoogleApiKey.value.trim(),
     googleCseId:          sGoogleCseId.value.trim(),
@@ -432,12 +458,19 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
     gitlabBaseUrl:        sGitlabUrl.value.trim(),
     gitlabToken:          sGitlabToken.value.trim(),
     nextcloudUrl:         sNextcloudUrl.value.trim(),
+    nextcloudWebdavUrl:   sNextcloudWebdav.value.trim(),
     nextcloudUser:        sNextcloudUser.value.trim(),
-    nextcloudPass:        sNextcloudPass.value,
+    nextcloudPassword:    sNextcloudPassword.value,
+
+
+    supabaseUrl:          sSupabaseUrl.value.trim(),
+    supabaseAnonKey:      sSupabaseAnon.value.trim(),
+    supabaseServiceKey:   sSupabaseService.value.trim(),
+    supabaseUserId:       sSupabaseUser.value.trim(),
   })
-  settingsModal.style.display = 'none'
   showAlert({ title: 'Settings Saved', message: 'Configuration has been updated.' })
 })
+
 
 
 
@@ -449,9 +482,10 @@ document.getElementById('restoreDefaults').addEventListener('click', async () =>
   if (!confirmed) return
   shortcuts = JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS))
   await saveShortcuts(shortcuts)
-  settingsModal.style.display = 'none'
   renderGrid()
+  showAlert({ title: 'Shortcuts Restored', message: 'The library has been reset to defaults.' })
 })
+
 
 
 document.getElementById('exportShortcuts').addEventListener('click', async () => {

@@ -41,9 +41,21 @@ const DEFAULT_CONFIG = {
   gitlabToken: '',
   // Nextcloud
   nextcloudUrl: '',
+  nextcloudWebdavUrl: '',
   nextcloudUser: '',
-  nextcloudPass: '',
+  nextcloudPassword: '',
+
+  // Supabase
+  supabaseUrl: '',
+  supabaseAnonKey: '',
+  supabaseServiceKey: '',
+  supabaseUserId: '',
+  // General / Context
+  preferredLanguage: 'English',
+  userLocation: '',
 }
+
+
 
 export const DEFAULT_SHORTCUTS = [
   // ── AI / Writing ────────────────────────────────────────────────
