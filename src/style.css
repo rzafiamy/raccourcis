@@ -739,6 +739,19 @@ textarea.input-field { resize: vertical; min-height: 72px; line-height: 1.5; }
 .select-field { cursor: pointer; }
 option { background: #1c1c1e; }
 
+.checkbox-group { margin-top: 10px; }
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  color: var(--text) !important;
+}
+.checkbox-label span { font-size: 13px; }
+.checkbox-label input[type="checkbox"] { margin-bottom: 0; }
+
 input[type="checkbox"] {
   appearance: none;
   width: 17px; height: 17px;

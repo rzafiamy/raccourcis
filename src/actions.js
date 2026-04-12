@@ -289,13 +289,10 @@ export const ACTION_REGISTRY = [
         placeholder: '/path/to/audio.mp3 or {{result}}',
       },
       {
-        placeholder: 'en',
-      },
-      {
-        name: 'model',
-        label: 'Model (OpenAI Whisper)',
+        name: 'language',
+        label: 'Language (ISO code, e.g. en, fr)',
         kind: 'text',
-        placeholder: 'whisper-1',
+        placeholder: 'en',
       },
     ],
   },
@@ -348,12 +345,6 @@ export const ACTION_REGISTRY = [
           { value: 'hd', label: 'HD' },
         ],
       },
-      {
-        name: 'model',
-        label: 'Model (DALL·E or Flux)',
-        kind: 'text',
-        placeholder: 'dall-e-3',
-      },
     ],
   },
   {
@@ -387,12 +378,6 @@ export const ACTION_REGISTRY = [
         label: 'Question / instruction',
         kind: 'textarea',
         placeholder: 'Describe this image in detail.',
-      },
-      {
-        name: 'model',
-        label: 'Vision Model',
-        kind: 'text',
-        placeholder: 'gpt-4o',
       },
       {
         name: 'systemPrompt',

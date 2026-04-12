@@ -41,6 +41,31 @@ function interpolateStep(step, ctx) {
   return out
 }
 
+/**
+ * Resizes a base64 or data URL image to a max dimension for API efficiency.
+ */
+async function optimizeImage(dataUrl, maxWidth = 1024) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxWidth) {
+        const ratio = maxWidth / width
+        width = maxWidth
+        height = height * ratio
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = () => resolve(dataUrl) // Fallback to original
+    img.src = dataUrl
+  })
+}
+
 async function getSystemPreamble() {
   const cfg = await loadConfig()
   const now = new Date()
@@ -56,68 +81,80 @@ async function getSystemPreamble() {
 
 // ── AI call ───────────────────────────────────────────────────────────────────
 
-async function callAI(prompt, systemPrompt, signal) {
+async function callAI(prompt, systemPrompt, signal, onDebug) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   const preamble = await getSystemPreamble()
   const finalSystemPrompt = `${preamble}\n\n${systemPrompt || 'You are a helpful assistant.'}`
 
-  const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+  const url = `${cfg.baseUrl}/chat/completions`
+  const body = {
+    model: cfg.model,
+    messages: [
+      { role: 'system', content: finalSystemPrompt },
+      { role: 'user', content: prompt },
+    ],
+  }
+
+  if (onDebug) onDebug({ url, method: 'POST', body })
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${cfg.apiKey}`,
     },
     signal,
-    body: JSON.stringify({
-      model: cfg.model,
-      messages: [
-        { role: 'system', content: finalSystemPrompt },
-
-        { role: 'user', content: prompt },
-      ],
-    }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error?.message || `AI request failed (${res.status})`)
+    const bodyErr = await res.json().catch(() => ({}))
+    if (onDebug) onDebug(null, { status: res.status, body: bodyErr })
+    throw new Error(bodyErr.error?.message || `AI request failed (${res.status})`)
   }
 
   const data = await res.json()
+  if (onDebug) onDebug(null, { status: res.status, body: data })
   return data.choices[0].message.content
 }
 
 // ── TTS call ──────────────────────────────────────────────────────────────────
 
-async function callTTS(text, voice, model, signal) {
+async function callTTS(text, voice, model, signal, onDebug) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
-  const res = await fetch(`${cfg.baseUrl}/audio/speech`, {
+  const url = `${cfg.baseUrl}/audio/speech`
+  const body = { model: model || 'tts-1', input: text, voice: voice || 'alloy' }
+  
+  if (onDebug) onDebug({ url, method: 'POST', body })
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${cfg.apiKey}`,
     },
     signal,
-    body: JSON.stringify({ model: model || 'tts-1', input: text, voice: voice || 'alloy' }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error?.message || `TTS request failed (${res.status})`)
+    const bodyErr = await res.json().catch(() => ({}))
+    if (onDebug) onDebug(null, { status: res.status, body: bodyErr })
+    throw new Error(bodyErr.error?.message || `TTS request failed (${res.status})`)
   }
 
-  // Return as Uint8Array so we can hand it to IPC for file saving
-  const buf = await res.arrayBuffer()
-  return new Uint8Array(buf)
+  const data = await res.arrayBuffer()
+  if (onDebug) onDebug(null, { status: res.status, body: '<Binary Audio Data>' })
+  return new Uint8Array(data)
 }
 
 // ── ASR call ──────────────────────────────────────────────────────────────────
 
-async function callASR(fileBase64, fileName, language, model, signal) {
+async function callASR(fileBase64, fileName, language, model, signal, onDebug) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
@@ -132,7 +169,10 @@ async function callASR(fileBase64, fileName, language, model, signal) {
   form.append('model', model || cfg.asrModel || 'whisper-1')
   if (language) form.append('language', language)
 
-  const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {
+  const url = `${cfg.baseUrl}/audio/transcriptions`
+  if (onDebug) onDebug({ url, method: 'POST', body: 'FormData (Audio File)' })
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${cfg.apiKey}` },
     signal,
@@ -140,82 +180,106 @@ async function callASR(fileBase64, fileName, language, model, signal) {
   })
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error?.message || `ASR request failed (${res.status})`)
+    const bodyErr = await res.json().catch(() => ({}))
+    if (onDebug) onDebug(null, { status: res.status, body: bodyErr })
+    throw new Error(bodyErr.error?.message || `ASR request failed (${res.status})`)
   }
 
   const data = await res.json()
+  if (onDebug) onDebug(null, { status: res.status, body: data })
   return data.text
 }
 
 // ── Image generation call ─────────────────────────────────────────────────────
 
-async function callImageGen(prompt, size, quality, model, signal) {
+async function callImageGen(prompt, size, quality, model, signal, onDebug) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
-  const res = await fetch(`${cfg.baseUrl}/images/generations`, {
+  const url = `${cfg.baseUrl}/images/generations`
+  const body = {
+    model: model || cfg.imageGenModel || 'dall-e-3',
+    prompt,
+    n: 1,
+    size: size || '1024x1024',
+    quality: quality || 'standard',
+  }
+
+  if (onDebug) onDebug({ url, method: 'POST', body })
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${cfg.apiKey}`,
     },
     signal,
-    body: JSON.stringify({
-      model: model || cfg.imageGenModel || 'dall-e-3',
-      prompt,
-      n: 1,
-      size: size || '1024x1024',
-      quality: quality || 'standard',
-    }),
-  })
+    body: JSON.stringify(body),
+  } )
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error?.message || `Image generation failed (${res.status})`)
+    const bodyErr = await res.json().catch(() => ({}))
+    if (onDebug) onDebug(null, { status: res.status, body: bodyErr })
+    throw new Error(bodyErr.error?.message || `Image generation failed (${res.status})`)
   }
 
   const data = await res.json()
-  return data.data[0].url
+  if (onDebug) onDebug(null, { status: res.status, body: data })
+  
+  const img = data.data?.[0]
+  if (!img) throw new Error('Image generation returned no data.')
+  return img.url || `data:image/png;base64,${img.b64_json}`
 }
 
 // ── Vision call ───────────────────────────────────────────────────────────────
 
-async function callVision(imageUrl, prompt, systemPrompt, model, signal) {
+async function callVision(imageUrl, prompt, systemPrompt, model, signal, onDebug) {
   const cfg = await loadConfig()
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
-  const preamble = await getSystemPreamble()
-  const finalSystemPrompt = `${preamble}\n\n${systemPrompt || 'You are a helpful vision assistant.'}`
+  const url = `${cfg.baseUrl}/chat/completions`
 
-  const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+  // Move system prompt into user text for better compatibility with local vision models
+  let finalPrompt = prompt || 'Describe this image.'
+  if (systemPrompt && systemPrompt !== 'You are a helpful vision assistant.') {
+    finalPrompt = `${systemPrompt}\n\nTask: ${finalPrompt}`
+  }
+
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: imageUrl } },
+        { type: 'text', text: finalPrompt },
+      ],
+    },
+  ]
+
+  const body = {
+    model: model || cfg.model,
+    messages
+  }
+
+  if (onDebug) onDebug({ url, method: 'POST', body: { ...body, messages: '[Image Data]' } })
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${cfg.apiKey}`,
     },
     signal,
-    body: JSON.stringify({
-      model: model || 'gpt-4o',
-      messages: [
-        { role: 'system', content: finalSystemPrompt },
-        {
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: imageUrl } },
-            { type: 'text', text: prompt || 'Describe this image.' },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error?.message || `Vision request failed (${res.status})`)
+    const bodyErr = await res.json().catch(() => ({}))
+    if (onDebug) onDebug(null, { status: res.status, body: bodyErr })
+    throw new Error(bodyErr.error?.message || `Vision request failed (${res.status})`)
   }
 
   const data = await res.json()
+  if (onDebug) onDebug(null, { status: res.status, body: data })
   return data.choices[0].message.content
 }
 
@@ -323,7 +387,7 @@ const EXECUTORS = {
     const s = interpolateStep(step, ctx)
     const prompt = s.prompt || ctx.result
     const systemPrompt = s.systemPrompt || 'You are a helpful assistant.'
-    ctx.result = await callAI(prompt, systemPrompt, opts.signal)
+    ctx.result = await callAI(prompt, systemPrompt, opts.signal, opts.onDebug)
   },
 
   'show-result': async (_step, ctx, opts) => {
@@ -358,7 +422,7 @@ const EXECUTORS = {
     const s = interpolateStep(step, ctx)
     const text = s.text || ctx.result
     if (!text) throw new Error('TTS: no text to speak.')
-    const audioBytes = await callTTS(text, s.voice, s.model, opts.signal)
+    const audioBytes = await callTTS(text, s.voice, s.model, opts.signal, opts.onDebug)
     // Save to temp file so it can be played / previewed
     const filePath = await window.ipcRenderer.saveTempFile(Array.from(audioBytes), 'mp3')
     // Play immediately in background
@@ -375,14 +439,14 @@ const EXECUTORS = {
     if (!filePath) throw new Error('ASR: no audio file path provided.')
     const base64 = await window.ipcRenderer.readFileBase64(filePath)
     const fileName = filePath.split('/').pop() || 'audio.mp3'
-    ctx.result = await callASR(base64, fileName, s.language || '', s.model, opts.signal)
+    ctx.result = await callASR(base64, fileName, s.language || '', s.model, opts.signal, opts.onDebug)
   },
 
   'image-gen': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const prompt = s.prompt || ctx.result
     if (!prompt) throw new Error('Image generation: no prompt provided.')
-    const url = await callImageGen(prompt, s.size, s.quality, s.model, opts.signal)
+    const url = await callImageGen(prompt, s.size, s.quality, s.model, opts.signal, opts.onDebug)
     ctx.result = url
     ctx.vars._imageUrl = url
     if (opts.onShowResult) opts.onShowResult(url, 'image')
@@ -401,7 +465,12 @@ const EXECUTORS = {
       imageUrl = `data:${mime};base64,${base64}`
     }
 
-    ctx.result = await callVision(imageUrl, s.prompt, s.systemPrompt, s.model, opts.signal)
+    // Optimize image (resize to avoid OOM on local servers)
+    if (imageUrl.startsWith('data:image/')) {
+      imageUrl = await optimizeImage(imageUrl)
+    }
+
+    ctx.result = await callVision(imageUrl, s.prompt, s.systemPrompt, s.model, opts.signal, opts.onDebug)
   },
 
   // ── Services ──────────────────────────────────────────────────────────────────
@@ -910,6 +979,74 @@ const EXECUTORS = {
 
 
 
+
+// ── Logger ────────────────────────────────────────────────────────────────────
+
+const Logger = {
+  info(shortcut, step, entry) {
+    this._log('INFO', shortcut, step, entry, 'color: #3b82f6; font-weight: bold;')
+  },
+  error(shortcut, step, entry) {
+    this._log('ERROR', shortcut, step, entry, 'color: #ef4444; font-weight: bold;')
+  },
+  _log(level, shortcut, step, entry, levelStyle) {
+    const timestamp = new Date().toLocaleTimeString()
+    const status = entry.error ? 'FAILED' : 'SUCCESS'
+    const statusStyle = entry.error ? 'color: #ef4444;' : 'color: #10b981;'
+    
+    console.groupCollapsed(
+      `%c[${level}] %c${timestamp} %c| %c${shortcut.name} %c| %c${step.title || step.type} %c| %c${status} %c(${entry.ms}ms)`,
+      levelStyle,
+      'color: #6b7280;',
+      'color: #9ca3af;',
+      'color: var(--accent-primary, #8b5cf6); font-weight: bold;',
+      'color: #9ca3af;',
+      'color: #fff;',
+      'color: #9ca3af;',
+      statusStyle + ' font-weight: bold;',
+      'color: #6b7280; font-style: italic;'
+    )
+
+    console.log('%cAction:%c', 'color: #9ca3af; font-weight: bold;', '', step.type)
+    console.log('%cDuration:%c', 'color: #9ca3af; font-weight: bold;', '', `${entry.ms}ms`)
+    
+    if (step) {
+      console.log('%cConfig:%c', 'color: #9ca3af; font-weight: bold;', '', { ...step })
+    }
+
+    if (entry.input !== undefined) {
+      console.log('%cInput:%c', 'color: #3b82f6; font-weight: bold;', '', entry.input)
+    }
+
+    if (entry.error) {
+      console.log('%cError:%c', 'color: #ef4444; font-weight: bold;', '', entry.error)
+    } else {
+      console.log('%cOutput:%c', 'color: #10b981; font-weight: bold;', '', entry.output)
+    }
+
+    if (entry.debug) {
+      console.group('%cDebug Details (Request/Response)%c', 'color: #eab308; font-weight: bold;', '')
+      if (entry.debug.request)  console.log('%cRequest:%c', 'color: #9ca3af; font-weight: bold;', '', entry.debug.request)
+      if (entry.debug.response) console.log('%cResponse:%c', 'color: #9ca3af; font-weight: bold;', '', entry.debug.response)
+      console.groupEnd()
+    }
+
+    console.groupEnd()
+
+    // Send to terminal
+    window.ipcRenderer.send('log-to-terminal', {
+      type: 'step',
+      level,
+      shortcutName: shortcut.name,
+      stepTitle: step.title || step.type,
+      entry: { 
+        ms: entry.ms,
+        error: entry.error 
+      }
+    })
+  }
+}
+
 // ── Main runner ───────────────────────────────────────────────────────────────
 
 /**
@@ -923,7 +1060,7 @@ const EXECUTORS = {
  * @returns {Promise<{ok, result, log, error, durationMs}>}
  */
 export async function runWorkflow(shortcut, options = {}) {
-  const { signal, promptUser, onStepStart, onStepEnd, onShowResult } = options
+  const { signal, promptUser, promptRecord, showConfirm, showAlert, onStepStart, onStepEnd, onShowResult } = options
 
   /** Mutable shared context — the "pipe" between steps */
   const ctx = {
@@ -933,8 +1070,13 @@ export async function runWorkflow(shortcut, options = {}) {
     log: [],
   }
 
-  const opts = { signal, promptUser, onShowResult }
   const wallStart = Date.now()
+  const cfg = await loadConfig()
+  
+  if (cfg.debugMode) {
+    console.log(`%c🚀 Starting Shortcut: %c${shortcut.name}`, 'color: #8b5cf6; font-weight: bold; font-size: 1.2em;', 'color: #fff; font-weight: bold; font-size: 1.2em;')
+    window.ipcRenderer.send('log-to-terminal', { type: 'start', shortcutName: shortcut.name })
+  }
 
   try {
     for (let i = 0; i < shortcut.steps.length; i++) {
@@ -942,6 +1084,7 @@ export async function runWorkflow(shortcut, options = {}) {
 
       const step = shortcut.steps[i]
       const stepStart = Date.now()
+      const stepDebug = {}
 
       if (onStepStart) onStepStart(i, step)
 
@@ -950,6 +1093,19 @@ export async function runWorkflow(shortcut, options = {}) {
       const executor = EXECUTORS[step.type]
       if (!executor) {
         throw new Error(`Unknown action type: "${step.type}". Add it to actions.js.`)
+      }
+
+      const opts = { 
+        signal, 
+        promptUser, 
+        promptRecord, 
+        showConfirm, 
+        showAlert, 
+        onShowResult,
+        onDebug: (req, res) => {
+          if (req) stepDebug.request = req
+          if (res) stepDebug.response = res
+        }
       }
 
       try {
@@ -962,9 +1118,13 @@ export async function runWorkflow(shortcut, options = {}) {
           ms: Date.now() - stepStart,
           input: inputSnapshot,
           output: ctx.result,
+          debug: Object.keys(stepDebug).length ? stepDebug : null,
           error: null,
         }
         ctx.log.push(entry)
+        
+        if (cfg.debugMode) Logger.info(shortcut, step, entry)
+        
         if (onStepEnd) onStepEnd(i, entry)
       } catch (err) {
         const entry = {
@@ -974,12 +1134,22 @@ export async function runWorkflow(shortcut, options = {}) {
           ms: Date.now() - stepStart,
           input: inputSnapshot,
           output: null,
+          debug: Object.keys(stepDebug).length ? stepDebug : null,
           error: err.message,
         }
         ctx.log.push(entry)
+        
+        if (cfg.debugMode) Logger.error(shortcut, step, entry)
+
         if (onStepEnd) onStepEnd(i, entry)
         throw err // re-throw to stop the workflow
       }
+    }
+
+    const totalDuration = Date.now() - wallStart
+    if (cfg.debugMode) {
+      console.log(`%c✅ Shortcut Completed: %c${shortcut.name} %c(${totalDuration}ms)`, 'color: #10b981; font-weight: bold;', 'color: #fff; font-weight: bold;', 'color: #6b7280;')
+      window.ipcRenderer.send('log-to-terminal', { type: 'end', level: 'INFO', shortcutName: shortcut.name, entry: { durationMs: totalDuration } })
     }
 
     return {
@@ -987,15 +1157,21 @@ export async function runWorkflow(shortcut, options = {}) {
       result: ctx.result,
       log: ctx.log,
       error: null,
-      durationMs: Date.now() - wallStart,
+      durationMs: totalDuration,
     }
   } catch (err) {
+    const totalDuration = Date.now() - wallStart
+    if (cfg.debugMode) {
+      console.log(`%c❌ Shortcut Failed: %c${shortcut.name} %c(${totalDuration}ms)`, 'color: #ef4444; font-weight: bold;', 'color: #fff; font-weight: bold;', 'color: #6b7280;')
+      window.ipcRenderer.send('log-to-terminal', { type: 'end', level: 'ERROR', shortcutName: shortcut.name, entry: { durationMs: totalDuration } })
+    }
+
     return {
       ok: false,
       result: ctx.result,
       log: ctx.log,
       error: err.message,
-      durationMs: Date.now() - wallStart,
+      durationMs: totalDuration,
     }
   }
 }

@@ -57,6 +57,7 @@ const settingsAsrModel = document.getElementById('aiAsrModel')
 const settingsImgModel = document.getElementById('aiImageModel')
 const sLanguage       = document.getElementById('prefLanguage')
 const sLocation       = document.getElementById('userLocation')
+const sDebugMode      = document.getElementById('debugMode')
 
 
 
@@ -401,8 +402,7 @@ async function openSettings() {
   
   sLanguage.value = cfg.preferredLanguage || 'English'
   sLocation.value = cfg.userLocation || ''
-
-  // ... (rest of field updates)
+  sDebugMode.checked = cfg.debugMode !== false
 
   // Services
   sFirecrawlKey.value   = cfg.firecrawlApiKey || ''
@@ -452,6 +452,7 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
     imageGenModel:        settingsImgModel.value.trim(),
     preferredLanguage:    sLanguage.value.trim(),
     userLocation:         sLocation.value.trim(),
+    debugMode:            sDebugMode.checked,
     firecrawlApiKey:      sFirecrawlKey.value.trim(),
 
     firecrawlBaseUrl:     sFirecrawlUrl.value.trim(),

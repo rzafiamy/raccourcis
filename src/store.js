@@ -56,6 +56,7 @@ const DEFAULT_CONFIG = {
   // General / Context
   preferredLanguage: 'English',
   userLocation: '',
+  debugMode: true,
 }
 
 
@@ -847,13 +848,12 @@ export const DEFAULT_SHORTCUTS = [
     favorite: false,
     steps: [
       {
-        type: 'user-input',
-        title: 'Image Path',
-        desc: 'Provide a path to a local image',
+        type: 'file-picker',
+        title: 'Pick Image',
+        desc: 'Select an image file to analyze',
         icon: 'file-image',
         color: '#5856D6',
-        label: 'Image File Path',
-        placeholder: '/home/user/images/photo.jpg',
+        buttonLabel: 'Select Image',
       },
       {
         type: 'image-vision',

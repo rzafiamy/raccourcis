@@ -21,6 +21,10 @@ process.env.VITE_PUBLIC = app.isPackaged
 let win
 
 app.commandLine.appendSwitch('disable-ipv6')
+app.commandLine.appendSwitch('disable-features', 'IPv6')
+app.commandLine.appendSwitch('test-type')
+app.commandLine.appendSwitch('no-sandbox')
+app.commandLine.appendSwitch('disable-gpu-sandbox')
 
 function createWindow() {
   win = new BrowserWindow({
@@ -68,6 +72,56 @@ ipcMain.on('window-maximize', () => {
 
 ipcMain.handle('clipboard-read',  ()      => clipboard.readText())
 ipcMain.on('clipboard-write',     (_, t) => clipboard.writeText(t))
+
+// ── Terminal Logging ──────────────────────────────────────────────────────────
+
+const ANSI = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  gray:    '\x1b[90m',
+  blue:    '\x1b[34m',
+  green:   '\x1b[32m',
+  red:     '\x1b[31m',
+  yellow:  '\x1b[33m',
+  magenta: '\x1b[35m',
+  cyan:    '\x1b[36m'
+}
+
+ipcMain.on('log-to-terminal', (_, { type, shortcutName, stepTitle, level, entry }) => {
+  const timestamp = new Date().toLocaleTimeString()
+  
+  if (type === 'start') {
+    console.log(`\n${ANSI.bold}${ANSI.magenta}🚀 Starting Shortcut:${ANSI.reset} ${ANSI.bold}${shortcutName}${ANSI.reset}`)
+    return
+  }
+
+  if (type === 'end') {
+    const color = level === 'ERROR' ? ANSI.red : ANSI.green
+    const icon  = level === 'ERROR' ? '❌' : '✅'
+    console.log(`${ANSI.bold}${color}${icon} Shortcut ${level === 'ERROR' ? 'Failed' : 'Completed'}:${ANSI.reset} ${ANSI.bold}${shortcutName}${ANSI.reset} ${ANSI.gray}(${entry.durationMs}ms)${ANSI.reset}\n`)
+    return
+  }
+
+  if (type === 'step') {
+    const levelColor = level === 'ERROR' ? ANSI.red : ANSI.blue
+    const statusColor = level === 'ERROR' ? ANSI.red : ANSI.green
+    const status = level === 'ERROR' ? 'FAILED' : 'SUCCESS'
+    
+    console.log(
+      `${ANSI.gray}[${timestamp}]${ANSI.reset} ` +
+      `${ANSI.bold}${levelColor}[${level}]${ANSI.reset} ` +
+      `${ANSI.gray}|${ANSI.reset} ${ANSI.cyan}${shortcutName}${ANSI.reset} ` +
+      `${ANSI.gray}|${ANSI.reset} ${stepTitle} ` +
+      `${ANSI.gray}|${ANSI.reset} ${ANSI.bold}${statusColor}${status}${ANSI.reset} ` +
+      `${ANSI.gray}(${entry.ms}ms)${ANSI.reset}`
+    )
+
+    if (level === 'ERROR' && entry.error) {
+      console.log(`  ${ANSI.red}Error:${ANSI.reset} ${entry.error}`)
+      console.log(`  ${ANSI.gray}Hint: Open DevTools (Ctrl+Shift+I) for full Request/Response details.${ANSI.reset}`)
+    }
+  }
+})
 
 // ── External links ────────────────────────────────────────────────────────────
 
