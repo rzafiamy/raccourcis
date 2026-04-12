@@ -65,6 +65,11 @@ const sSmtpSecure      = document.getElementById('smtpSecure')
 const sSmtpUser        = document.getElementById('smtpUser')
 const sSmtpPass        = document.getElementById('smtpPass')
 const sSmtpFrom        = document.getElementById('smtpFrom')
+const sGitlabUrl       = document.getElementById('gitlabBaseUrl')
+const sGitlabToken     = document.getElementById('gitlabToken')
+const sNextcloudUrl    = document.getElementById('nextcloudUrl')
+const sNextcloudUser   = document.getElementById('nextcloudUser')
+const sNextcloudPass   = document.getElementById('nextcloudPass')
 
 // ── Window controls ───────────────────────────────────────────────────────────
 
@@ -89,6 +94,23 @@ document.getElementById('openSettings').addEventListener('click', (e) => {
   e.preventDefault()
   openSettings()
 })
+
+// ── Settings Tab Switching ───────────────────────────────────────────────────
+
+document.querySelectorAll('.settings-nav-item').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab
+    // Update nav
+    document.querySelectorAll('.settings-nav-item').forEach((b) => b.classList.remove('active'))
+    btn.classList.add('active')
+    // Update panes
+    document.querySelectorAll('.settings-tab').forEach((p) => p.classList.remove('active'))
+    const pane = document.getElementById(`tab-${tabId}`)
+    if (pane) pane.classList.add('active')
+    refreshIcons(pane)
+  })
+})
+
 
 // ── Search ────────────────────────────────────────────────────────────────────
 
@@ -363,8 +385,18 @@ function openSettings() {
   sSmtpUser.value       = cfg.smtpUser || ''
   sSmtpPass.value       = cfg.smtpPass || ''
   sSmtpFrom.value       = cfg.smtpFrom || ''
+  // GitLab
+  sGitlabUrl.value      = cfg.gitlabBaseUrl || 'https://gitlab.com'
+  sGitlabToken.value    = cfg.gitlabToken || ''
+  // Nextcloud
+  sNextcloudUrl.value   = cfg.nextcloudUrl || ''
+  sNextcloudUser.value  = cfg.nextcloudUser || ''
+  sNextcloudPass.value  = cfg.nextcloudPass || ''
+
   settingsModal.style.display = 'flex'
+  refreshIcons(settingsModal)
 }
+
 
 document.getElementById('closeSettings').addEventListener('click', () => {
   settingsModal.style.display = 'none'
@@ -389,9 +421,15 @@ document.getElementById('saveSettings').addEventListener('click', () => {
     smtpUser:             sSmtpUser.value.trim(),
     smtpPass:             sSmtpPass.value,
     smtpFrom:             sSmtpFrom.value.trim(),
+    gitlabBaseUrl:        sGitlabUrl.value.trim(),
+    gitlabToken:          sGitlabToken.value.trim(),
+    nextcloudUrl:         sNextcloudUrl.value.trim(),
+    nextcloudUser:        sNextcloudUser.value.trim(),
+    nextcloudPass:        sNextcloudPass.value,
   })
   settingsModal.style.display = 'none'
 })
+
 
 document.getElementById('restoreDefaults').addEventListener('click', async () => {
   const confirmed = await showConfirm({

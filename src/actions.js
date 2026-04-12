@@ -451,7 +451,192 @@ export const ACTION_REGISTRY = [
       { name: 'body', label: 'Body (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
     ],
   },
+  {
+    type: 'gitlab-list-issues',
+    title: 'GitLab — List Issues',
+    desc: 'Fetch open issues for a project → result',
+    icon: 'git-merge',
+    color: '#FC6D26',
+    defaults: {
+      projectId: '',
+      state: 'opened',
+      maxResults: 10,
+    },
+    params: [
+      { name: 'projectId', label: 'Project ID or path (e.g. 42 or user/repo)', kind: 'text', placeholder: 'user/my-project' },
+      {
+        name: 'state',
+        label: 'State',
+        kind: 'select',
+        options: [
+          { value: 'opened', label: 'Open' },
+          { value: 'closed', label: 'Closed' },
+          { value: 'all', label: 'All' },
+        ],
+      },
+      { name: 'maxResults', label: 'Max results', kind: 'number', placeholder: '10' },
+    ],
+  },
+  {
+    type: 'gitlab-create-issue',
+    title: 'GitLab — Create Issue',
+    desc: 'Create a new issue in a GitLab project → result',
+    icon: 'plus-circle',
+    color: '#FC6D26',
+    defaults: {
+      projectId: '',
+      title: 'New Issue',
+      description: '{{result}}',
+    },
+    params: [
+      { name: 'projectId', label: 'Project ID or path', kind: 'text', placeholder: 'user/my-project' },
+      { name: 'title', label: 'Issue Title', kind: 'text', placeholder: 'Bug: ...' },
+      { name: 'description', label: 'Description (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+    ],
+  },
+  {
+    type: 'gitlab-list-mrs',
+    title: 'GitLab — List Merge Requests',
+    desc: 'Fetch merge requests for a project → result',
+    icon: 'git-pull-request',
+    color: '#FC6D26',
+    defaults: {
+      projectId: '',
+      state: 'opened',
+      maxResults: 10,
+    },
+    params: [
+      { name: 'projectId', label: 'Project ID or path', kind: 'text', placeholder: 'user/my-project' },
+      {
+        name: 'state',
+        label: 'State',
+        kind: 'select',
+        options: [
+          { value: 'opened', label: 'Open' },
+          { value: 'merged', label: 'Merged' },
+          { value: 'closed', label: 'Closed' },
+          { value: 'all', label: 'All' },
+        ],
+      },
+      { name: 'maxResults', label: 'Max results', kind: 'number', placeholder: '10' },
+    ],
+  },
+  {
+    type: 'gitlab-pipelines',
+    title: 'GitLab — List Pipelines',
+    desc: 'Fetch recent pipelines for a project → result',
+    icon: 'workflow',
+    color: '#FC6D26',
+    defaults: {
+      projectId: '',
+      status: '',
+      maxResults: 10,
+    },
+    params: [
+      { name: 'projectId', label: 'Project ID or path', kind: 'text', placeholder: 'user/my-project' },
+      {
+        name: 'status',
+        label: 'Status filter',
+        kind: 'select',
+        options: [
+          { value: '', label: 'All' },
+          { value: 'running', label: 'Running' },
+          { value: 'pending', label: 'Pending' },
+          { value: 'success', label: 'Success' },
+          { value: 'failed', label: 'Failed' },
+          { value: 'canceled', label: 'Canceled' },
+        ],
+      },
+      { name: 'maxResults', label: 'Max results', kind: 'number', placeholder: '10' },
+    ],
+  },
+  {
+    type: 'qr-code',
+    title: 'QR Code',
+    desc: 'Generate a QR code image URL from text or URL → image URL',
+    icon: 'qr-code',
+    color: '#1C1C1E',
+    defaults: {
+      text: '{{result}}',
+      size: 300,
+      ecc: 'M',
+    },
+    params: [
+      { name: 'text', label: 'Text or URL to encode (use {{result}})', kind: 'textarea', placeholder: 'https://example.com or {{result}}' },
+      { name: 'size', label: 'Image size (px)', kind: 'number', placeholder: '300' },
+      {
+        name: 'ecc',
+        label: 'Error correction level',
+        kind: 'select',
+        options: [
+          { value: 'L', label: 'L — Low (7%)' },
+          { value: 'M', label: 'M — Medium (15%)' },
+          { value: 'Q', label: 'Q — Quartile (25%)' },
+          { value: 'H', label: 'H — High (30%)' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'nextcloud-list-files',
+    title: 'Nextcloud — List Files',
+    desc: 'List files in a Nextcloud directory → result',
+    icon: 'cloud',
+    color: '#0082C9',
+    defaults: {
+      path: '/',
+    },
+    params: [
+      { name: 'path', label: 'Directory path (e.g. /Documents)', kind: 'text', placeholder: '/Documents' },
+    ],
+  },
+  {
+    type: 'nextcloud-upload',
+    title: 'Nextcloud — Upload File',
+    desc: 'Upload a local file to Nextcloud',
+    icon: 'cloud-upload',
+    color: '#0082C9',
+    defaults: {
+      localPath: '{{result}}',
+      remotePath: '/Uploads/{{result}}',
+    },
+    params: [
+      { name: 'localPath', label: 'Local file path (use {{result}})', kind: 'text', placeholder: '/home/user/file.txt' },
+      { name: 'remotePath', label: 'Remote path in Nextcloud', kind: 'text', placeholder: '/Uploads/file.txt' },
+    ],
+  },
+  {
+    type: 'nextcloud-note',
+    title: 'Nextcloud — Create Note',
+    desc: 'Create a note in Nextcloud Notes app → result',
+    icon: 'notebook-pen',
+    color: '#0082C9',
+    defaults: {
+      title: 'New Note',
+      content: '{{result}}',
+      category: '',
+    },
+    params: [
+      { name: 'title', label: 'Note title', kind: 'text', placeholder: 'My Note' },
+      { name: 'content', label: 'Content (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+      { name: 'category', label: 'Category (optional)', kind: 'text', placeholder: 'Work' },
+    ],
+  },
+  {
+    type: 'nextcloud-create-folder',
+    title: 'Nextcloud — Create Folder',
+    desc: 'Create a new directory in Nextcloud',
+    icon: 'folder-plus',
+    color: '#0082C9',
+    defaults: {
+      path: '/New Folder',
+    },
+    params: [
+      { name: 'path', label: 'New folder path (e.g. /Documents/Projects)', kind: 'text', placeholder: '/Project A' },
+    ],
+  },
 ]
+
 
 export function getActionDef(type) {
   return ACTION_REGISTRY.find((a) => a.type === type) || null

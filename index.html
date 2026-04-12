@@ -136,120 +136,245 @@
 ══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-content settings-modal">
+
+    <!-- Header -->
     <div class="modal-header">
       <h2>Settings</h2>
       <button class="action-btn" id="closeSettings" title="Close">
         <i data-lucide="x"></i>
       </button>
     </div>
-    <div class="modal-body">
 
-      <!-- ── AI ── -->
-      <div class="settings-section-title">AI Provider</div>
-      <p class="settings-hint">
-        Works with any OpenAI-compatible endpoint (OpenAI, Mistral, Ollama, etc.)
-      </p>
-      <div class="form-group">
-        <label>Base URL</label>
-        <input class="input-field" id="aiBaseUrl" type="text" placeholder="https://api.openai.com/v1">
-      </div>
-      <div class="form-group">
-        <label>API Key</label>
-        <input class="input-field" id="aiApiKey" type="password" placeholder="sk-…">
-      </div>
-      <div class="form-group">
-        <label>Model</label>
-        <input class="input-field" id="aiModel" type="text" placeholder="gpt-4o-mini">
-      </div>
+    <!-- Body: sidebar nav + pane -->
+    <div class="settings-body">
 
-      <!-- ── Firecrawl ── -->
-      <div class="settings-section-title">Firecrawl</div>
-      <p class="settings-hint">Web scraping API — get an API key at firecrawl.dev</p>
-      <div class="form-group">
-        <label>Firecrawl API Key</label>
-        <input class="input-field" id="firecrawlApiKey" type="password" placeholder="fc-…">
-      </div>
-      <div class="form-group">
-        <label>Firecrawl Base URL (optional)</label>
-        <input class="input-field" id="firecrawlBaseUrl" type="text" placeholder="https://api.firecrawl.dev">
-      </div>
+      <!-- ── Settings sidebar nav ── -->
+      <nav class="settings-nav">
+        <div class="settings-nav-group-label">General</div>
+        <button class="settings-nav-item active" data-tab="ai">
+          <i data-lucide="sparkles"></i><span>AI Provider</span>
+        </button>
 
-      <!-- ── Google Search ── -->
-      <div class="settings-section-title">Google Custom Search</div>
-      <p class="settings-hint">Requires a Google API key with Custom Search JSON API enabled and a CSE ID</p>
-      <div class="form-group">
-        <label>Google API Key</label>
-        <input class="input-field" id="googleApiKey" type="password" placeholder="AIza…">
-      </div>
-      <div class="form-group">
-        <label>Custom Search Engine ID (cx)</label>
-        <input class="input-field" id="googleCseId" type="text" placeholder="017576662512468239146:…">
-      </div>
+        <div class="settings-nav-group-label">Web Services</div>
+        <button class="settings-nav-item" data-tab="firecrawl">
+          <i data-lucide="flame"></i><span>Firecrawl</span>
+        </button>
+        <button class="settings-nav-item" data-tab="google">
+          <i data-lucide="search"></i><span>Google</span>
+        </button>
+        <button class="settings-nav-item" data-tab="youtube">
+          <i data-lucide="youtube"></i><span>YouTube</span>
+        </button>
+        <button class="settings-nav-item" data-tab="weather">
+          <i data-lucide="cloud-sun"></i><span>Weather</span>
+        </button>
+        <button class="settings-nav-item" data-tab="wikipedia">
+          <i data-lucide="book-open"></i><span>Wikipedia</span>
+        </button>
 
-      <!-- ── YouTube ── -->
-      <div class="settings-section-title">YouTube Data API</div>
-      <p class="settings-hint">Requires a Google API key with YouTube Data API v3 enabled</p>
-      <div class="form-group">
-        <label>YouTube API Key</label>
-        <input class="input-field" id="youtubeApiKey" type="password" placeholder="AIza…">
-      </div>
+        <div class="settings-nav-group-label">Google Workspace</div>
+        <button class="settings-nav-item" data-tab="gcal">
+          <i data-lucide="calendar-days"></i><span>Calendar</span>
+        </button>
+        <button class="settings-nav-item" data-tab="gmail">
+          <i data-lucide="mail"></i><span>Gmail</span>
+        </button>
 
-      <!-- ── Google Calendar ── -->
-      <div class="settings-section-title">Google Calendar</div>
-      <p class="settings-hint">OAuth 2.0 Bearer token with calendar.readonly scope</p>
-      <div class="form-group">
-        <label>Google Calendar Token</label>
-        <input class="input-field" id="googleCalendarToken" type="password" placeholder="ya29.…">
-      </div>
+        <div class="settings-nav-group-label">Developer</div>
+        <button class="settings-nav-item" data-tab="gitlab">
+          <i data-lucide="git-merge"></i><span>GitLab</span>
+        </button>
+        <button class="settings-nav-item" data-tab="nextcloud">
+          <i data-lucide="cloud"></i><span>Nextcloud</span>
+        </button>
 
-      <!-- ── Gmail ── -->
-      <div class="settings-section-title">Gmail</div>
-      <p class="settings-hint">OAuth 2.0 Bearer token with gmail.send scope</p>
-      <div class="form-group">
-        <label>Gmail Token</label>
-        <input class="input-field" id="gmailToken" type="password" placeholder="ya29.…">
-      </div>
+        <div class="settings-nav-group-label">Email & Utilities</div>
+        <button class="settings-nav-item" data-tab="smtp">
+          <i data-lucide="send"></i><span>SMTP</span>
+        </button>
+        <button class="settings-nav-item" data-tab="qrcode">
+          <i data-lucide="qr-code"></i><span>QR Code</span>
+        </button>
+      </nav>
 
-      <!-- ── OpenWeatherMap ── -->
-      <div class="settings-section-title">OpenWeatherMap</div>
-      <p class="settings-hint">Free API key at openweathermap.org</p>
-      <div class="form-group">
-        <label>OpenWeatherMap API Key</label>
-        <input class="input-field" id="openWeatherApiKey" type="password" placeholder="abcdef1234…">
-      </div>
+      <!-- ── Settings pane ── -->
+      <div class="settings-pane">
 
-      <!-- ── SMTP ── -->
-      <div class="settings-section-title">SMTP (Custom Mail Server)</div>
-      <p class="settings-hint">For sending emails via your own SMTP server</p>
-      <div class="form-group">
-        <label>SMTP Host</label>
-        <input class="input-field" id="smtpHost" type="text" placeholder="smtp.example.com">
-      </div>
-      <div class="form-group">
-        <label>SMTP Port</label>
-        <input class="input-field" id="smtpPort" type="number" placeholder="587">
-      </div>
-      <div class="form-group">
-        <label>Use TLS / SSL</label>
-        <select class="input-field select-field" id="smtpSecure">
-          <option value="false">No (STARTTLS on port 587)</option>
-          <option value="true">Yes (SSL on port 465)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>SMTP Username</label>
-        <input class="input-field" id="smtpUser" type="text" placeholder="user@example.com">
-      </div>
-      <div class="form-group">
-        <label>SMTP Password</label>
-        <input class="input-field" id="smtpPass" type="password" placeholder="••••••••">
-      </div>
-      <div class="form-group">
-        <label>From Address (optional)</label>
-        <input class="input-field" id="smtpFrom" type="text" placeholder="Me &lt;me@example.com&gt;">
-      </div>
+        <!-- AI Provider -->
+        <div class="settings-tab active" id="tab-ai">
+          <div class="settings-tab-title">AI Provider</div>
+          <p class="settings-hint">Works with any OpenAI-compatible endpoint (OpenAI, Mistral, Ollama, LM Studio…)</p>
+          <div class="form-group">
+            <label>Base URL</label>
+            <input class="input-field" id="aiBaseUrl" type="text" placeholder="https://api.openai.com/v1">
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input class="input-field" id="aiApiKey" type="password" placeholder="sk-…">
+          </div>
+          <div class="form-group">
+            <label>Model</label>
+            <input class="input-field" id="aiModel" type="text" placeholder="gpt-4o-mini">
+          </div>
+        </div>
 
-    </div>
+        <!-- Firecrawl -->
+        <div class="settings-tab" id="tab-firecrawl">
+          <div class="settings-tab-title">Firecrawl</div>
+          <p class="settings-hint">Web scraping & crawling API. Get your key at <strong>firecrawl.dev</strong>.</p>
+          <div class="form-group">
+            <label>API Key</label>
+            <input class="input-field" id="firecrawlApiKey" type="password" placeholder="fc-…">
+          </div>
+          <div class="form-group">
+            <label>Base URL <span class="label-optional">optional — for self-hosted</span></label>
+            <input class="input-field" id="firecrawlBaseUrl" type="text" placeholder="https://api.firecrawl.dev">
+          </div>
+        </div>
+
+        <!-- Google -->
+        <div class="settings-tab" id="tab-google">
+          <div class="settings-tab-title">Google Search &amp; YouTube</div>
+          <p class="settings-hint">One Google Cloud API key can serve both Custom Search and YouTube. Enable the relevant APIs in your <strong>Google Cloud Console</strong>.</p>
+          <div class="form-group">
+            <label>Google API Key</label>
+            <input class="input-field" id="googleApiKey" type="password" placeholder="AIza…">
+          </div>
+          <div class="form-group">
+            <label>Custom Search Engine ID <span class="label-optional">for Google Search action</span></label>
+            <input class="input-field" id="googleCseId" type="text" placeholder="017576662512468239146:…">
+          </div>
+        </div>
+
+        <!-- YouTube -->
+        <div class="settings-tab" id="tab-youtube">
+          <div class="settings-tab-title">YouTube Data API</div>
+          <p class="settings-hint">Uses the same Google API key as Google Search. Enable <strong>YouTube Data API v3</strong> in Google Cloud Console.</p>
+          <div class="form-group">
+            <label>YouTube API Key <span class="label-optional">can reuse Google API key</span></label>
+            <input class="input-field" id="youtubeApiKey" type="password" placeholder="AIza…">
+          </div>
+        </div>
+
+        <!-- Weather -->
+        <div class="settings-tab" id="tab-weather">
+          <div class="settings-tab-title">OpenWeatherMap</div>
+          <p class="settings-hint">Free API key available at <strong>openweathermap.org</strong> — the free tier covers current weather.</p>
+          <div class="form-group">
+            <label>API Key</label>
+            <input class="input-field" id="openWeatherApiKey" type="password" placeholder="abcdef1234…">
+          </div>
+        </div>
+
+        <!-- Wikipedia -->
+        <div class="settings-tab" id="tab-wikipedia">
+          <div class="settings-tab-title">Wikipedia</div>
+          <p class="settings-hint">Wikipedia uses a public REST API — <strong>no API key required</strong>. This tab is for reference only.</p>
+          <div class="settings-info-box">
+            <i data-lucide="info"></i>
+            <span>The Wikipedia action works out of the box with no configuration needed.</span>
+          </div>
+        </div>
+
+        <!-- Google Calendar -->
+        <div class="settings-tab" id="tab-gcal">
+          <div class="settings-tab-title">Google Calendar</div>
+          <p class="settings-hint">Requires an OAuth 2.0 Bearer token with the <code>calendar.readonly</code> scope. Generate one via the <strong>Google OAuth Playground</strong>.</p>
+          <div class="form-group">
+            <label>Bearer Token</label>
+            <input class="input-field" id="googleCalendarToken" type="password" placeholder="ya29.…">
+          </div>
+        </div>
+
+        <!-- Gmail -->
+        <div class="settings-tab" id="tab-gmail">
+          <div class="settings-tab-title">Gmail</div>
+          <p class="settings-hint">Requires an OAuth 2.0 Bearer token with the <code>gmail.send</code> scope. Generate one via the <strong>Google OAuth Playground</strong>.</p>
+          <div class="form-group">
+            <label>Bearer Token</label>
+            <input class="input-field" id="gmailToken" type="password" placeholder="ya29.…">
+          </div>
+        </div>
+
+        <!-- GitLab -->
+        <div class="settings-tab" id="tab-gitlab">
+          <div class="settings-tab-title">GitLab</div>
+          <p class="settings-hint">Works with GitLab.com or any self-hosted GitLab instance. Create a <strong>Personal Access Token</strong> with <code>read_api</code> scope.</p>
+          <div class="form-group">
+            <label>GitLab Instance URL</label>
+            <input class="input-field" id="gitlabBaseUrl" type="text" placeholder="https://gitlab.com">
+          </div>
+          <div class="form-group">
+            <label>Personal Access Token</label>
+            <input class="input-field" id="gitlabToken" type="password" placeholder="glpat-…">
+          </div>
+        </div>
+
+        <!-- Nextcloud -->
+        <div class="settings-tab" id="tab-nextcloud">
+          <div class="settings-tab-title">Nextcloud</div>
+          <p class="settings-hint">Connect to your Nextcloud instance. Use an <strong>App Password</strong> (Settings → Security → App passwords) instead of your main password.</p>
+          <div class="form-group">
+            <label>Nextcloud URL</label>
+            <input class="input-field" id="nextcloudUrl" type="text" placeholder="https://cloud.example.com">
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input class="input-field" id="nextcloudUser" type="text" placeholder="john">
+          </div>
+          <div class="form-group">
+            <label>App Password</label>
+            <input class="input-field" id="nextcloudPass" type="password" placeholder="••••••••">
+          </div>
+        </div>
+
+        <!-- SMTP -->
+        <div class="settings-tab" id="tab-smtp">
+          <div class="settings-tab-title">SMTP (Custom Mail Server)</div>
+          <p class="settings-hint">Send emails via any SMTP server. Gmail users should use an <strong>App Password</strong>.</p>
+          <div class="form-group">
+            <label>SMTP Host</label>
+            <input class="input-field" id="smtpHost" type="text" placeholder="smtp.example.com">
+          </div>
+          <div class="form-group">
+            <label>Port</label>
+            <input class="input-field" id="smtpPort" type="number" placeholder="587">
+          </div>
+          <div class="form-group">
+            <label>Encryption</label>
+            <select class="input-field select-field" id="smtpSecure">
+              <option value="false">STARTTLS (port 587)</option>
+              <option value="true">SSL / TLS (port 465)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input class="input-field" id="smtpUser" type="text" placeholder="user@example.com">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input class="input-field" id="smtpPass" type="password" placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label>From Address <span class="label-optional">optional</span></label>
+            <input class="input-field" id="smtpFrom" type="text" placeholder="Me &lt;me@example.com&gt;">
+          </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="settings-tab" id="tab-qrcode">
+          <div class="settings-tab-title">QR Code Generator</div>
+          <p class="settings-hint">QR codes are generated entirely <strong>client-side</strong> using the free <code>api.qrserver.com</code> service — no API key needed.</p>
+          <div class="settings-info-box">
+            <i data-lucide="info"></i>
+            <span>The QR Code action works out of the box. No configuration required.</span>
+          </div>
+        </div>
+
+      </div><!-- /.settings-pane -->
+    </div><!-- /.settings-body -->
+
+    <!-- Footer -->
     <div class="modal-footer">
       <button class="btn btn-danger" id="restoreDefaults">Restore Default Shortcuts</button>
       <button class="btn btn-primary" id="saveSettings">Save Settings</button>

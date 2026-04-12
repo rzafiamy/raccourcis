@@ -36,6 +36,13 @@ const DEFAULT_CONFIG = {
   smtpUser: '',
   smtpPass: '',
   smtpFrom: '',
+  // GitLab
+  gitlabBaseUrl: 'https://gitlab.com',
+  gitlabToken: '',
+  // Nextcloud
+  nextcloudUrl: '',
+  nextcloudUser: '',
+  nextcloudPass: '',
 }
 
 export const DEFAULT_SHORTCUTS = [

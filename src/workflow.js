@@ -475,10 +475,9 @@ const EXECUTORS = {
 
   'smtp-send': async (step, ctx, opts) => {
     const cfg = loadConfig()
-    if (!cfg.smtpHost) throw new Error('SMTP host not set. Open Settings → Services.')
+    if (!cfg.smtpHost) throw new Error('SMTP host not set. Open Settings → SMTP.')
     const s = interpolateStep(step, ctx)
     if (!s.to) throw new Error('SMTP: recipient address is required.')
-    // Delegate to Electron main via IPC (SMTP requires Node.js net access)
     const result = await window.ipcRenderer.invoke('smtp-send', {
       host:     cfg.smtpHost,
       port:     Number(cfg.smtpPort) || 587,
@@ -493,7 +492,208 @@ const EXECUTORS = {
     if (!result.ok) throw new Error(result.error || 'SMTP send failed')
     ctx.result = `Email sent to ${s.to}`
   },
+
+  // ── GitLab ────────────────────────────────────────────────────────────────────
+
+  'gitlab-list-issues': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
+    const s = interpolateStep(step, ctx)
+    const projectId = encodeURIComponent(s.projectId || ctx.result)
+    if (!projectId) throw new Error('GitLab: project ID or path is required.')
+    const max = Math.max(Number(s.maxResults) || 10, 1)
+    const base = (cfg.gitlabBaseUrl || 'https://gitlab.com').replace(/\/$/, '')
+    const params = new URLSearchParams({ state: s.state || 'opened', per_page: max })
+    const res = await fetch(`${base}/api/v4/projects/${projectId}/issues?${params}`, {
+      headers: { 'PRIVATE-TOKEN': cfg.gitlabToken },
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `GitLab issues failed (${res.status})`)
+    }
+    const items = await res.json()
+    ctx.result = items.map((i, idx) =>
+      `${idx + 1}. #${i.iid} ${i.title}\n   State: ${i.state} | Author: ${i.author?.name}\n   ${i.web_url}`,
+    ).join('\n\n') || 'No issues found.'
+  },
+
+  'gitlab-create-issue': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
+    const s = interpolateStep(step, ctx)
+    const projectId = encodeURIComponent(s.projectId || '')
+    if (!projectId) throw new Error('GitLab: project ID or path is required.')
+    const base = (cfg.gitlabBaseUrl || 'https://gitlab.com').replace(/\/$/, '')
+    const body = { title: s.title || 'New Issue', description: s.description || ctx.result }
+    const res = await fetch(`${base}/api/v4/projects/${projectId}/issues`, {
+      method: 'POST',
+      headers: { 'PRIVATE-TOKEN': cfg.gitlabToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `GitLab create issue failed (${res.status})`)
+    }
+    const issue = await res.json()
+    ctx.result = `Issue created: #${issue.iid} ${issue.title}\n${issue.web_url}`
+  },
+
+  'gitlab-list-mrs': async (step, ctx, opts) => {
+
+    const cfg = loadConfig()
+    if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
+    const s = interpolateStep(step, ctx)
+    const projectId = encodeURIComponent(s.projectId || ctx.result)
+    if (!projectId) throw new Error('GitLab: project ID or path is required.')
+    const max = Math.max(Number(s.maxResults) || 10, 1)
+    const base = (cfg.gitlabBaseUrl || 'https://gitlab.com').replace(/\/$/, '')
+    const params = new URLSearchParams({ state: s.state || 'opened', per_page: max })
+    const res = await fetch(`${base}/api/v4/projects/${projectId}/merge_requests?${params}`, {
+      headers: { 'PRIVATE-TOKEN': cfg.gitlabToken },
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `GitLab MRs failed (${res.status})`)
+    }
+    const items = await res.json()
+    ctx.result = items.map((mr, idx) =>
+      `${idx + 1}. !${mr.iid} ${mr.title}\n   ${mr.source_branch} → ${mr.target_branch} | ${mr.state}\n   ${mr.web_url}`,
+    ).join('\n\n') || 'No merge requests found.'
+  },
+
+  'gitlab-pipelines': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.gitlabToken) throw new Error('GitLab token not set. Open Settings → GitLab.')
+    const s = interpolateStep(step, ctx)
+    const projectId = encodeURIComponent(s.projectId || ctx.result)
+    if (!projectId) throw new Error('GitLab: project ID or path is required.')
+    const max = Math.max(Number(s.maxResults) || 10, 1)
+    const base = (cfg.gitlabBaseUrl || 'https://gitlab.com').replace(/\/$/, '')
+    const params = new URLSearchParams({ per_page: max })
+    if (s.status) params.set('status', s.status)
+    const res = await fetch(`${base}/api/v4/projects/${projectId}/pipelines?${params}`, {
+      headers: { 'PRIVATE-TOKEN': cfg.gitlabToken },
+      signal: opts.signal,
+    })
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}))
+      throw new Error(b.message || `GitLab pipelines failed (${res.status})`)
+    }
+    const items = await res.json()
+    ctx.result = items.map((p, idx) =>
+      `${idx + 1}. #${p.id} [${p.status.toUpperCase()}] ${p.ref}\n   ${p.created_at?.slice(0, 10)} — ${p.web_url}`,
+    ).join('\n\n') || 'No pipelines found.'
+  },
+
+  // ── QR Code ───────────────────────────────────────────────────────────────────
+
+  'qr-code': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    if (!text) throw new Error('QR Code: no text provided.')
+    const size = Math.max(Number(s.size) || 300, 50)
+    const ecc  = s.ecc || 'M'
+    const url = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&ecc=${ecc}&data=${encodeURIComponent(text)}`
+    ctx.result = url
+    ctx.vars._qrUrl = url
+    if (opts.onShowResult) opts.onShowResult(url, 'image')
+  },
+
+  // ── Nextcloud ─────────────────────────────────────────────────────────────────
+
+  'nextcloud-list-files': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    const s = interpolateStep(step, ctx)
+    const remotePath = (s.path || '/').replace(/\/+$/, '') || '/'
+    const base = cfg.nextcloudUrl.replace(/\/$/, '')
+    const davUrl = `${base}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}${remotePath}`
+    const creds  = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    const res = await fetch(davUrl, {
+      method: 'PROPFIND',
+      headers: {
+        Authorization: `Basic ${creds}`,
+        Depth: '1',
+        'Content-Type': 'application/xml',
+      },
+      body: `<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/><d:getcontenttype/><d:getlastmodified/></d:prop></d:propfind>`,
+      signal: opts.signal,
+    })
+    if (!res.ok) throw new Error(`Nextcloud list failed (${res.status})`)
+    const xml = await res.text()
+    const matches = [...xml.matchAll(/<d:displayname>([^<]+)<\/d:displayname>/g)]
+    const names = matches.map((m) => m[1]).filter((n) => n !== remotePath.split('/').pop())
+    ctx.result = names.length > 0 ? names.join('\n') : 'Directory is empty.'
+  },
+
+  'nextcloud-upload': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    const s = interpolateStep(step, ctx)
+    const localPath  = s.localPath || ctx.result
+    const remotePath = s.remotePath || `/Uploads/${localPath.split('/').pop()}`
+    if (!localPath) throw new Error('Nextcloud upload: no local file path provided.')
+    const base64 = await window.ipcRenderer.readFileBase64(localPath)
+    const binaryStr = atob(base64)
+    const bytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+    const base    = cfg.nextcloudUrl.replace(/\/$/, '')
+    const davUrl  = `${base}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}${remotePath}`
+    const creds   = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    const res = await fetch(davUrl, {
+      method: 'PUT',
+      headers: { Authorization: `Basic ${creds}` },
+      body: bytes,
+      signal: opts.signal,
+    })
+    if (!res.ok) throw new Error(`Nextcloud upload failed (${res.status})`)
+    ctx.result = `Uploaded to ${remotePath}`
+  },
+
+  'nextcloud-note': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    const s = interpolateStep(step, ctx)
+    const base  = cfg.nextcloudUrl.replace(/\/$/, '')
+    const creds = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    const body  = { title: s.title || 'New Note', content: s.content || ctx.result }
+    if (s.category) body.category = s.category
+    const res = await fetch(`${base}/index.php/apps/notes/api/v1/notes`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${creds}`,
+        'Content-Type': 'application/json',
+        'OCS-APIRequest': 'true',
+      },
+      body: JSON.stringify(body),
+      signal: opts.signal,
+    })
+    if (!res.ok) throw new Error(`Nextcloud note creation failed (${res.status})`)
+    const note = await res.json()
+    ctx.result = `Note created: ${note.title} (ID: ${note.id})`
+  },
+
+  'nextcloud-create-folder': async (step, ctx, opts) => {
+    const cfg = loadConfig()
+    if (!cfg.nextcloudUrl || !cfg.nextcloudUser) throw new Error('Nextcloud URL/user not set. Open Settings → Nextcloud.')
+    const s = interpolateStep(step, ctx)
+    const remotePath = (s.path || '/New Folder').replace(/\/+$/, '')
+    const base = cfg.nextcloudUrl.replace(/\/$/, '')
+    const davUrl = `${base}/remote.php/dav/files/${encodeURIComponent(cfg.nextcloudUser)}${remotePath}`
+    const creds  = btoa(`${cfg.nextcloudUser}:${cfg.nextcloudPass || ''}`)
+    const res = await fetch(davUrl, {
+      method: 'MKCOL',
+      headers: { Authorization: `Basic ${creds}` },
+      signal: opts.signal,
+    })
+    if (!res.ok) throw new Error(`Nextcloud create folder failed (${res.status})`)
+    ctx.result = `Folder created: ${remotePath}`
+  },
 }
+
 
 // ── Main runner ───────────────────────────────────────────────────────────────
 

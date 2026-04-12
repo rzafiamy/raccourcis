@@ -394,7 +394,11 @@ const PALETTE_GROUPS = [
   { label: 'Output',   types: ['clipboard-write', 'show-result', 'url-open'] },
   { label: 'Control',  types: ['wait', 'set-var'] },
   { label: 'System',   types: ['shell'] },
-  { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'google-calendar-list', 'gmail-send', 'weather', 'smtp-send'] },
+  { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'weather', 'qr-code'] },
+  { label: 'Google Workspace', types: ['google-calendar-list', 'gmail-send'] },
+  { label: 'GitLab', types: ['gitlab-list-issues', 'gitlab-list-mrs', 'gitlab-pipelines'] },
+  { label: 'Nextcloud', types: ['nextcloud-list-files', 'nextcloud-upload', 'nextcloud-note'] },
+  { label: 'Email', types: ['smtp-send'] },
 ]
 
 export function buildPaletteList(filter, onPick) {
