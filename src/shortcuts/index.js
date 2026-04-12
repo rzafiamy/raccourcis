@@ -13,6 +13,7 @@ import communicationShortcuts from './communication.js'
 import filesShortcuts        from './files.js'
 import analyticsShortcuts    from './analytics.js'
 import socialnetShortcuts    from './socialnet.js'
+import officeShortcuts       from './office.js'
 
 export const DEFAULT_SHORTCUTS = [
   ...aiShortcuts,
@@ -23,4 +24,5 @@ export const DEFAULT_SHORTCUTS = [
   ...filesShortcuts,
   ...analyticsShortcuts,
   ...socialnetShortcuts,
+  ...officeShortcuts,
 ]

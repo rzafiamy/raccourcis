@@ -247,6 +247,125 @@ ipcMain.handle('screenshot-capture', async (_) => {
   }
 })
 
+// ── Office document generators ───────────────────────────────────────────────
+
+ipcMain.handle('create-docx', async (_, { content, title, outputPath }) => {
+  try {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx')
+    const docsDir = path.join(os.homedir(), 'Documents')
+    if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true })
+    const outPath = outputPath || path.join(docsDir, `document_${Date.now()}.docx`)
+
+    // Parse simple markdown-like content into paragraphs
+    const lines = String(content).split('\n')
+    const children = lines.map(line => {
+      if (line.startsWith('# '))  return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 })
+      if (line.startsWith('## ')) return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 })
+      if (line.startsWith('### '))return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 })
+      if (line.startsWith('- ') || line.startsWith('* '))
+        return new Paragraph({ text: line.slice(2), bullet: { level: 0 } })
+      return new Paragraph({ children: [new TextRun(line)] })
+    })
+
+    const doc = new Document({
+      sections: [{ properties: {}, children }],
+      ...(title ? { title } : {}),
+    })
+
+    const buffer = await Packer.toBuffer(doc)
+    fs.writeFileSync(outPath, buffer)
+    return { ok: true, filePath: outPath }
+  } catch (err) {
+    console.error('[main] create-docx error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('create-xlsx', async (_, { data, sheetName, outputPath }) => {
+  try {
+    const XLSX = await import('xlsx')
+    const docsDir = path.join(os.homedir(), 'Documents')
+    if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true })
+    const outPath = outputPath || path.join(docsDir, `spreadsheet_${Date.now()}.xlsx`)
+
+    let rows
+    const raw = String(data).trim()
+    if (raw.startsWith('[') || raw.startsWith('{')) {
+      // JSON array of objects
+      rows = JSON.parse(raw)
+      if (!Array.isArray(rows)) rows = [rows]
+    } else {
+      // Treat as CSV
+      const wb = XLSX.read(raw, { type: 'string' })
+      XLSX.writeFile(wb, outPath)
+      return { ok: true, filePath: outPath }
+    }
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Sheet1')
+    XLSX.writeFile(wb, outPath)
+    return { ok: true, filePath: outPath }
+  } catch (err) {
+    console.error('[main] create-xlsx error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('create-pptx', async (_, { slides, title, outputPath }) => {
+  try {
+    const PptxGenJS = (await import('pptxgenjs')).default
+    const docsDir = path.join(os.homedir(), 'Documents')
+    if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true })
+    const outPath = outputPath || path.join(docsDir, `presentation_${Date.now()}.pptx`)
+
+    let slideData
+    const raw = String(slides).trim()
+    // Strip markdown code fences if AI wrapped the JSON
+    const cleaned = raw.replace(/^```[a-z]*\n?([\s\S]*?)\n?```$/m, '$1').trim()
+    if (cleaned.startsWith('[') || cleaned.startsWith('{')) {
+      slideData = JSON.parse(cleaned)
+      if (!Array.isArray(slideData)) slideData = [slideData]
+    } else {
+      // Treat plain text as a single slide
+      slideData = [{ title: title || 'Slide', content: cleaned }]
+    }
+
+    const pptx = new PptxGenJS()
+
+    for (const s of slideData) {
+      const slide = pptx.addSlide()
+
+      if (s.title) {
+        // pptxgenjs v4: addText requires array-of-objects form to avoid mutation errors
+        slide.addText([{ text: String(s.title), options: { fontSize: 28, bold: true, color: '363636' } }], {
+          x: 0.5, y: 0.3, w: '90%', h: 1.0,
+        })
+      }
+
+      if (s.content) {
+        // Split content into bullet lines for readability
+        const lines = String(s.content).split(/\n|\\n/).filter(l => l.trim())
+        const textObjs = lines.map(line => ({
+          text: line.replace(/^[-*•]\s*/, ''),
+          options: { fontSize: 16, color: '595959', bullet: line.match(/^[-*•]/) ? true : false },
+        }))
+        if (textObjs.length > 0) {
+          slide.addText(textObjs, { x: 0.5, y: 1.5, w: '90%', h: '65%', valign: 'top' })
+        }
+      }
+
+      if (s.notes) slide.addNotes(String(s.notes))
+    }
+
+    await pptx.writeFile({ fileName: outPath })
+    return { ok: true, filePath: outPath }
+  } catch (err) {
+    console.error('[main] create-pptx error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+
 // ── Shortcut Discovery ───────────────────────────────────────────────────────
 
 ipcMain.handle('discover-shortcuts', async () => {

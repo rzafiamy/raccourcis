@@ -1504,6 +1504,120 @@ const EXECUTORS = {
     const text = s.text || ctx.result
     ctx.result = decodeURIComponent(text)
   },
+
+  // ── Office actions ────────────────────────────────────────────────────────
+
+  'zip-extract': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const zipPath = s.zipPath || ctx.result
+    if (!zipPath) throw new Error('Extract ZIP: no zip file path provided.')
+    const destDir = s.destDir || zipPath.replace(/\.zip$/i, '')
+    const cmd = `unzip -o "${zipPath}" -d "${destDir}"`
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Extract ZIP failed: ${stderr}`)
+    ctx.result = destDir
+  },
+
+  'folder-compress': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const sourcePath = s.sourcePath || ctx.result
+    if (!sourcePath) throw new Error('Compress ZIP: no source path provided.')
+    const zipPath = s.zipPath || sourcePath.replace(/\/+$/, '') + '.zip'
+    // Use -j only if source is a file, -r if directory
+    const cmd = `zip -r "${zipPath}" "${sourcePath}"`
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Compress ZIP failed: ${stderr}`)
+    ctx.result = zipPath
+  },
+
+  'create-docx': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const content = s.content || ctx.result
+    if (!content) throw new Error('Create DOCX: no content provided.')
+    const res = await window.ipcRenderer.invoke('create-docx', {
+      content,
+      title: s.title || '',
+      outputPath: s.outputPath || '',
+    })
+    if (!res.ok) throw new Error(res.error)
+    ctx.result = res.filePath
+  },
+
+  'create-xlsx': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const data = s.data || ctx.result
+    if (!data) throw new Error('Create XLSX: no data provided.')
+    const res = await window.ipcRenderer.invoke('create-xlsx', {
+      data,
+      sheetName: s.sheetName || 'Sheet1',
+      outputPath: s.outputPath || '',
+    })
+    if (!res.ok) throw new Error(res.error)
+    ctx.result = res.filePath
+  },
+
+  'create-pptx': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const slides = s.slides || ctx.result
+    if (!slides) throw new Error('Create PPTX: no slides data provided.')
+    const res = await window.ipcRenderer.invoke('create-pptx', {
+      slides,
+      title: s.title || '',
+      outputPath: s.outputPath || '',
+    })
+    if (!res.ok) throw new Error(res.error)
+    ctx.result = res.filePath
+  },
+
+  'text-to-pdf': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const content = s.content || ctx.result
+    if (!content) throw new Error('Text to PDF: no content provided.')
+    // Write content to a temp .md file, then convert with pandoc
+    const tmpMd  = `/tmp/raccourci_${Date.now()}.md`
+    const outPdf = s.outputPath || `/tmp/raccourci_${Date.now()}.pdf`
+    const fontSize = s.fontSize || '12'
+    // Write temp file via shell
+    const escaped = content.replace(/'/g, "'\\''")
+    const writeCmd = `printf '%s' '${escaped}' > "${tmpMd}"`
+    await window.ipcRenderer.invoke('shell-exec', writeCmd)
+    const cmd = `pandoc "${tmpMd}" -o "${outPdf}" --pdf-engine=wkhtmltopdf -V fontsize:${fontSize}pt 2>/dev/null || pandoc "${tmpMd}" -o "${outPdf}" -V fontsize:${fontSize}pt`
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Text to PDF failed: ${stderr}`)
+    ctx.result = outPdf
+  },
+
+  'html-to-pdf': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const input = s.input || ctx.result
+    if (!input) throw new Error('HTML to PDF: no input provided.')
+    const outPdf = s.outputPath || `/tmp/raccourci_${Date.now()}.pdf`
+    let cmd
+    // Detect if input looks like a file path (no < > tags)
+    const isFilePath = !input.trim().startsWith('<') && !input.includes('\n') && input.length < 512
+    if (isFilePath) {
+      cmd = `wkhtmltopdf "${input}" "${outPdf}"`
+    } else {
+      const tmpHtml = `/tmp/raccourci_${Date.now()}.html`
+      const escaped = input.replace(/'/g, "'\\''")
+      await window.ipcRenderer.invoke('shell-exec', `printf '%s' '${escaped}' > "${tmpHtml}"`)
+      cmd = `wkhtmltopdf "${tmpHtml}" "${outPdf}"`
+    }
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`HTML to PDF failed: ${stderr}`)
+    ctx.result = outPdf
+  },
+
+  'website-to-pdf': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const url = s.url || ctx.result
+    if (!url) throw new Error('Website to PDF: no URL provided.')
+    const outPdf = s.outputPath || `/tmp/raccourci_${Date.now()}.pdf`
+    const cmd = `wkhtmltopdf "${url}" "${outPdf}"`
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    if (exitCode !== 0) throw new Error(`Website to PDF failed: ${stderr}`)
+    ctx.result = outPdf
+  },
 }
 
 
