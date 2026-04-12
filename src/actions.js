@@ -7,12 +7,14 @@
  *   desc        short description shown in UI
  *   icon        lucide icon name
  *   color       hex badge color
+ *   outputType  data type produced: 'text'|'number'|'file'|'image'|'audio'|'list'|'date'|'json'|null
  *   defaults    initial param values when added to a workflow
  *   params      list of editable parameters shown in the step editor
- *     name      param key on the step object
- *     label     UI label
- *     kind      'text' | 'textarea' | 'number' | 'select'
- *     options   (for select) array of {value, label}
+ *     name        param key on the step object
+ *     label       UI label
+ *     kind        'text' | 'textarea' | 'number' | 'select'
+ *     acceptsVars true → show variable picker button for this param
+ *     options     (for select) array of {value, label}
  *     placeholder
  *
  * Context object passed between steps:
@@ -34,6 +36,7 @@ export const ACTION_REGISTRY = [
     desc: 'Read text from the system clipboard → result',
     icon: 'clipboard',
     color: '#BF5AF2',
+    outputType: 'text',
     defaults: {},
     params: [],
   },
@@ -43,6 +46,7 @@ export const ACTION_REGISTRY = [
     desc: 'Select a file from your computer → result (filePath)',
     icon: 'file-search',
     color: '#0A84FF',
+    outputType: 'file',
     defaults: { buttonLabel: 'Select' },
     params: [
       { name: 'buttonLabel', label: 'Button Label', kind: 'text', placeholder: 'Select' },
@@ -54,10 +58,11 @@ export const ACTION_REGISTRY = [
     desc: 'Display a system notification',
     icon: 'bell',
     color: '#FF9F0A',
+    outputType: null,
     defaults: { title: 'Shortcut Done', body: '{{result}}' },
     params: [
       { name: 'title', label: 'Title', kind: 'text', placeholder: 'Shortcut Done' },
-      { name: 'body', label: 'Message body', kind: 'text', placeholder: '{{result}}' },
+      { name: 'body', label: 'Message body', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -66,10 +71,11 @@ export const ACTION_REGISTRY = [
     desc: 'Show a yes/no dialog. If canceled, the shortcut stops.',
     icon: 'help-circle',
     color: '#FFD60A',
+    outputType: null,
     defaults: { title: 'Continue?', message: 'Do you want to proceed?' },
     params: [
       { name: 'title', label: 'Title', kind: 'text', placeholder: 'Continue?' },
-      { name: 'message', label: 'Message', kind: 'text', placeholder: 'Do you want to proceed?' },
+      { name: 'message', label: 'Message', kind: 'text', placeholder: 'Do you want to proceed?', acceptsVars: true },
     ],
   },
   {
@@ -78,6 +84,7 @@ export const ACTION_REGISTRY = [
     desc: 'Ask the user to type something → result',
     icon: 'keyboard',
     color: '#0A84FF',
+    outputType: 'text',
     defaults: {
       label: 'Your input',
       placeholder: 'Type here...',
@@ -85,7 +92,7 @@ export const ACTION_REGISTRY = [
     params: [
       { name: 'label', label: 'Dialog Label', kind: 'text', placeholder: 'Your input' },
       { name: 'placeholder', label: 'Placeholder text', kind: 'text', placeholder: 'Type here...' },
-      { name: 'prefill', label: 'Initial value', kind: 'text', placeholder: 'Leave empty to use previous result' },
+      { name: 'prefill', label: 'Initial value', kind: 'text', placeholder: 'Leave empty for blank', acceptsVars: true },
     ],
   },
 
@@ -96,22 +103,39 @@ export const ACTION_REGISTRY = [
     desc: 'Send a prompt to the LLM → result',
     icon: 'sparkles',
     color: '#FF375F',
+    outputType: 'text',
     defaults: {
       prompt: '{{result}}',
       systemPrompt: 'You are a helpful assistant.',
+      outputFormat: 'plain',
     },
     params: [
       {
         name: 'prompt',
-        label: 'Prompt (use {{result}}, {{clipboard}})',
+        label: 'Prompt',
         kind: 'textarea',
         placeholder: 'Summarize the following:\n\n{{result}}',
+        acceptsVars: true,
+      },
+      {
+        name: 'outputFormat',
+        label: 'Output Format',
+        kind: 'select',
+        options: [
+          { value: 'plain',    label: 'Plain text' },
+          { value: 'list',     label: 'Bulleted list' },
+          { value: 'numbered', label: 'Numbered list' },
+          { value: 'markdown', label: 'Markdown' },
+          { value: 'json',     label: 'JSON' },
+          { value: 'custom',   label: 'Custom (advanced)' },
+        ],
       },
       {
         name: 'systemPrompt',
-        label: 'System Prompt (optional)',
+        label: 'Custom instructions (advanced)',
         kind: 'textarea',
         placeholder: 'You are a helpful assistant.',
+        hidden: true,   // only shown when outputFormat === 'custom'
       },
     ],
   },
@@ -123,13 +147,15 @@ export const ACTION_REGISTRY = [
     desc: 'Copy result to the system clipboard',
     icon: 'clipboard-check',
     color: '#32D74B',
+    outputType: null,
     defaults: { text: '{{result}}' },
     params: [
       {
         name: 'text',
-        label: 'Text to copy (use {{result}})',
+        label: 'Text to copy',
         kind: 'text',
         placeholder: '{{result}}',
+        acceptsVars: true,
       },
     ],
   },
@@ -139,6 +165,7 @@ export const ACTION_REGISTRY = [
     desc: 'Display result in a panel at the end of the run',
     icon: 'panel-top',
     color: '#0A84FF',
+    outputType: null,
     defaults: { label: 'Result' },
     params: [
       { name: 'label', label: 'Panel label', kind: 'text', placeholder: 'Result' },
@@ -150,6 +177,7 @@ export const ACTION_REGISTRY = [
     desc: 'Get current date/time formatted → result',
     icon: 'calendar',
     color: '#FF375F',
+    outputType: 'date',
     defaults: { format: 'YYYY-MM-DD HH:mm:ss' },
     params: [
       { name: 'format', label: 'Format (not implemented, will use ISO)', kind: 'text', placeholder: 'YYYY-MM-DD' },
@@ -161,6 +189,7 @@ export const ACTION_REGISTRY = [
     desc: 'Change case, slugify, etc. → result',
     icon: 'type',
     color: '#32D74B',
+    outputType: 'text',
     defaults: { formula: 'uppercase' },
     params: [
       {
@@ -182,10 +211,11 @@ export const ACTION_REGISTRY = [
     desc: 'Write text to a specified local file',
     icon: 'file-down',
     color: '#0A84FF',
+    outputType: 'file',
     defaults: { path: '', content: '{{result}}' },
     params: [
-      { name: 'path', label: 'Destination File Path (Leave empty for Save Dialog)', kind: 'text', placeholder: '/home/user/output.txt' },
-      { name: 'content', label: 'Content to save', kind: 'text', placeholder: '{{result}}' },
+      { name: 'path', label: 'Destination File Path (leave empty for Save Dialog)', kind: 'text', placeholder: '/home/user/output.txt' },
+      { name: 'content', label: 'Content to save', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -194,9 +224,10 @@ export const ACTION_REGISTRY = [
     desc: 'Open the folder containing the file',
     icon: 'folder-open',
     color: '#5E5CE6',
+    outputType: null,
     defaults: { path: '{{result}}' },
     params: [
-      { name: 'path', label: 'File/Folder Path', kind: 'text', placeholder: '{{result}}' },
+      { name: 'path', label: 'File/Folder Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -205,13 +236,15 @@ export const ACTION_REGISTRY = [
     desc: 'Open a URL in the default browser',
     icon: 'external-link',
     color: '#5E5CE6',
+    outputType: null,
     defaults: { url: '{{result}}' },
     params: [
       {
         name: 'url',
-        label: 'URL (use {{result}} or paste directly)',
+        label: 'URL',
         kind: 'text',
         placeholder: 'https://...',
+        acceptsVars: true,
       },
     ],
   },
@@ -223,6 +256,7 @@ export const ACTION_REGISTRY = [
     desc: 'Pause execution for a fixed duration',
     icon: 'timer',
     color: '#8E8E93',
+    outputType: null,
     defaults: { duration: 1000 },
     params: [
       { name: 'duration', label: 'Duration (ms)', kind: 'number', placeholder: '1000' },
@@ -236,6 +270,7 @@ export const ACTION_REGISTRY = [
     desc: 'Convert text to spoken audio (OpenAI TTS) → audio result',
     icon: 'volume-2',
     color: '#FF9F0A',
+    outputType: 'audio',
     defaults: {
       text: '{{result}}',
       voice: 'alloy',
@@ -244,9 +279,10 @@ export const ACTION_REGISTRY = [
     params: [
       {
         name: 'text',
-        label: 'Text (use {{result}})',
+        label: 'Text',
         kind: 'textarea',
         placeholder: '{{result}}',
+        acceptsVars: true,
       },
       {
         name: 'voice',
@@ -278,6 +314,7 @@ export const ACTION_REGISTRY = [
     desc: 'Transcribe audio file to text (OpenAI Whisper) → result',
     icon: 'mic',
     color: '#64D2FF',
+    outputType: 'text',
     defaults: {
       filePath: '',
       language: '',
@@ -285,9 +322,10 @@ export const ACTION_REGISTRY = [
     params: [
       {
         name: 'filePath',
-        label: 'Audio file path (or use {{result}} for a path)',
+        label: 'Audio file path',
         kind: 'text',
-        placeholder: '/path/to/audio.mp3 or {{result}}',
+        placeholder: '/path/to/audio.mp3',
+        acceptsVars: true,
       },
       {
         name: 'language',
@@ -303,6 +341,7 @@ export const ACTION_REGISTRY = [
     desc: 'Record audio from the microphone → result (filePath)',
     icon: 'mic',
     color: '#FF375F',
+    outputType: 'audio',
     defaults: { duration: 30 },
     params: [
       { name: 'duration', label: 'Max duration (seconds)', kind: 'number', placeholder: '30' },
@@ -314,6 +353,7 @@ export const ACTION_REGISTRY = [
     desc: 'Generate an image from a text prompt (DALL·E) → image URL',
     icon: 'image',
     color: '#BF5AF2',
+    outputType: 'image',
     defaults: {
       prompt: '{{result}}',
       size: '1024x1024',
@@ -323,9 +363,10 @@ export const ACTION_REGISTRY = [
     params: [
       {
         name: 'prompt',
-        label: 'Prompt (use {{result}})',
+        label: 'Prompt',
         kind: 'textarea',
         placeholder: 'A photorealistic cat astronaut on the moon',
+        acceptsVars: true,
       },
       {
         name: 'size',
@@ -354,6 +395,7 @@ export const ACTION_REGISTRY = [
     desc: 'Analyse an image URL or local file with AI Vision → text result',
     icon: 'eye',
     color: '#32D74B',
+    outputType: 'text',
     defaults: {
       imageUrl: '{{result}}',
       filePath: '',
@@ -367,12 +409,14 @@ export const ACTION_REGISTRY = [
         label: 'Image URL (optional)',
         kind: 'text',
         placeholder: 'https://...',
+        acceptsVars: true,
       },
       {
         name: 'filePath',
-        label: 'Local File Path (optional, or use {{result}})',
+        label: 'Local File Path (optional)',
         kind: 'text',
         placeholder: '/home/user/image.jpg',
+        acceptsVars: true,
       },
       {
         name: 'prompt',
@@ -396,13 +440,15 @@ export const ACTION_REGISTRY = [
     desc: 'Execute a shell command → result (stdout)',
     icon: 'terminal',
     color: '#FF9F0A',
+    outputType: 'text',
     defaults: { command: 'echo {{result}}' },
     params: [
       {
         name: 'command',
-        label: 'Shell command (use {{result}}, {{clipboard}})',
+        label: 'Shell command',
         kind: 'textarea',
         placeholder: 'echo {{result}}',
+        acceptsVars: true,
       },
     ],
   },
@@ -412,9 +458,10 @@ export const ACTION_REGISTRY = [
     desc: 'Remove all metadata and subtly alter image to break AI marks/watermarks',
     icon: 'shield-check',
     color: '#32D74B',
+    outputType: 'file',
     defaults: { filePath: '{{result}}' },
     params: [
-      { name: 'filePath', label: 'Image File Path', kind: 'text', placeholder: '{{result}}' },
+      { name: 'filePath', label: 'Image File Path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -423,6 +470,7 @@ export const ACTION_REGISTRY = [
     desc: 'Store result under a named variable for later steps',
     icon: 'save',
     color: '#64D2FF',
+    outputType: null,
     defaults: { varName: 'myVar' },
     params: [
       { name: 'varName', label: 'Variable name', kind: 'text', placeholder: 'myVar' },
@@ -436,12 +484,13 @@ export const ACTION_REGISTRY = [
     desc: 'Scrape a URL and return clean markdown (Firecrawl) → result',
     icon: 'flame',
     color: '#FF4500',
+    outputType: 'text',
     defaults: {
       url: '{{result}}',
       formats: 'markdown',
     },
     params: [
-      { name: 'url', label: 'URL to scrape (use {{result}})', kind: 'text', placeholder: 'https://example.com' },
+      { name: 'url', label: 'URL to scrape', kind: 'text', placeholder: 'https://example.com', acceptsVars: true },
       {
         name: 'formats',
         label: 'Output format',
@@ -460,12 +509,13 @@ export const ACTION_REGISTRY = [
     desc: 'Search Google via Custom Search API → JSON results',
     icon: 'search',
     color: '#4285F4',
+    outputType: 'list',
     defaults: {
       query: '{{result}}',
       numResults: 5,
     },
     params: [
-      { name: 'query', label: 'Search query (use {{result}})', kind: 'text', placeholder: 'latest news on AI' },
+      { name: 'query', label: 'Search query', kind: 'text', placeholder: 'latest news on AI', acceptsVars: true },
       { name: 'numResults', label: 'Number of results (1–10)', kind: 'number', placeholder: '5' },
     ],
   },
@@ -474,14 +524,14 @@ export const ACTION_REGISTRY = [
     title: 'YouTube Search',
     desc: 'Search YouTube for videos → result with titles and URLs',
     icon: 'video',
-
     color: '#FF0000',
+    outputType: 'list',
     defaults: {
       query: '{{result}}',
       maxResults: 5,
     },
     params: [
-      { name: 'query', label: 'Search query (use {{result}})', kind: 'text', placeholder: 'how to make pizza' },
+      { name: 'query', label: 'Search query', kind: 'text', placeholder: 'how to make pizza', acceptsVars: true },
       { name: 'maxResults', label: 'Max results (1–50)', kind: 'number', placeholder: '5' },
     ],
   },
@@ -491,12 +541,13 @@ export const ACTION_REGISTRY = [
     desc: 'Search Wikipedia and get article summary → result',
     icon: 'book-open',
     color: '#A7C7E7',
+    outputType: 'text',
     defaults: {
       query: '{{result}}',
       sentences: 5,
     },
     params: [
-      { name: 'query', label: 'Search query (use {{result}})', kind: 'text', placeholder: 'Eiffel Tower' },
+      { name: 'query', label: 'Search query', kind: 'text', placeholder: 'Eiffel Tower', acceptsVars: true },
       { name: 'sentences', label: 'Summary sentences', kind: 'number', placeholder: '5' },
     ],
   },
@@ -506,6 +557,7 @@ export const ACTION_REGISTRY = [
     desc: 'Fetch upcoming Google Calendar events → result',
     icon: 'calendar-days',
     color: '#0F9D58',
+    outputType: 'list',
     defaults: {
       maxResults: 10,
       timeMin: '',
@@ -521,6 +573,7 @@ export const ACTION_REGISTRY = [
     desc: 'Send an email via Gmail API',
     icon: 'mail',
     color: '#EA4335',
+    outputType: null,
     defaults: {
       to: '',
       subject: '',
@@ -528,8 +581,8 @@ export const ACTION_REGISTRY = [
     },
     params: [
       { name: 'to', label: 'To (email address)', kind: 'text', placeholder: 'recipient@example.com' },
-      { name: 'subject', label: 'Subject', kind: 'text', placeholder: 'Hello from Raccourcis' },
-      { name: 'body', label: 'Body (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+      { name: 'subject', label: 'Subject', kind: 'text', placeholder: 'Hello from Raccourcis', acceptsVars: true },
+      { name: 'body', label: 'Body', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -538,12 +591,13 @@ export const ACTION_REGISTRY = [
     desc: 'Fetch current weather for a location (OpenWeatherMap) → result',
     icon: 'cloud-sun',
     color: '#FFB347',
+    outputType: 'text',
     defaults: {
       location: '{{result}}',
       units: 'metric',
     },
     params: [
-      { name: 'location', label: 'City or location (use {{result}})', kind: 'text', placeholder: 'Paris, FR' },
+      { name: 'location', label: 'City or location', kind: 'text', placeholder: 'Paris, FR', acceptsVars: true },
       {
         name: 'units',
         label: 'Units',
@@ -562,6 +616,7 @@ export const ACTION_REGISTRY = [
     desc: 'Send an email via SMTP (custom mail server)',
     icon: 'send',
     color: '#5E5CE6',
+    outputType: null,
     defaults: {
       to: '',
       subject: '',
@@ -569,8 +624,8 @@ export const ACTION_REGISTRY = [
     },
     params: [
       { name: 'to', label: 'To (email address)', kind: 'text', placeholder: 'recipient@example.com' },
-      { name: 'subject', label: 'Subject', kind: 'text', placeholder: 'Hello from Raccourcis' },
-      { name: 'body', label: 'Body (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+      { name: 'subject', label: 'Subject', kind: 'text', placeholder: 'Hello from Raccourcis', acceptsVars: true },
+      { name: 'body', label: 'Body', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -579,6 +634,7 @@ export const ACTION_REGISTRY = [
     desc: 'Fetch open issues for a project → result',
     icon: 'git-merge',
     color: '#FC6D26',
+    outputType: 'list',
     defaults: {
       projectId: '',
       state: 'opened',
@@ -605,6 +661,7 @@ export const ACTION_REGISTRY = [
     desc: 'Create a new issue in a GitLab project → result',
     icon: 'plus-circle',
     color: '#FC6D26',
+    outputType: 'text',
     defaults: {
       projectId: '',
       title: 'New Issue',
@@ -612,8 +669,8 @@ export const ACTION_REGISTRY = [
     },
     params: [
       { name: 'projectId', label: 'Project ID or path', kind: 'text', placeholder: 'user/my-project' },
-      { name: 'title', label: 'Issue Title', kind: 'text', placeholder: 'Bug: ...' },
-      { name: 'description', label: 'Description (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+      { name: 'title', label: 'Issue Title', kind: 'text', placeholder: 'Bug: ...', acceptsVars: true },
+      { name: 'description', label: 'Description', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -622,6 +679,7 @@ export const ACTION_REGISTRY = [
     desc: 'Fetch merge requests for a project → result',
     icon: 'git-pull-request',
     color: '#FC6D26',
+    outputType: 'list',
     defaults: {
       projectId: '',
       state: 'opened',
@@ -649,6 +707,7 @@ export const ACTION_REGISTRY = [
     desc: 'Fetch recent pipelines for a project → result',
     icon: 'workflow',
     color: '#FC6D26',
+    outputType: 'list',
     defaults: {
       projectId: '',
       status: '',
@@ -678,13 +737,14 @@ export const ACTION_REGISTRY = [
     desc: 'Generate a QR code image URL from text or URL → image URL',
     icon: 'qr-code',
     color: '#1C1C1E',
+    outputType: 'image',
     defaults: {
       text: '{{result}}',
       size: 300,
       ecc: 'M',
     },
     params: [
-      { name: 'text', label: 'Text or URL to encode (use {{result}})', kind: 'textarea', placeholder: 'https://example.com or {{result}}' },
+      { name: 'text', label: 'Text or URL to encode', kind: 'textarea', placeholder: 'https://example.com', acceptsVars: true },
       { name: 'size', label: 'Image size (px)', kind: 'number', placeholder: '300' },
       {
         name: 'ecc',
@@ -705,6 +765,7 @@ export const ACTION_REGISTRY = [
     desc: 'List files in a Nextcloud directory → result',
     icon: 'cloud',
     color: '#0082C9',
+    outputType: 'list',
     defaults: {
       path: '/',
     },
@@ -718,13 +779,14 @@ export const ACTION_REGISTRY = [
     desc: 'Upload a local file to Nextcloud',
     icon: 'cloud-upload',
     color: '#0082C9',
+    outputType: null,
     defaults: {
       localPath: '{{result}}',
       remotePath: '/Uploads/{{result}}',
     },
     params: [
-      { name: 'localPath', label: 'Local file path (use {{result}})', kind: 'text', placeholder: '/home/user/file.txt' },
-      { name: 'remotePath', label: 'Remote path in Nextcloud', kind: 'text', placeholder: '/Uploads/file.txt' },
+      { name: 'localPath', label: 'Local file path', kind: 'text', placeholder: '/home/user/file.txt', acceptsVars: true },
+      { name: 'remotePath', label: 'Remote path in Nextcloud', kind: 'text', placeholder: '/Uploads/file.txt', acceptsVars: true },
     ],
   },
   {
@@ -733,14 +795,15 @@ export const ACTION_REGISTRY = [
     desc: 'Create a note in Nextcloud Notes app → result',
     icon: 'notebook-pen',
     color: '#0082C9',
+    outputType: null,
     defaults: {
       title: 'New Note',
       content: '{{result}}',
       category: '',
     },
     params: [
-      { name: 'title', label: 'Note title', kind: 'text', placeholder: 'My Note' },
-      { name: 'content', label: 'Content (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+      { name: 'title', label: 'Note title', kind: 'text', placeholder: 'My Note', acceptsVars: true },
+      { name: 'content', label: 'Content', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
       { name: 'category', label: 'Category (optional)', kind: 'text', placeholder: 'Work' },
     ],
   },
@@ -750,6 +813,7 @@ export const ACTION_REGISTRY = [
     desc: 'Create a new directory in Nextcloud',
     icon: 'folder-plus',
     color: '#0082C9',
+    outputType: null,
     defaults: {
       path: '/New Folder',
     },
@@ -759,11 +823,11 @@ export const ACTION_REGISTRY = [
   },
   {
     type: 'supabase-select',
-
     title: 'Supabase — Select',
     desc: 'Query a table using PostgREST → JSON array',
     icon: 'database',
     color: '#3ECF8E',
+    outputType: 'json',
     defaults: {
       table: '',
       select: '*',
@@ -772,7 +836,7 @@ export const ACTION_REGISTRY = [
     params: [
       { name: 'table', label: 'Table name', kind: 'text', placeholder: 'profiles' },
       { name: 'select', label: 'Select (e.g. *, id, name)', kind: 'text', placeholder: '*' },
-      { name: 'filter', label: 'Filter (e.g. id=eq.5&name=ilike.*john*)', kind: 'text', placeholder: 'id=eq.{{result}}' },
+      { name: 'filter', label: 'Filter (e.g. id=eq.5)', kind: 'text', placeholder: 'id=eq.{{result}}', acceptsVars: true },
     ],
   },
   {
@@ -781,13 +845,14 @@ export const ACTION_REGISTRY = [
     desc: 'Insert a new row into a table → inserted object',
     icon: 'database-zap',
     color: '#3ECF8E',
+    outputType: 'json',
     defaults: {
       table: '',
       data: '{{result}}',
     },
     params: [
       { name: 'table', label: 'Table name', kind: 'text', placeholder: 'posts' },
-      { name: 'data', label: 'JSON row data', kind: 'textarea', placeholder: '{"title": "{{result}}", "user_id": "{{vars.uid}}"}' },
+      { name: 'data', label: 'JSON row data', kind: 'textarea', placeholder: '{"title": "{{result}}", "user_id": "{{vars.uid}}"}', acceptsVars: true },
     ],
   },
   {
@@ -796,6 +861,7 @@ export const ACTION_REGISTRY = [
     desc: 'Update existing rows → updated objects',
     icon: 'database-zap',
     color: '#3ECF8E',
+    outputType: 'json',
     defaults: {
       table: '',
       filter: '',
@@ -803,8 +869,8 @@ export const ACTION_REGISTRY = [
     },
     params: [
       { name: 'table', label: 'Table name', kind: 'text', placeholder: 'users' },
-      { name: 'filter', label: 'Filter (e.g. id=eq.5)', kind: 'text', placeholder: 'id=eq.{{vars.targetId}}' },
-      { name: 'data', label: 'JSON partial data', kind: 'textarea', placeholder: '{"status": "active"}' },
+      { name: 'filter', label: 'Filter (e.g. id=eq.5)', kind: 'text', placeholder: 'id=eq.{{vars.targetId}}', acceptsVars: true },
+      { name: 'data', label: 'JSON partial data', kind: 'textarea', placeholder: '{"status": "active"}', acceptsVars: true },
     ],
   },
   {
@@ -813,13 +879,14 @@ export const ACTION_REGISTRY = [
     desc: 'Delete rows matching a filter',
     icon: 'database-zap',
     color: '#3ECF8E',
+    outputType: null,
     defaults: {
       table: '',
       filter: '',
     },
     params: [
       { name: 'table', label: 'Table name', kind: 'text', placeholder: 'tasks' },
-      { name: 'filter', label: 'Filter (e.g. id=eq.10)', kind: 'text', placeholder: 'id=eq.{{result}}' },
+      { name: 'filter', label: 'Filter (e.g. id=eq.10)', kind: 'text', placeholder: 'id=eq.{{result}}', acceptsVars: true },
     ],
   },
 ]

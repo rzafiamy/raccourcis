@@ -329,7 +329,7 @@ function renderCanvasSteps() {
   editorSteps.style.display = hasSteps ? 'flex' : 'none'
 
   editingShortcut.steps.forEach((step, i) => {
-    const card = buildStepCard(step, i, {
+    const card = buildStepCard(step, i, editingShortcut.steps, {
       onChange: (idx, updated) => {
         editingShortcut.steps[idx] = updated
       },

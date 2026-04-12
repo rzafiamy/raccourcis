@@ -386,7 +386,23 @@ const EXECUTORS = {
   'ai-prompt': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const prompt = s.prompt || ctx.result
-    const systemPrompt = s.systemPrompt || 'You are a helpful assistant.'
+
+    // Derive system prompt from outputFormat unless 'custom'
+    let systemPrompt
+    const fmt = s.outputFormat || 'plain'
+    if (fmt === 'custom') {
+      systemPrompt = s.systemPrompt || 'You are a helpful assistant.'
+    } else {
+      const formatInstructions = {
+        plain:    'You are a helpful assistant. Respond in plain text only. No markdown formatting.',
+        list:     'You are a helpful assistant. Respond as a bulleted list using "- " for each item. No intro sentence.',
+        numbered: 'You are a helpful assistant. Respond as a numbered list. No intro sentence.',
+        markdown: 'You are a helpful assistant. Format your response using Markdown with headers, bold, and lists where appropriate.',
+        json:     'You are a helpful assistant. Respond with valid JSON only. No explanation, no markdown code fences.',
+      }
+      systemPrompt = formatInstructions[fmt] || 'You are a helpful assistant.'
+    }
+
     ctx.result = await callAI(prompt, systemPrompt, opts.signal, opts.onDebug)
   },
 

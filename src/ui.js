@@ -3,6 +3,7 @@
  */
 
 import { ACTION_REGISTRY, getActionDef } from './actions.js'
+import { buildVarField, buildTypeBadge, TYPE_META } from './varPicker.js'
 
 // ── Lucide icon helper ────────────────────────────────────────────────────────
 
@@ -118,11 +119,13 @@ export function createRunOverlay(shortcut, onCancel) {
   // Pre-render step rows
   const stepsList = overlay.querySelector('#runStepsList')
   shortcut.steps.forEach((step, i) => {
+    const stepDef = getActionDef(step.type)
+    const stepColor = stepDef?.color ?? step.color
     const row = document.createElement('div')
     row.className = 'run-step-row'
     row.id = `runStep-${i}`
     row.innerHTML = `
-      <div class="run-step-badge" style="background:${step.color}"></div>
+      <div class="run-step-badge" style="background:${stepColor}"></div>
       <div class="run-step-title">${step.title}</div>
       <div class="run-step-state" id="runStepState-${i}"></div>
     `
@@ -410,9 +413,10 @@ export function showAlert({ title, message, btnText = 'OK' }) {
 /**
  * @param {object} step
  * @param {number} index
+ * @param {Array}  allSteps  — full steps array (for var picker context)
  * @param {object} callbacks { onChange, onRemove, onMoveUp, onMoveDown }
  */
-export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMoveDown }) {
+export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMoveUp, onMoveDown }) {
   const def  = getActionDef(step.type)
   const card = document.createElement('div')
   card.className = 'step-card'
@@ -428,12 +432,44 @@ export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMov
 
   const stepIconEl = document.createElement('div')
   stepIconEl.className = 'step-icon'
-  stepIconEl.style.background = step.color
-  stepIconEl.appendChild(icon(step.icon))
+  stepIconEl.style.background = def?.color ?? step.color
+  stepIconEl.appendChild(icon(def?.icon ?? step.icon))
 
   const stepInfo = document.createElement('div')
   stepInfo.className = 'step-info'
-  stepInfo.innerHTML = `<div class="step-title">${step.title}</div><div class="step-desc">${step.desc}</div>`
+
+  const titleRow = document.createElement('div')
+  titleRow.className = 'step-title-row'
+
+  const titleInput = document.createElement('input')
+  titleInput.type = 'text'
+  titleInput.className = 'step-title-input'
+  titleInput.value = step.title
+  titleInput.placeholder = def?.title || step.type
+  titleInput.addEventListener('click', (e) => e.stopPropagation())
+  titleInput.addEventListener('input', () => {
+    step = { ...step, title: titleInput.value }
+    onChange(index, step)
+  })
+  titleRow.appendChild(titleInput)
+
+  // Output type badge on the title row
+  if (def?.outputType) {
+    const badge = buildTypeBadge(def.outputType)
+    badge.className += ' step-output-badge'
+    titleRow.appendChild(badge)
+  }
+
+  const descEl = document.createElement('div')
+  descEl.className = 'step-desc'
+
+  const actionTypeChip = document.createElement('span')
+  actionTypeChip.className = 'step-action-type'
+  actionTypeChip.textContent = step.type
+  descEl.appendChild(actionTypeChip)
+
+  stepInfo.appendChild(titleRow)
+  stepInfo.appendChild(descEl)
 
   const stepControls = document.createElement('div')
   stepControls.className = 'step-controls'
@@ -471,28 +507,59 @@ export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMov
     const paramsEl = document.createElement('div')
     paramsEl.className = 'step-params'
 
+    // Track current outputFormat for AI prompt conditional visibility
+    let currentOutputFormat = step['outputFormat'] ?? 'plain'
+
     def.params.forEach((param) => {
+      // Skip params with `hidden` flag — they are shown conditionally
+      if (param.hidden) return
+
       const group = document.createElement('div')
       group.className = 'param-group'
+      group.dataset.paramName = param.name
 
       const labelEl = document.createElement('label')
       labelEl.textContent = param.label
 
-      let input
-      if (param.kind === 'textarea') {
-        input = document.createElement('textarea')
+      group.appendChild(labelEl)
+
+      if (param.acceptsVars) {
+        // ── Variable-aware field with picker button ──
+        const varField = buildVarField(
+          param,
+          step[param.name] ?? '',
+          index,
+          allSteps,
+          (newVal) => {
+            step = { ...step, [param.name]: newVal }
+            onChange(index, step)
+          }
+        )
+        group.appendChild(varField)
+      } else if (param.kind === 'textarea') {
+        const input = document.createElement('textarea')
         input.className = 'input-field'
         input.rows = 3
         input.value = step[param.name] ?? ''
         input.placeholder = param.placeholder || ''
+        input.addEventListener('input', () => {
+          step = { ...step, [param.name]: input.value }
+          onChange(index, step)
+        })
+        group.appendChild(input)
       } else if (param.kind === 'number') {
-        input = document.createElement('input')
+        const input = document.createElement('input')
         input.type = 'number'
         input.className = 'input-field'
         input.value = step[param.name] ?? ''
         input.placeholder = param.placeholder || ''
+        input.addEventListener('input', () => {
+          step = { ...step, [param.name]: input.value }
+          onChange(index, step)
+        })
+        group.appendChild(input)
       } else if (param.kind === 'select') {
-        input = document.createElement('select')
+        const input = document.createElement('select')
         input.className = 'input-field select-field'
         ;(param.options || []).forEach((opt) => {
           const option = document.createElement('option')
@@ -501,20 +568,57 @@ export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMov
           if ((step[param.name] ?? param.options[0]?.value) === opt.value) option.selected = true
           input.appendChild(option)
         })
+        input.addEventListener('change', () => {
+          step = { ...step, [param.name]: input.value }
+          onChange(index, step)
+
+          // Special: ai-prompt outputFormat controls visibility of systemPrompt
+          if (param.name === 'outputFormat') {
+            currentOutputFormat = input.value
+            const customGroup = paramsEl.querySelector('[data-param-name="systemPrompt"]')
+            if (customGroup) {
+              customGroup.style.display = input.value === 'custom' ? 'block' : 'none'
+            }
+          }
+        })
+        group.appendChild(input)
       } else {
-        input = document.createElement('input')
+        const input = document.createElement('input')
         input.type = 'text'
         input.className = 'input-field'
         input.value = step[param.name] ?? ''
         input.placeholder = param.placeholder || ''
+        input.addEventListener('input', () => {
+          step = { ...step, [param.name]: input.value }
+          onChange(index, step)
+        })
+        group.appendChild(input)
       }
 
-      const eventType = (input.tagName === 'SELECT') ? 'change' : 'input'
-      input.addEventListener(eventType, () => {
-        onChange(index, { ...step, [param.name]: input.value })
-      })
+      paramsEl.appendChild(group)
+    })
 
+    // ── Add hidden params (systemPrompt for ai-prompt) ──
+    def.params.filter(p => p.hidden).forEach((param) => {
+      const group = document.createElement('div')
+      group.className = 'param-group'
+      group.dataset.paramName = param.name
+      // Start hidden unless outputFormat is 'custom'
+      group.style.display = currentOutputFormat === 'custom' ? 'block' : 'none'
+
+      const labelEl = document.createElement('label')
+      labelEl.textContent = param.label
       group.appendChild(labelEl)
+
+      const input = document.createElement('textarea')
+      input.className = 'input-field'
+      input.rows = 3
+      input.value = step[param.name] ?? ''
+      input.placeholder = param.placeholder || ''
+      input.addEventListener('input', () => {
+        step = { ...step, [param.name]: input.value }
+        onChange(index, step)
+      })
       group.appendChild(input)
       paramsEl.appendChild(group)
     })

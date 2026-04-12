@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import electron from 'vite-plugin-electron/simple'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export default defineConfig({
   plugins: [
@@ -8,6 +12,19 @@ export default defineConfig({
       main: {
         // Shortcut of `build.lib.entry`.
         entry: 'electron/main.js',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: [
+                'node-cron',
+                'nodemailer',
+                'systeminformation',
+                'fast-xml-parser',
+                'js-yaml'
+              ]
+            }
+          }
+        }
       },
       preload: {
         // Shortcut of `build.rollupOptions.input`.
