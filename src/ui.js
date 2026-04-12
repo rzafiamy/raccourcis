@@ -650,16 +650,19 @@ export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMov
 // ── Palette list ──────────────────────────────────────────────────────────────
 
 const PALETTE_GROUPS = [
-  { label: 'Input',    types: ['clipboard-read', 'user-input', 'audio-record', 'file-picker', 'get-date'] },
+  { label: 'Input',    types: ['clipboard-read', 'user-input', 'audio-record', 'file-picker', 'folder-picker', 'get-date'] },
   { label: 'AI',       types: ['ai-prompt', 'image-gen', 'image-vision', 'tts', 'asr'] },
-  { label: 'Output',   types: ['clipboard-write', 'show-result', 'url-open', 'notification', 'file-write', 'reveal-file'] },
-  { label: 'Control',  types: ['wait', 'set-var', 'confirm-dialog', 'text-transform'] },
+  { label: 'Output',   types: ['clipboard-write', 'show-result', 'url-open', 'notification', 'file-write', 'reveal-file', 'app-launch'] },
+  { label: 'Control',  types: ['wait', 'set-var', 'confirm-dialog', 'text-transform', 'text-join'] },
+  { label: 'Files',    types: ['file-read', 'folder-list', 'image-clean'] },
+  { label: 'Data',     types: ['http-request', 'json-extract', 'regex-extract'] },
   { label: 'System',   types: ['shell'] },
   { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'weather', 'qr-code'] },
   { label: 'Google Workspace', types: ['google-calendar-list', 'gmail-send'] },
-  { label: 'GitLab', types: ['gitlab-list-issues', 'gitlab-list-mrs', 'gitlab-pipelines'] },
-  { label: 'Nextcloud', types: ['nextcloud-list-files', 'nextcloud-upload', 'nextcloud-note'] },
-  { label: 'Email', types: ['smtp-send'] },
+  { label: 'GitLab',   types: ['gitlab-list-issues', 'gitlab-list-mrs', 'gitlab-create-issue', 'gitlab-pipelines'] },
+  { label: 'Nextcloud', types: ['nextcloud-list-files', 'nextcloud-upload', 'nextcloud-note', 'nextcloud-create-folder'] },
+  { label: 'Supabase', types: ['supabase-select', 'supabase-insert', 'supabase-update', 'supabase-delete'] },
+  { label: 'Email',    types: ['smtp-send'] },
 ]
 
 export function buildPaletteList(filter, onPick) {

@@ -348,6 +348,57 @@ ipcMain.handle('store-load-config', async () => {
   }
 })
 
+// ── Folder / File utilities ────────────────────────────────────────────────────
+
+ipcMain.handle('folder-list', async (_, { path: folderPath, showHidden }) => {
+  try {
+    const resolved = folderPath.startsWith('~')
+      ? path.join(os.homedir(), folderPath.slice(1))
+      : folderPath
+    const entries = fs.readdirSync(resolved)
+    const filtered = showHidden ? entries : entries.filter(e => !e.startsWith('.'))
+    const full = filtered.map(e => path.join(resolved, e))
+    return { ok: true, entries: full }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('file-read-text', async (_, { path: filePath, encoding }) => {
+  try {
+    const resolved = filePath.startsWith('~')
+      ? path.join(os.homedir(), filePath.slice(1))
+      : filePath
+    const content = fs.readFileSync(resolved, encoding || 'utf8')
+    return { ok: true, content }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
+ipcMain.handle('app-launch', async (_, target) => {
+  try {
+    // If it looks like a file path or URL, use shell.openPath / openExternal
+    if (target.startsWith('/') || target.startsWith('~') || target.startsWith('http')) {
+      const resolved = target.startsWith('~') ? path.join(os.homedir(), target.slice(1)) : target
+      if (target.startsWith('http')) {
+        await shell.openExternal(resolved)
+      } else {
+        const res = await shell.openPath(resolved)
+        if (res) throw new Error(res)
+      }
+    } else {
+      // Treat as a command/app name — launch detached
+      exec(target, { detached: true }, (err) => {
+        if (err) console.warn('[main] app-launch error:', err.message)
+      })
+    }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+})
+
 // ── Shell execution ───────────────────────────────────────────────────────────
 
 

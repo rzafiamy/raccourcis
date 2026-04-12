@@ -53,6 +53,61 @@ export const ACTION_REGISTRY = [
     ],
   },
   {
+    type: 'folder-picker',
+    title: 'Pick Folder',
+    desc: 'Select a folder from your computer → result (folderPath)',
+    icon: 'folder-search',
+    color: '#0A84FF',
+    outputType: 'file',
+    defaults: { buttonLabel: 'Select Folder' },
+    params: [
+      { name: 'buttonLabel', label: 'Button Label', kind: 'text', placeholder: 'Select Folder' },
+    ],
+  },
+  {
+    type: 'folder-list',
+    title: 'List Folder',
+    desc: 'List files and sub-folders in a directory → result (newline-separated paths)',
+    icon: 'folder-open',
+    color: '#FF9F0A',
+    outputType: 'list',
+    defaults: { path: '{{result}}', showHidden: false },
+    params: [
+      { name: 'path', label: 'Folder path', kind: 'text', placeholder: '/home/user/Documents', acceptsVars: true },
+      {
+        name: 'showHidden',
+        label: 'Include hidden files',
+        kind: 'select',
+        options: [
+          { value: false, label: 'No' },
+          { value: true, label: 'Yes' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'file-read',
+    title: 'Read File',
+    desc: 'Read the contents of a local text file → result',
+    icon: 'file-text',
+    color: '#0A84FF',
+    outputType: 'text',
+    defaults: { path: '{{result}}', encoding: 'utf8' },
+    params: [
+      { name: 'path', label: 'File path', kind: 'text', placeholder: '/home/user/notes.txt', acceptsVars: true },
+      {
+        name: 'encoding',
+        label: 'Encoding',
+        kind: 'select',
+        options: [
+          { value: 'utf8', label: 'UTF-8' },
+          { value: 'ascii', label: 'ASCII' },
+          { value: 'base64', label: 'Base64' },
+        ],
+      },
+    ],
+  },
+  {
     type: 'notification',
     title: 'Show Notification',
     desc: 'Display a system notification',
@@ -474,6 +529,101 @@ export const ACTION_REGISTRY = [
     defaults: { varName: 'myVar' },
     params: [
       { name: 'varName', label: 'Variable name', kind: 'text', placeholder: 'myVar' },
+    ],
+  },
+
+  // ── Data / Text utilities ──────────────────────────────────────
+  {
+    type: 'http-request',
+    title: 'HTTP Request',
+    desc: 'Send an HTTP request and return the response body → result',
+    icon: 'globe',
+    color: '#5E5CE6',
+    outputType: 'text',
+    defaults: {
+      url: '{{result}}',
+      method: 'GET',
+      headers: '',
+      body: '',
+    },
+    params: [
+      { name: 'url', label: 'URL', kind: 'text', placeholder: 'https://api.example.com/data', acceptsVars: true },
+      {
+        name: 'method',
+        label: 'Method',
+        kind: 'select',
+        options: [
+          { value: 'GET',    label: 'GET' },
+          { value: 'POST',   label: 'POST' },
+          { value: 'PUT',    label: 'PUT' },
+          { value: 'PATCH',  label: 'PATCH' },
+          { value: 'DELETE', label: 'DELETE' },
+        ],
+      },
+      { name: 'headers', label: 'Headers (JSON object, optional)', kind: 'textarea', placeholder: '{"Authorization": "Bearer {{vars.token}}"}', acceptsVars: true },
+      { name: 'body', label: 'Request body (optional)', kind: 'textarea', placeholder: '{"key": "value"}', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'json-extract',
+    title: 'Extract from JSON',
+    desc: 'Extract a value from JSON using a dot-path → result',
+    icon: 'braces',
+    color: '#32D74B',
+    outputType: 'text',
+    defaults: { json: '{{result}}', path: '' },
+    params: [
+      { name: 'json', label: 'JSON input', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'path', label: 'Dot-path (e.g. data.items.0.name)', kind: 'text', placeholder: 'data.name' },
+    ],
+  },
+  {
+    type: 'regex-extract',
+    title: 'Regex Extract',
+    desc: 'Extract text using a regular expression → result (first match or all matches)',
+    icon: 'scan-text',
+    color: '#FF9F0A',
+    outputType: 'text',
+    defaults: { text: '{{result}}', pattern: '', flags: 'g', mode: 'first' },
+    params: [
+      { name: 'text', label: 'Input text', kind: 'textarea', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'pattern', label: 'Regex pattern', kind: 'text', placeholder: '\\d+' },
+      { name: 'flags', label: 'Flags (e.g. g, gi, gm)', kind: 'text', placeholder: 'g' },
+      {
+        name: 'mode',
+        label: 'Mode',
+        kind: 'select',
+        options: [
+          { value: 'first',   label: 'First match' },
+          { value: 'all',     label: 'All matches (newline-separated)' },
+          { value: 'groups',  label: 'Capture groups (JSON array)' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'text-join',
+    title: 'Join Text',
+    desc: 'Concatenate multiple values with a separator → result',
+    icon: 'combine',
+    color: '#32D74B',
+    outputType: 'text',
+    defaults: { parts: '{{result}}', separator: '\n' },
+    params: [
+      { name: 'parts', label: 'Values (one per line, or use {{vars.x}})', kind: 'textarea', placeholder: '{{vars.firstName}}\n{{vars.lastName}}', acceptsVars: true },
+      { name: 'separator', label: 'Separator', kind: 'text', placeholder: ' ' },
+    ],
+  },
+  {
+    type: 'app-launch',
+    title: 'Launch App',
+    desc: 'Open an application or file with its default handler',
+    icon: 'rocket',
+    color: '#FF9F0A',
+    outputType: null,
+    defaults: { target: '' },
+    params: [
+      { name: 'target', label: 'App name, command, or file path', kind: 'text', placeholder: 'gedit, /usr/bin/vlc, or /home/user/doc.pdf', acceptsVars: true },
     ],
   },
 

@@ -332,6 +332,40 @@ const EXECUTORS = {
     ctx.result = res.filePaths[0]
   },
 
+  'folder-picker': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const res = await window.ipcRenderer.showOpenDialog({
+      properties: ['openDirectory'],
+      buttonLabel: s.buttonLabel || 'Select Folder'
+    })
+    if (res.canceled) throw new Error('User cancelled folder selection.')
+    ctx.result = res.filePaths[0]
+  },
+
+  'folder-list': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const folderPath = s.path || ctx.result
+    if (!folderPath) throw new Error('Folder List: no path provided.')
+    const result = await window.ipcRenderer.invoke('folder-list', {
+      path: folderPath,
+      showHidden: s.showHidden === true || s.showHidden === 'true',
+    })
+    if (!result.ok) throw new Error(result.error)
+    ctx.result = result.entries.join('\n')
+  },
+
+  'file-read': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const filePath = s.path || ctx.result
+    if (!filePath) throw new Error('File Read: no path provided.')
+    const result = await window.ipcRenderer.invoke('file-read-text', {
+      path: filePath,
+      encoding: s.encoding || 'utf8',
+    })
+    if (!result.ok) throw new Error(result.error)
+    ctx.result = result.content
+  },
+
   'notification': async (step, ctx, _opts) => {
     const s = interpolateStep(step, ctx)
     new Notification(s.title || 'Notification', {
@@ -511,6 +545,74 @@ const EXECUTORS = {
     }
 
     ctx.result = await callVision(imageUrl, s.prompt, s.systemPrompt, s.model, opts.signal, opts.onDebug)
+  },
+
+  'http-request': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const url = s.url || ctx.result
+    if (!url) throw new Error('HTTP Request: no URL provided.')
+    const method = (s.method || 'GET').toUpperCase()
+    let headers = {}
+    if (s.headers) {
+      try { headers = JSON.parse(s.headers) } catch { throw new Error('HTTP Request: headers must be valid JSON.') }
+    }
+    const fetchOpts = { method, headers: { 'Content-Type': 'application/json', ...headers }, signal: opts.signal }
+    if (method !== 'GET' && method !== 'DELETE' && s.body) fetchOpts.body = s.body
+    const res = await fetch(url, fetchOpts)
+    const text = await res.text()
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`)
+    ctx.result = text
+  },
+
+  'json-extract': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const raw = s.json || ctx.result
+    if (!raw) throw new Error('JSON Extract: no input provided.')
+    let obj
+    try { obj = JSON.parse(raw) } catch { throw new Error('JSON Extract: input is not valid JSON.') }
+    const parts = (s.path || '').split('.').filter(Boolean)
+    let val = obj
+    for (const part of parts) {
+      if (val === undefined || val === null) break
+      val = val[part]
+    }
+    ctx.result = val === undefined ? '' : (typeof val === 'string' ? val : JSON.stringify(val, null, 2))
+  },
+
+  'regex-extract': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const text = s.text || ctx.result
+    if (!text) throw new Error('Regex Extract: no text provided.')
+    if (!s.pattern) throw new Error('Regex Extract: no pattern provided.')
+    const flags = (s.flags || 'g').replace(/[^gimsuy]/g, '')
+    const re = new RegExp(s.pattern, flags.includes('g') ? flags : flags + 'g')
+    const mode = s.mode || 'first'
+    if (mode === 'first') {
+      const m = text.match(new RegExp(s.pattern, flags.replace('g', '')))
+      ctx.result = m ? m[0] : ''
+    } else if (mode === 'all') {
+      const matches = [...text.matchAll(re)].map(m => m[0])
+      ctx.result = matches.join('\n')
+    } else if (mode === 'groups') {
+      const matches = [...text.matchAll(re)].map(m => Array.from(m).slice(1))
+      ctx.result = JSON.stringify(matches)
+    }
+  },
+
+  'text-join': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const raw = s.parts || ctx.result
+    const separator = s.separator !== undefined ? s.separator : '\n'
+    // Split by literal newlines in the parts field (each line is one value after interpolation)
+    const lines = raw.split('\n').filter(l => l.trim() !== '')
+    ctx.result = lines.join(separator)
+  },
+
+  'app-launch': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const target = s.target || ctx.result
+    if (!target) throw new Error('App Launch: no target provided.')
+    await window.ipcRenderer.invoke('app-launch', target)
   },
 
   // ── Services ──────────────────────────────────────────────────────────────────
