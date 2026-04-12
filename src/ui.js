@@ -389,11 +389,12 @@ export function buildStepCard(step, index, { onChange, onRemove, onMoveUp, onMov
 // ── Palette list ──────────────────────────────────────────────────────────────
 
 const PALETTE_GROUPS = [
-  { label: 'Input',   types: ['clipboard-read', 'user-input'] },
-  { label: 'AI',      types: ['ai-prompt', 'image-gen', 'image-vision', 'tts', 'asr'] },
-  { label: 'Output',  types: ['clipboard-write', 'show-result', 'url-open'] },
-  { label: 'Control', types: ['wait', 'set-var'] },
-  { label: 'System',  types: ['shell'] },
+  { label: 'Input',    types: ['clipboard-read', 'user-input'] },
+  { label: 'AI',       types: ['ai-prompt', 'image-gen', 'image-vision', 'tts', 'asr'] },
+  { label: 'Output',   types: ['clipboard-write', 'show-result', 'url-open'] },
+  { label: 'Control',  types: ['wait', 'set-var'] },
+  { label: 'System',   types: ['shell'] },
+  { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'google-calendar-list', 'gmail-send', 'weather', 'smtp-send'] },
 ]
 
 export function buildPaletteList(filter, onPick) {

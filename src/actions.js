@@ -307,6 +307,150 @@ export const ACTION_REGISTRY = [
       { name: 'varName', label: 'Variable name', kind: 'text', placeholder: 'myVar' },
     ],
   },
+
+  // ── Services ────────────────────────────────────────────────────
+  {
+    type: 'firecrawl-scrape',
+    title: 'Firecrawl Scrape',
+    desc: 'Scrape a URL and return clean markdown (Firecrawl) → result',
+    icon: 'flame',
+    color: '#FF4500',
+    defaults: {
+      url: '{{result}}',
+      formats: 'markdown',
+    },
+    params: [
+      { name: 'url', label: 'URL to scrape (use {{result}})', kind: 'text', placeholder: 'https://example.com' },
+      {
+        name: 'formats',
+        label: 'Output format',
+        kind: 'select',
+        options: [
+          { value: 'markdown', label: 'Markdown' },
+          { value: 'html', label: 'HTML' },
+          { value: 'rawHtml', label: 'Raw HTML' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'google-search',
+    title: 'Google Search',
+    desc: 'Search Google via Custom Search API → JSON results',
+    icon: 'search',
+    color: '#4285F4',
+    defaults: {
+      query: '{{result}}',
+      numResults: 5,
+    },
+    params: [
+      { name: 'query', label: 'Search query (use {{result}})', kind: 'text', placeholder: 'latest news on AI' },
+      { name: 'numResults', label: 'Number of results (1–10)', kind: 'number', placeholder: '5' },
+    ],
+  },
+  {
+    type: 'youtube-search',
+    title: 'YouTube Search',
+    desc: 'Search YouTube for videos → result with titles and URLs',
+    icon: 'youtube',
+    color: '#FF0000',
+    defaults: {
+      query: '{{result}}',
+      maxResults: 5,
+    },
+    params: [
+      { name: 'query', label: 'Search query (use {{result}})', kind: 'text', placeholder: 'how to make pizza' },
+      { name: 'maxResults', label: 'Max results (1–50)', kind: 'number', placeholder: '5' },
+    ],
+  },
+  {
+    type: 'wikipedia-search',
+    title: 'Wikipedia Search',
+    desc: 'Search Wikipedia and get article summary → result',
+    icon: 'book-open',
+    color: '#A7C7E7',
+    defaults: {
+      query: '{{result}}',
+      sentences: 5,
+    },
+    params: [
+      { name: 'query', label: 'Search query (use {{result}})', kind: 'text', placeholder: 'Eiffel Tower' },
+      { name: 'sentences', label: 'Summary sentences', kind: 'number', placeholder: '5' },
+    ],
+  },
+  {
+    type: 'google-calendar-list',
+    title: 'List Calendar Events',
+    desc: 'Fetch upcoming Google Calendar events → result',
+    icon: 'calendar-days',
+    color: '#0F9D58',
+    defaults: {
+      maxResults: 10,
+      timeMin: '',
+    },
+    params: [
+      { name: 'maxResults', label: 'Max events', kind: 'number', placeholder: '10' },
+      { name: 'timeMin', label: 'From date (ISO 8601, leave blank for now)', kind: 'text', placeholder: '2024-01-01T00:00:00Z' },
+    ],
+  },
+  {
+    type: 'gmail-send',
+    title: 'Send Gmail',
+    desc: 'Send an email via Gmail API',
+    icon: 'mail',
+    color: '#EA4335',
+    defaults: {
+      to: '',
+      subject: '',
+      body: '{{result}}',
+    },
+    params: [
+      { name: 'to', label: 'To (email address)', kind: 'text', placeholder: 'recipient@example.com' },
+      { name: 'subject', label: 'Subject', kind: 'text', placeholder: 'Hello from Raccourcis' },
+      { name: 'body', label: 'Body (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+    ],
+  },
+  {
+    type: 'weather',
+    title: 'Get Weather',
+    desc: 'Fetch current weather for a location (OpenWeatherMap) → result',
+    icon: 'cloud-sun',
+    color: '#FFB347',
+    defaults: {
+      location: '{{result}}',
+      units: 'metric',
+    },
+    params: [
+      { name: 'location', label: 'City or location (use {{result}})', kind: 'text', placeholder: 'Paris, FR' },
+      {
+        name: 'units',
+        label: 'Units',
+        kind: 'select',
+        options: [
+          { value: 'metric', label: 'Metric (°C)' },
+          { value: 'imperial', label: 'Imperial (°F)' },
+          { value: 'standard', label: 'Standard (K)' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'smtp-send',
+    title: 'Send SMTP Email',
+    desc: 'Send an email via SMTP (custom mail server)',
+    icon: 'send',
+    color: '#5E5CE6',
+    defaults: {
+      to: '',
+      subject: '',
+      body: '{{result}}',
+    },
+    params: [
+      { name: 'to', label: 'To (email address)', kind: 'text', placeholder: 'recipient@example.com' },
+      { name: 'subject', label: 'Subject', kind: 'text', placeholder: 'Hello from Raccourcis' },
+      { name: 'body', label: 'Body (use {{result}})', kind: 'textarea', placeholder: '{{result}}' },
+    ],
+  },
 ]
 
 export function getActionDef(type) {

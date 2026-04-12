@@ -50,6 +50,22 @@ const settingsBaseUrl = document.getElementById('aiBaseUrl')
 const settingsApiKey  = document.getElementById('aiApiKey')
 const settingsModel   = document.getElementById('aiModel')
 
+// Service settings fields
+const sFirecrawlKey    = document.getElementById('firecrawlApiKey')
+const sFirecrawlUrl    = document.getElementById('firecrawlBaseUrl')
+const sGoogleApiKey    = document.getElementById('googleApiKey')
+const sGoogleCseId     = document.getElementById('googleCseId')
+const sYoutubeApiKey   = document.getElementById('youtubeApiKey')
+const sCalendarToken   = document.getElementById('googleCalendarToken')
+const sGmailToken      = document.getElementById('gmailToken')
+const sWeatherKey      = document.getElementById('openWeatherApiKey')
+const sSmtpHost        = document.getElementById('smtpHost')
+const sSmtpPort        = document.getElementById('smtpPort')
+const sSmtpSecure      = document.getElementById('smtpSecure')
+const sSmtpUser        = document.getElementById('smtpUser')
+const sSmtpPass        = document.getElementById('smtpPass')
+const sSmtpFrom        = document.getElementById('smtpFrom')
+
 // ── Window controls ───────────────────────────────────────────────────────────
 
 document.getElementById('winClose').addEventListener('click', () => window.ipcRenderer.send('window-close'))
@@ -332,6 +348,21 @@ function openSettings() {
   settingsBaseUrl.value = cfg.baseUrl
   settingsApiKey.value  = cfg.apiKey
   settingsModel.value   = cfg.model
+  // Services
+  sFirecrawlKey.value   = cfg.firecrawlApiKey || ''
+  sFirecrawlUrl.value   = cfg.firecrawlBaseUrl || ''
+  sGoogleApiKey.value   = cfg.googleApiKey || ''
+  sGoogleCseId.value    = cfg.googleCseId || ''
+  sYoutubeApiKey.value  = cfg.youtubeApiKey || ''
+  sCalendarToken.value  = cfg.googleCalendarToken || ''
+  sGmailToken.value     = cfg.gmailToken || ''
+  sWeatherKey.value     = cfg.openWeatherApiKey || ''
+  sSmtpHost.value       = cfg.smtpHost || ''
+  sSmtpPort.value       = cfg.smtpPort || 587
+  sSmtpSecure.value     = String(cfg.smtpSecure || false)
+  sSmtpUser.value       = cfg.smtpUser || ''
+  sSmtpPass.value       = cfg.smtpPass || ''
+  sSmtpFrom.value       = cfg.smtpFrom || ''
   settingsModal.style.display = 'flex'
 }
 
@@ -341,9 +372,23 @@ document.getElementById('closeSettings').addEventListener('click', () => {
 
 document.getElementById('saveSettings').addEventListener('click', () => {
   saveConfig({
-    baseUrl: settingsBaseUrl.value.trim(),
-    apiKey:  settingsApiKey.value.trim(),
-    model:   settingsModel.value.trim(),
+    baseUrl:              settingsBaseUrl.value.trim(),
+    apiKey:               settingsApiKey.value.trim(),
+    model:                settingsModel.value.trim(),
+    firecrawlApiKey:      sFirecrawlKey.value.trim(),
+    firecrawlBaseUrl:     sFirecrawlUrl.value.trim(),
+    googleApiKey:         sGoogleApiKey.value.trim(),
+    googleCseId:          sGoogleCseId.value.trim(),
+    youtubeApiKey:        sYoutubeApiKey.value.trim(),
+    googleCalendarToken:  sCalendarToken.value.trim(),
+    gmailToken:           sGmailToken.value.trim(),
+    openWeatherApiKey:    sWeatherKey.value.trim(),
+    smtpHost:             sSmtpHost.value.trim(),
+    smtpPort:             Number(sSmtpPort.value) || 587,
+    smtpSecure:           sSmtpSecure.value === 'true',
+    smtpUser:             sSmtpUser.value.trim(),
+    smtpPass:             sSmtpPass.value,
+    smtpFrom:             sSmtpFrom.value.trim(),
   })
   settingsModal.style.display = 'none'
 })
@@ -385,4 +430,4 @@ document.addEventListener('keydown', (e) => {
 
 renderGrid()
 refreshIcons()
-console.log('[Raccourci] renderer ready')
+console.log('[Raccourcis] renderer ready')

@@ -5,15 +5,37 @@
  */
 
 const KEYS = {
-  shortcuts: 'raccourci_shortcuts',
-  config: 'raccourci_config',
-  runs: 'raccourci_runs',
+  shortcuts: 'raccourcis_shortcuts',
+  config: 'raccourcis_config',
+  runs: 'raccourcis_runs',
 }
 
 const DEFAULT_CONFIG = {
+  // AI provider
   baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
   model: 'gpt-4o-mini',
+  // Firecrawl
+  firecrawlApiKey: '',
+  firecrawlBaseUrl: 'https://api.firecrawl.dev',
+  // Google Custom Search
+  googleApiKey: '',
+  googleCseId: '',
+  // YouTube
+  youtubeApiKey: '',
+  // Google Calendar
+  googleCalendarToken: '',
+  // Gmail
+  gmailToken: '',
+  // OpenWeatherMap
+  openWeatherApiKey: '',
+  // SMTP
+  smtpHost: '',
+  smtpPort: 587,
+  smtpSecure: false,
+  smtpUser: '',
+  smtpPass: '',
+  smtpFrom: '',
 }
 
 export const DEFAULT_SHORTCUTS = [

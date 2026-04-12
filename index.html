@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
     content="script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
-  <title>Raccourci</title>
+  <title>Raccourcis</title>
   <link rel="stylesheet" href="./src/style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -22,7 +22,7 @@
 
     <div class="sidebar-logo">
       <i data-lucide="zap"></i>
-      <span>Raccourci</span>
+      <span>Raccourcis</span>
     </div>
 
     <div class="sidebar-section-label">Library</div>
@@ -137,12 +137,15 @@
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-content settings-modal">
     <div class="modal-header">
-      <h2>AI Settings</h2>
+      <h2>Settings</h2>
       <button class="action-btn" id="closeSettings" title="Close">
         <i data-lucide="x"></i>
       </button>
     </div>
     <div class="modal-body">
+
+      <!-- ── AI ── -->
+      <div class="settings-section-title">AI Provider</div>
       <p class="settings-hint">
         Works with any OpenAI-compatible endpoint (OpenAI, Mistral, Ollama, etc.)
       </p>
@@ -158,6 +161,94 @@
         <label>Model</label>
         <input class="input-field" id="aiModel" type="text" placeholder="gpt-4o-mini">
       </div>
+
+      <!-- ── Firecrawl ── -->
+      <div class="settings-section-title">Firecrawl</div>
+      <p class="settings-hint">Web scraping API — get an API key at firecrawl.dev</p>
+      <div class="form-group">
+        <label>Firecrawl API Key</label>
+        <input class="input-field" id="firecrawlApiKey" type="password" placeholder="fc-…">
+      </div>
+      <div class="form-group">
+        <label>Firecrawl Base URL (optional)</label>
+        <input class="input-field" id="firecrawlBaseUrl" type="text" placeholder="https://api.firecrawl.dev">
+      </div>
+
+      <!-- ── Google Search ── -->
+      <div class="settings-section-title">Google Custom Search</div>
+      <p class="settings-hint">Requires a Google API key with Custom Search JSON API enabled and a CSE ID</p>
+      <div class="form-group">
+        <label>Google API Key</label>
+        <input class="input-field" id="googleApiKey" type="password" placeholder="AIza…">
+      </div>
+      <div class="form-group">
+        <label>Custom Search Engine ID (cx)</label>
+        <input class="input-field" id="googleCseId" type="text" placeholder="017576662512468239146:…">
+      </div>
+
+      <!-- ── YouTube ── -->
+      <div class="settings-section-title">YouTube Data API</div>
+      <p class="settings-hint">Requires a Google API key with YouTube Data API v3 enabled</p>
+      <div class="form-group">
+        <label>YouTube API Key</label>
+        <input class="input-field" id="youtubeApiKey" type="password" placeholder="AIza…">
+      </div>
+
+      <!-- ── Google Calendar ── -->
+      <div class="settings-section-title">Google Calendar</div>
+      <p class="settings-hint">OAuth 2.0 Bearer token with calendar.readonly scope</p>
+      <div class="form-group">
+        <label>Google Calendar Token</label>
+        <input class="input-field" id="googleCalendarToken" type="password" placeholder="ya29.…">
+      </div>
+
+      <!-- ── Gmail ── -->
+      <div class="settings-section-title">Gmail</div>
+      <p class="settings-hint">OAuth 2.0 Bearer token with gmail.send scope</p>
+      <div class="form-group">
+        <label>Gmail Token</label>
+        <input class="input-field" id="gmailToken" type="password" placeholder="ya29.…">
+      </div>
+
+      <!-- ── OpenWeatherMap ── -->
+      <div class="settings-section-title">OpenWeatherMap</div>
+      <p class="settings-hint">Free API key at openweathermap.org</p>
+      <div class="form-group">
+        <label>OpenWeatherMap API Key</label>
+        <input class="input-field" id="openWeatherApiKey" type="password" placeholder="abcdef1234…">
+      </div>
+
+      <!-- ── SMTP ── -->
+      <div class="settings-section-title">SMTP (Custom Mail Server)</div>
+      <p class="settings-hint">For sending emails via your own SMTP server</p>
+      <div class="form-group">
+        <label>SMTP Host</label>
+        <input class="input-field" id="smtpHost" type="text" placeholder="smtp.example.com">
+      </div>
+      <div class="form-group">
+        <label>SMTP Port</label>
+        <input class="input-field" id="smtpPort" type="number" placeholder="587">
+      </div>
+      <div class="form-group">
+        <label>Use TLS / SSL</label>
+        <select class="input-field select-field" id="smtpSecure">
+          <option value="false">No (STARTTLS on port 587)</option>
+          <option value="true">Yes (SSL on port 465)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>SMTP Username</label>
+        <input class="input-field" id="smtpUser" type="text" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label>SMTP Password</label>
+        <input class="input-field" id="smtpPass" type="password" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label>From Address (optional)</label>
+        <input class="input-field" id="smtpFrom" type="text" placeholder="Me &lt;me@example.com&gt;">
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger" id="restoreDefaults">Restore Default Shortcuts</button>

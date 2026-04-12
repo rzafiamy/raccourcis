@@ -1,8 +1,8 @@
-# Raccourci 🚀
+# Raccourcis 🚀
 
 A powerful, Apple-like Shortcuts application for Ubuntu Linux, built with Electron and Vite. Combine system workflows with AI endpoints to perform complex operations with simplicity.
 
-![Raccourci UI Mockup](https://raw.githubusercontent.com/rzafiamy/raccourci/main/preview.png)
+![Raccourci UI Mockup](https://raw.githubusercontent.com/rzafiamy/raccourcis/main/preview.png)
 
 ## Features
 
@@ -23,10 +23,10 @@ A powerful, Apple-like Shortcuts application for Ubuntu Linux, built with Electr
 
 ```bash
 # Clone the repository
-git clone https://github.com/rzafiamy/raccourci.git
+git clone https://github.com/rzafiamy/raccourcis.git
 
 # Navigate to the project directory
-cd raccourci
+cd raccourcis
 
 # Install dependencies
 npm install
