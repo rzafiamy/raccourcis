@@ -67,6 +67,9 @@
     <a href="#" class="nav-item" id="openSettings">
       <i data-lucide="settings"></i><span>Settings</span>
     </a>
+    <a href="#" class="nav-item" id="navHelp" data-view="help">
+      <i data-lucide="help-circle"></i><span>Help Center</span>
+    </a>
     <a href="#" class="nav-item" id="openAbout">
       <i data-lucide="info"></i><span>About</span>
     </a>
@@ -186,6 +189,138 @@
       </div>
       <div class="cron-list" id="cronListContainer">
         <!-- Cron items will be injected here -->
+      </div>
+    </div>
+
+    <!-- Help View -->
+    <div id="helpView" class="view-content" style="display: none;">
+      <div class="help-landing">
+        
+        <!-- Hero Section -->
+        <section class="help-hero-section">
+          <div class="help-hero-text">
+            <h1>Master Your <span class="text-gradient">Workflow</span></h1>
+            <p>Welcome to the Raccourcis Help Center. Learn how to automate your Ubuntu Linux experience with powerful shortcuts and AI-driven workflows.</p>
+            <div class="help-hero-badges">
+              <span class="badge-glass"><i data-lucide="zap"></i> Fast</span>
+              <span class="badge-glass"><i data-lucide="sparkles"></i> AI-Powered</span>
+              <span class="badge-glass"><i data-lucide="shield-check"></i> Private</span>
+            </div>
+          </div>
+          <div class="help-hero-image">
+            <img src="./src/assets/help_hero.png" alt="Automation Hero">
+          </div>
+        </section>
+
+        <!-- Concept Grid -->
+        <section class="help-grid-section">
+          <h2 class="section-title">The Hierarchy of Automation</h2>
+          <div class="concept-cards-grid">
+            <div class="concept-card-large">
+              <div class="concept-card-icon bg-blue-soft"><i data-lucide="zap"></i></div>
+              <h3>Shortcut</h3>
+              <p>The top-level container. Your named workflow, ready to be triggered manually or via cron.</p>
+              <img src="./src/assets/help_workflow.png" class="concept-card-img" alt="Workflow Concept">
+            </div>
+            <div class="concept-card-list">
+              <div class="concept-card-mini">
+                <div class="mini-icon bg-purple-soft"><i data-lucide="layers"></i></div>
+                <div>
+                  <h4>Actions</h4>
+                  <p>Individual tasks like reading clipboard or calling AI.</p>
+                </div>
+              </div>
+              <div class="concept-card-mini">
+                <div class="mini-icon bg-green-soft"><i data-lucide="list"></i></div>
+                <div>
+                  <h4>Steps</h4>
+                  <p>The sequence of actions. Data flows from top to bottom.</p>
+                </div>
+              </div>
+              <div class="concept-card-mini">
+                <div class="mini-icon bg-cyan-soft"><i data-lucide="terminal"></i></div>
+                <div>
+                  <h4>Output</h4>
+                  <p>The final result (Text, Image, etc.).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="help-features-section">
+          <div class="help-feature-split">
+            <div class="help-feature-content">
+              <h2>Action Categories</h2>
+              <p>Explore dozens of actions to build your perfect automation.</p>
+              <div class="category-pills">
+                <span class="cat-pill"><i data-lucide="sparkles"></i> AI & Text</span>
+                <span class="cat-pill"><i data-lucide="folder"></i> File Ops</span>
+                <span class="cat-pill"><i data-lucide="mail"></i> Email</span>
+                <span class="cat-pill"><i data-lucide="globe"></i> Web</span>
+                <span class="cat-pill"><i data-lucide="terminal"></i> Shell</span>
+              </div>
+              <p class="mt-4">Chain them together: Use the <strong>Variable Picker</strong> <code>{v}</code> to pass data between steps.</p>
+            </div>
+            <div class="help-feature-visual">
+              <img src="./src/assets/help_ai.png" alt="AI Assistant">
+            </div>
+          </div>
+        </section>
+
+        <!-- Tips and Tricks -->
+        <section class="help-tips-section">
+          <h2 class="section-title">Tips & Tricks</h2>
+          <div class="tips-grid-modern">
+            <div class="tip-modern-card">
+              <i data-lucide="mouse-pointer-2"></i>
+              <h4>Quick Edit</h4>
+              <p>Shift + Click on any shortcut card to open the editor instantly.</p>
+            </div>
+            <div class="tip-modern-card">
+              <i data-lucide="repeat"></i>
+              <h4>Auto-Pilot</h4>
+              <p>Use the Cron Tasks view to schedule backups or daily reports.</p>
+            </div>
+            <div class="tip-modern-card">
+              <i data-lucide="copy"></i>
+              <h4>Variable Chaining</h4>
+              <p>Any step that produces output can be referenced in later steps.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Possibilities & Limits -->
+        <section class="help-limits-section">
+          <div class="limits-card-dual">
+            <div class="limits-half">
+              <h3><i data-lucide="check-circle" class="text-green"></i> What's Possible</h3>
+              <ul>
+                <li>Local file management</li>
+                <li>System shell scripts</li>
+                <li>AI content generation</li>
+                <li>Web scraping & search</li>
+              </ul>
+            </div>
+            <div class="limits-divider"></div>
+            <div class="limits-half">
+              <h3><i data-lucide="alert-triangle" class="text-pink"></i> Known Limits</h3>
+              <ul>
+                <li>Requires API keys for AI</li>
+                <li>Restricted sudo access</li>
+                <li>No UI manipulation</li>
+                <li>Ubuntu specific actions</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <footer class="help-footer">
+          <p>Created with ❤️ by the Raccourcis Team</p>
+          <button class="btn btn-ghost" id="backToGrid">Back to Shortcuts</button>
+        </footer>
+
       </div>
     </div>
   </main>
@@ -643,6 +778,8 @@
     </div>
   </div>
 </div>
+
+<!-- Help Modal removed -->
 
 <script type="module" src="./src/renderer.js"></script>
 </body>

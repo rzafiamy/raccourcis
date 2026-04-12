@@ -90,8 +90,8 @@ const sNextcloudPassword  = document.getElementById('nextcloudPassword')
 const sSupabaseUrl     = document.getElementById('supabaseUrl')
 const sSupabaseAnon    = document.getElementById('supabaseAnonKey')
 const sSupabaseService = document.getElementById('supabaseServiceKey')
-const sSupabaseUser    = document.getElementById('supabaseUserId')
 const aboutModal       = document.getElementById('aboutModal')
+// helpModal removed, now a view
 
 
 
@@ -151,6 +151,7 @@ function switchToView(view) {
   grid.style.display = view === 'grid' ? 'grid' : 'none'
   document.getElementById('dashboardView').style.display = view === 'dashboard' ? 'block' : 'none'
   document.getElementById('cronView').style.display = view === 'cron' ? 'block' : 'none'
+  document.getElementById('helpView').style.display = view === 'help' ? 'block' : 'none'
   
   // Hide/show header actions if needed
   document.querySelector('.header-actions').style.display = view === 'grid' ? 'flex' : 'none'
@@ -170,6 +171,22 @@ document.getElementById('openAbout').addEventListener('click', (e) => {
 document.getElementById('closeAbout').addEventListener('click', () => {
   aboutModal.style.display = 'none'
 })
+
+document.getElementById('navHelp').addEventListener('click', (e) => {
+  e.preventDefault()
+  switchToView('help')
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
+  document.getElementById('navHelp').classList.add('active')
+  mainTitle.textContent = 'Help Center'
+  refreshIcons(document.getElementById('helpView'))
+})
+
+document.getElementById('backToGrid').addEventListener('click', () => {
+  const allNav = document.querySelector('.nav-item[data-category="all"]')
+  if (allNav) allNav.click()
+})
+
+// Help Modal logic removed (Help is now a view)
 
 
 // ── Settings Tab Switching ───────────────────────────────────────────────────
