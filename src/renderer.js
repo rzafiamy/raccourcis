@@ -100,12 +100,17 @@ document.getElementById('winMaximize').addEventListener('click', () => window.ip
 // ── Sidebar navigation ────────────────────────────────────────────────────────
 
 document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
-  item.addEventListener('click', (e) => {
+  item.addEventListener('click', async (e) => {
     e.preventDefault()
     document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
     item.classList.add('active')
     currentCategory = item.dataset.category
     mainTitle.textContent = item.querySelector('span').textContent
+
+    // Dynamic refresh for local files
+    if (currentCategory === 'filesystem') {
+      await loadAndMergeShortcuts()
+    }
     renderGrid()
   })
 })
@@ -619,15 +624,14 @@ async function init() {
 
 async function loadAndMergeShortcuts() {
   const discovered = await window.ipcRenderer.discoverShortcuts()
+  
+  // To support true 'refresh', we first clear existing filesystem shortcuts
+  // currently in memory so that deleted files correctly disappear.
+  shortcuts = shortcuts.filter(s => !s.isFileSystem)
+
   if (discovered && discovered.length > 0) {
-    // Merge: file-system shortcuts override or supplement local ones by ID
     discovered.forEach(ds => {
-      const existingIdx = shortcuts.findIndex(s => s.id === ds.id)
-      if (existingIdx !== -1) {
-        shortcuts[existingIdx] = ds
-      } else {
-        shortcuts.push(ds)
-      }
+      shortcuts.push(ds)
     })
   }
 }

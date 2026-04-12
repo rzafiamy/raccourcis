@@ -306,7 +306,7 @@ const EXECUTORS = {
     const value = await opts.promptUser({
       label: s.label || 'Your input',
       placeholder: s.placeholder || '',
-      prefill: ctx.result,
+      prefill: s.prefill !== undefined ? s.prefill : ctx.result,
     })
     if (value === null) throw new Error('User cancelled input.')
     ctx.result = value

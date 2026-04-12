@@ -85,6 +85,7 @@ export const ACTION_REGISTRY = [
     params: [
       { name: 'label', label: 'Dialog Label', kind: 'text', placeholder: 'Your input' },
       { name: 'placeholder', label: 'Placeholder text', kind: 'text', placeholder: 'Type here...' },
+      { name: 'prefill', label: 'Initial value', kind: 'text', placeholder: 'Leave empty to use previous result' },
     ],
   },
 
