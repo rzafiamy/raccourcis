@@ -20,6 +20,7 @@ import {
 
 import { refreshDashboard } from './dashboard.js'
 import { refreshCronList, openCronEditor, saveCron } from './cron.js'
+import { refreshTraces, clearTraceHistory } from './traces.js'
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -146,11 +147,25 @@ document.getElementById('navCron').addEventListener('click', (e) => {
   refreshCronList(shortcuts)
 })
 
+document.getElementById('navTraces').addEventListener('click', (e) => {
+  e.preventDefault()
+  switchToView('traces')
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
+  document.getElementById('navTraces').classList.add('active')
+  mainTitle.textContent = 'Traces'
+  refreshTraces()
+})
+
+document.getElementById('clearTracesBtn').addEventListener('click', () => {
+  clearTraceHistory()
+})
+
 function switchToView(view) {
   currentView = view
   grid.style.display = view === 'grid' ? 'grid' : 'none'
   document.getElementById('dashboardView').style.display = view === 'dashboard' ? 'block' : 'none'
   document.getElementById('cronView').style.display = view === 'cron' ? 'block' : 'none'
+  document.getElementById('tracesView').style.display = view === 'traces' ? 'flex' : 'none'
   document.getElementById('helpView').style.display = view === 'help' ? 'block' : 'none'
   
   // Hide/show header actions if needed

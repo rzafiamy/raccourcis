@@ -127,6 +127,10 @@ export function appendRun(run) {
   localStorage.setItem(KEYS.runs, JSON.stringify(runs))
 }
 
+export function clearRuns() {
+  localStorage.setItem(KEYS.runs, JSON.stringify([]))
+}
+
 // --- Export / Import ---
 
 export async function exportData() {
