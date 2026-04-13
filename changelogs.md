@@ -1,5 +1,22 @@
 # Raccourcis — Changelogs
 
+## v1.3.0 — 2026-04-13
+### 🚀 New Features
+- **Multimedia Automation**: 
+  - Audio extraction from video.
+  - MP3 metadata tagging and artwork merging.
+  - Image compression and format conversion via `mogrify`.
+- **Tondro File Sharing**: Integrated Supabase-backed file sharing with password protection and auto-expiration options.
+- **Data Visualization**: Native "Plot Chart" action using Chart.js for rendering dynamic graphs from JSON data.
+- **Social Media Hub**: Collection of 20+ new automation shortcuts for content creation and trend analysis.
+- **Enhanced Formatting**: Added support for Markdown tables in the output renderer.
+
+### 🛠️ Improvements & Fixes
+- **URL Processing**: Added `url-encode` and `url-decode` utility actions.
+- **Fuel Price Intelligence**: Implemented French government open data integration for real-time fuel price monitoring.
+
+---
+
 ## v1.2.0 — 2026-04-12
 ### 🚀 New Features
 - **Traces Execution Logs**: Human-readable history of executed shortcuts with step-by-step inputs, outputs, and durations.
