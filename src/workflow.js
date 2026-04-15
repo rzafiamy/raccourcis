@@ -286,6 +286,7 @@ async function callVision(imageUrl, prompt, systemPrompt, model, signal, onDebug
 // ── Step executors ────────────────────────────────────────────────────────────
 
 const EXECUTORS = {
+  'trigger-cron': async () => { /* No-op at runtime; used by main process for scheduling */ },
   'clipboard-read': async (_step, ctx, _opts) => {
     const text = await window.ipcRenderer.clipboard.readText()
     if (!text) throw new Error('Clipboard is empty.')

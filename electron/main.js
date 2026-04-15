@@ -22,12 +22,14 @@ process.env.VITE_PUBLIC = app.isPackaged
   : path.join(__dirname, '../public')
 
 let win
+let scheduledJobs = new Map()
 
 app.commandLine.appendSwitch('disable-ipv6')
 app.commandLine.appendSwitch('disable-features', 'IPv6')
 app.commandLine.appendSwitch('test-type')
 app.commandLine.appendSwitch('no-sandbox')
 app.commandLine.appendSwitch('disable-gpu-sandbox')
+app.commandLine.appendSwitch('disable-software-rasterizer')
 
 function createWindow() {
   win = new BrowserWindow({
@@ -479,6 +481,76 @@ ipcMain.handle('smtp-send', async (_, options) => {
 const DATA_DIR = path.join(os.homedir(), '.raccourcis')
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json')
 const SHORTCUTS_FILE = path.join(DATA_DIR, 'shortcuts.json')
+const RUNS_FILE = path.join(DATA_DIR, 'runs.json')
+
+function setupCrons() {
+  // Clear existing jobs
+  for (const job of scheduledJobs.values()) {
+    if (job) job.stop()
+  }
+  scheduledJobs.clear()
+
+  // 1. Load from shortcuts.json
+  let shortcuts = []
+  if (fs.existsSync(SHORTCUTS_FILE)) {
+    try {
+      shortcuts = JSON.parse(fs.readFileSync(SHORTCUTS_FILE, 'utf8'))
+    } catch (err) {
+      console.error('[main] setupCrons parse error:', err.message)
+    }
+  }
+
+  // 2. Load from discovered shortcuts directory
+  const shortcutsDir = path.join(os.homedir(), 'Raccourcis', 'shortcuts')
+  if (fs.existsSync(shortcutsDir)) {
+    const files = fs.readdirSync(shortcutsDir)
+    for (const file of files) {
+      try {
+        const filePath = path.join(shortcutsDir, file)
+        const ext = path.extname(file).toLowerCase()
+        let data = null
+        if (ext === '.yaml' || ext === '.yml') {
+          data = yaml.load(fs.readFileSync(filePath, 'utf8'))
+        } else if (ext === '.json') {
+          data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+        } else if (ext === '.xml') {
+          const content = fs.readFileSync(filePath, 'utf8')
+          const parsed = xmlParser.parse(content)
+          data = parsed.shortcut
+          if (data && data.steps && data.steps.step) {
+            data.steps = Array.isArray(data.steps.step) ? data.steps.step : [data.steps.step]
+          }
+        }
+        if (data && data.steps) {
+          data.id = `fs-${file}`
+          shortcuts.push(data)
+        }
+      } catch (err) { /* ignore parse errors for discovery */ }
+    }
+  }
+
+  // 3. Schedule all shortcuts with trigger-cron
+  shortcuts.forEach(s => {
+    if (!s.steps) return
+    s.steps.forEach((step, idx) => {
+      if (step.type === 'trigger-cron' && step.enabled !== false && step.expression) {
+        try {
+          if (!cron.validate(step.expression)) {
+            console.warn(`[Cron] Invalid expression in "${s.name}": ${step.expression}`)
+            return
+          }
+          const job = cron.schedule(step.expression, () => {
+            console.log(`[Cron] Triggering shortcut "${s.name}" (ID: ${s.id})`)
+            win?.webContents.send('run-shortcut-by-id', s.id)
+          })
+          scheduledJobs.set(`${s.id}-${idx}`, job)
+        } catch (err) {
+          console.error(`[Cron] Failed to schedule "${s.name}":`, err.message)
+        }
+      }
+    })
+  })
+}
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
@@ -487,6 +559,7 @@ function ensureDataDir() {
 ipcMain.handle('store-save-shortcuts', async (_, shortcuts) => {
   ensureDataDir()
   fs.writeFileSync(SHORTCUTS_FILE, JSON.stringify(shortcuts, null, 2))
+  setupCrons()
 })
 
 ipcMain.handle('store-load-shortcuts', async () => {
@@ -507,6 +580,20 @@ ipcMain.handle('store-load-config', async () => {
   if (!fs.existsSync(CONFIG_FILE)) return null
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'))
+  } catch {
+    return null
+  }
+})
+
+ipcMain.handle('store-save-runs', async (_, runs) => {
+  ensureDataDir()
+  fs.writeFileSync(RUNS_FILE, JSON.stringify(runs, null, 2))
+})
+
+ipcMain.handle('store-load-runs', async () => {
+  if (!fs.existsSync(RUNS_FILE)) return null
+  try {
+    return JSON.parse(fs.readFileSync(RUNS_FILE, 'utf8'))
   } catch {
     return null
   }
@@ -594,50 +681,8 @@ ipcMain.handle('shell-exec', async (_, command) => {
 
 // ── Cron & Host Stats ─────────────────────────────────────────────────────────
 
-const CRONS_FILE = path.join(DATA_DIR, 'crons.json')
-let scheduledJobs = new Map() // cronId -> job
+// scheduledJobs moved to top of file
 
-function loadCrons() {
-  if (!fs.existsSync(CRONS_FILE)) return []
-  try {
-    const data = fs.readFileSync(CRONS_FILE, 'utf8')
-    return JSON.parse(data)
-  } catch (err) {
-    console.error('[main] loadCrons error:', err.message)
-    return []
-  }
-}
-
-function saveCrons(crons) {
-  ensureDataDir()
-  fs.writeFileSync(CRONS_FILE, JSON.stringify(crons, null, 2))
-}
-
-function setupCrons() {
-  const crons = loadCrons()
-  
-  // Clear existing jobs
-  for (const job of scheduledJobs.values()) {
-    job.stop()
-  }
-  scheduledJobs.clear()
-
-  crons.filter(c => c.enabled).forEach(c => {
-    try {
-      if (!cron.validate(c.expression)) {
-        console.warn(`[Cron] Invalid expression for ${c.id}: ${c.expression}`)
-        return
-      }
-      const job = cron.schedule(c.expression, () => {
-        console.log(`[Cron] Triggering shortcut ${c.shortcutId} (${c.shortcutName})`)
-        win?.webContents.send('run-shortcut-by-id', c.shortcutId)
-      })
-      scheduledJobs.set(c.id, job)
-    } catch (err) {
-      console.error(`[Cron] Failed to schedule ${c.id}:`, err.message)
-    }
-  })
-}
 
 // Host Stats
 ipcMain.handle('get-host-stats', async () => {
@@ -675,32 +720,10 @@ ipcMain.handle('get-host-stats', async () => {
   }
 })
 
-// Cron Handlers
-ipcMain.handle('cron-list', async () => loadCrons())
-
-ipcMain.handle('cron-save', async (_, cronData) => {
-  const crons = loadCrons()
-  const idx = crons.findIndex(c => c.id === cronData.id)
-  
-  let finalCron = { ...cronData }
-  if (idx !== -1) {
-    crons[idx] = finalCron
-  } else {
-    finalCron.id = Date.now().toString()
-    crons.push(finalCron)
-  }
-  
-  saveCrons(crons)
-  setupCrons()
-  return { ok: true }
-})
-
-ipcMain.handle('cron-delete', async (_, id) => {
-  const crons = loadCrons().filter(c => c.id !== id)
-  saveCrons(crons)
-  setupCrons()
-  return { ok: true }
-})
+// Cron Handlers (deprecated, but kept for UI compatibility until fully migrated)
+ipcMain.handle('cron-list', async () => [])
+ipcMain.handle('cron-save', async () => ({ ok: true }))
+ipcMain.handle('cron-delete', async () => ({ ok: true }))
 
 // Initialize Crons on start
 app.on('ready', () => {

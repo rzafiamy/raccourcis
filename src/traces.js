@@ -25,8 +25,8 @@ function getTimeBucket(isoDate) {
   return 'Older'
 }
 
-export function refreshTraces() {
-  const allRuns = loadRuns()
+export async function refreshTraces() {
+  const allRuns = await loadRuns()
   const container = document.getElementById('tracesListContainer')
   if (!container) return
 
@@ -90,9 +90,9 @@ export function refreshTraces() {
         </div>
       `
 
-      item.addEventListener('click', () => {
+      item.addEventListener('click', async () => {
         selectedRunIndex = originalIndex
-        refreshTraces() // update active state in sidebar
+        await refreshTraces() // update active state in sidebar
         renderTraceDetail(run)
       })
 
@@ -218,7 +218,7 @@ export async function clearTraceHistory() {
   })
   if (!confirmed) return
   
-  clearRuns()
+  await clearRuns()
   selectedRunIndex = -1
   const detailView = document.getElementById('traceDetailView')
   if (detailView) {
@@ -230,7 +230,7 @@ export async function clearTraceHistory() {
     `
     refreshIcons(detailView)
   }
-  refreshTraces()
+  await refreshTraces()
 }
 
 function escapeHtml(text) {

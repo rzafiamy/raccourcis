@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     loadShortcuts: () => ipcRenderer.invoke('store-load-shortcuts'),
     saveConfig: (data) => ipcRenderer.invoke('store-save-config', data),
     loadConfig: () => ipcRenderer.invoke('store-load-config'),
+    saveRuns: (data) => ipcRenderer.invoke('store-save-runs', data),
+    loadRuns: () => ipcRenderer.invoke('store-load-runs'),
   },
 
   getHostStats: () => ipcRenderer.invoke('get-host-stats'),

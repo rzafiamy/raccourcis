@@ -118,26 +118,39 @@ export async function saveConfig(config) {
 }
 
 
-// --- Run history (last 20) ---
+// --- Run history (last 1000) ---
 
-export function loadRuns() {
+export async function loadRuns() {
   try {
+    const fsData = await window.ipcRenderer.store.loadRuns()
+    if (fsData && Array.isArray(fsData)) return fsData
+    
+    // Migration from localStorage
     const raw = localStorage.getItem(KEYS.runs)
-    return raw ? JSON.parse(raw) : []
+    if (raw) {
+      const data = JSON.parse(raw)
+      await window.ipcRenderer.store.saveRuns(data)
+      return data
+    }
+    return []
   } catch {
     return []
   }
 }
 
-export function appendRun(run) {
-  const runs = loadRuns()
+export async function appendRun(run) {
+  const runs = await loadRuns()
   runs.unshift(run) // newest first
   if (runs.length > 1000) runs.splice(1000)
+  
+  // Persist to both
   localStorage.setItem(KEYS.runs, JSON.stringify(runs))
+  await window.ipcRenderer.store.saveRuns(runs)
 }
 
-export function clearRuns() {
+export async function clearRuns() {
   localStorage.setItem(KEYS.runs, JSON.stringify([]))
+  await window.ipcRenderer.store.saveRuns([])
 }
 
 // --- Export / Import ---

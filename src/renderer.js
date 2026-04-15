@@ -22,7 +22,7 @@ import {
 } from './ui.js'
 
 import { refreshDashboard } from './dashboard.js'
-import { refreshCronList, openCronEditor, saveCron } from './cron.js'
+import { refreshCronList } from './cron.js'
 import { refreshTraces, clearTraceHistory } from './traces.js'
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -166,13 +166,13 @@ document.getElementById('navCron').addEventListener('click', (e) => {
   refreshCronList(shortcuts)
 })
 
-document.getElementById('navTraces').addEventListener('click', (e) => {
+document.getElementById('navTraces').addEventListener('click', async (e) => {
   e.preventDefault()
   switchToView('traces')
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
   document.getElementById('navTraces').classList.add('active')
   mainTitle.textContent = 'Traces'
-  refreshTraces()
+  await refreshTraces()
 })
 
 document.getElementById('clearTracesBtn').addEventListener('click', () => {
@@ -345,6 +345,12 @@ const TRIGGER_GROUPS = [
     label: 'Web / API',
     icon: 'globe',
     match: (t) => ['http-request', 'firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search'].includes(t),
+  },
+  {
+    id: 'cron',
+    label: 'Schedule',
+    icon: 'calendar-clock',
+    match: (t) => t === 'trigger-cron',
   },
   {
     id: 'other',
@@ -538,9 +544,14 @@ function renderGrid() {
 
 // ── Run workflow ──────────────────────────────────────────────────────────────
 
-async function startRun(shortcut) {
+async function startRun(shortcut, options = {}) {
+  const { background = false } = options
   const abortController = new AbortController()
-  const overlay = createRunOverlay(shortcut, () => abortController.abort())
+  
+  let overlay = null
+  if (!background) {
+    overlay = createRunOverlay(shortcut, () => abortController.abort())
+  }
 
   const result = await runWorkflow(shortcut, {
     signal:       abortController.signal,
@@ -548,15 +559,15 @@ async function startRun(shortcut) {
     promptRecord,
     showConfirm,
     showAlert,
-    onStepStart:  (i)        => overlay.setStepActive(i),
-    onStepEnd:    (i, entry) => overlay.setStepDone(i, entry),
-    onShowResult: (text, kind) => overlay.showOutput(text, kind),
+    onStepStart:  (i)        => overlay?.setStepActive(i),
+    onStepEnd:    (i, entry) => overlay?.setStepDone(i, entry),
+    onShowResult: (text, kind) => overlay?.showOutput(text, kind),
   })
 
-  overlay.setDone(result.ok, result.result, result.error)
+  if (overlay) overlay.setDone(result.ok, result.result, result.error)
 
   const runAt = new Date().toISOString()
-  appendRun({
+  await appendRun({
     shortcutId:   shortcut.id,
     shortcutName: shortcut.name,
     ok:           result.ok,
@@ -573,9 +584,9 @@ async function startRun(shortcut) {
     await saveShortcuts(shortcuts)
   }
 
-  // Refresh dashboard stats immediately if it's the active view
+  // Refresh views if they are active
   if (currentView === 'dashboard') doDashboardRefresh()
-  // Overlay stays open — user closes it manually
+  if (currentView === 'traces') await refreshTraces()
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
@@ -1001,19 +1012,13 @@ document.addEventListener('keydown', (e) => {
   }
 })
 
-// ── Cron Modal Bindings ──────────────────────────────────────────────────────
-
-document.getElementById('addCronBtn').addEventListener('click', () => openCronEditor(shortcuts))
-document.getElementById('closeCronModal').addEventListener('click', () => document.getElementById('cronModal').style.display = 'none')
-document.getElementById('cancelCronBtn').addEventListener('click', () => document.getElementById('cronModal').style.display = 'none')
-document.getElementById('saveCronBtn').addEventListener('click', () => saveCron(shortcuts))
-
 // ── IPC Listeners ─────────────────────────────────────────────────────────────
 
 window.ipcRenderer.on('run-shortcut-by-id', async (event, shortcutId) => {
   const s = shortcuts.find(sh => String(sh.id) === String(shortcutId))
   if (s) {
-    startRun(s)
+    // Cron runs are background runs (no modal)
+    startRun(s, { background: true })
   } else {
     console.warn(`[Renderer] Received run-shortcut-by-id for unknown ID: ${shortcutId}`)
   }
@@ -1022,12 +1027,35 @@ window.ipcRenderer.on('run-shortcut-by-id', async (event, shortcutId) => {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-  shortcuts = await loadShortcuts()
-  await loadAndMergeShortcuts()
-  renderGrid()
+  try {
+    shortcuts = await loadShortcuts()
+    
+    window.addEventListener('open-shortcut-editor', (e) => {
+      const shortcutId = e.detail
+      const sc = shortcuts.find((s) => s.id === shortcutId)
+      if (sc) {
+        switchToView('grid')
+        openEditor(sc)
+      } else {
+        const fsSc = shortcuts.find((s) => s.id === `fs-${shortcutId}`)
+        if (fsSc) {
+          switchToView('grid')
+          openEditor(fsSc)
+        }
+      }
+    })
 
-  refreshIcons()
-  console.log('[Raccourcis] renderer ready')
+    await loadAndMergeShortcuts()
+    renderGrid()
+    refreshIcons()
+    
+    console.log('[Raccourcis] renderer ready')
+  } catch (err) {
+    console.error('[Raccourcis] renderer init failed:', err)
+    // Fallback to show something
+    renderGrid()
+    refreshIcons()
+  }
 }
 
 async function loadAndMergeShortcuts() {

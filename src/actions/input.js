@@ -129,4 +129,25 @@ export default [
       { name: 'prefill', label: 'Initial value', kind: 'text', placeholder: 'Leave empty for blank', acceptsVars: true },
     ],
   },
+  {
+    type: 'trigger-cron',
+    title: 'Repeat on Schedule',
+    desc: 'Runs this shortcut automatically using a Cron expression (Linux)',
+    icon: 'calendar-clock',
+    color: '#32D74B', // Success green
+    outputType: null,
+    defaults: { expression: '0 9 * * *', enabled: true },
+    params: [
+      { name: 'expression', label: 'Cron Expression', kind: 'text', placeholder: '0 9 * * *' },
+      {
+        name: 'enabled',
+        label: 'Enabled',
+        kind: 'select',
+        options: [
+          { value: true, label: 'Yes' },
+          { value: false, label: 'No' },
+        ],
+      },
+    ],
+  },
 ]

@@ -50,7 +50,8 @@ export async function refreshDashboard(shortcuts, currentView, startRun) {
   }
 
   // Runs data
-  const runs = JSON.parse(localStorage.getItem('raccourcis_runs') || '[]')
+  const { loadRuns } = await import('./store.js')
+  const runs = await loadRuns()
   
   renderUsageChart(runs)
   renderTopShortcuts(runs, shortcuts, startRun)

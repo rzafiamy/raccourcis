@@ -191,8 +191,7 @@
     <!-- Cron View -->
     <div id="cronView" class="view-content" style="display: none;">
       <div class="cron-header">
-        <p class="cron-desc">Schedule workflows to run automatically using cron expressions.</p>
-        <button class="btn btn-primary" id="addCronBtn"><i data-lucide="plus"></i> Add Schedule</button>
+        <p class="cron-desc">Shortcuts with a <strong>'Repeat on Schedule'</strong> step appear here. They run automatically in the background.</p>
       </div>
       <div class="cron-list" id="cronListContainer">
         <!-- Cron items will be injected here -->
@@ -720,25 +719,25 @@
             <section class="concept-deep-section">
               <div class="concept-deep-header">
                 <div class="concept-deep-icon bg-orange-soft"><i data-lucide="calendar-clock"></i></div>
-                <div><h3>Creating a Scheduled Task</h3></div>
+                <div><h3>Scheduling a Shortcut</h3></div>
               </div>
               <div class="concept-deep-body">
                 <div class="quickstart-steps">
                   <div class="qs-step">
                     <div class="qs-num">1</div>
-                    <div class="qs-body"><h4>Navigate to <strong>Cron Tasks</strong> in the sidebar</h4><p>This view shows all your active scheduled tasks and their next-run time.</p></div>
+                    <div class="qs-body"><h4>Add a <strong>'Repeat on Schedule'</strong> step</h4><p>Open the editor for the shortcut you want to schedule and add this step from the System category.</p></div>
                   </div>
                   <div class="qs-step">
                     <div class="qs-num">2</div>
-                    <div class="qs-body"><h4>Click <strong>New Task</strong></h4><p>Select the shortcut to schedule from the dropdown.</p></div>
+                    <div class="qs-body"><h4>Set your cron expression</h4><p>Use standard 5-field cron syntax (e.g. <code>0 9 * * *</code> for daily at 9 AM).</p></div>
                   </div>
                   <div class="qs-step">
                     <div class="qs-num">3</div>
-                    <div class="qs-body"><h4>Set a cron expression</h4><p>Use standard 5-field cron syntax. The UI shows a human-readable interpretation as you type.</p></div>
+                    <div class="qs-body"><h4>Save the shortcut</h4><p>The scheduler automatically detects the change and updates the system crontab in the background.</p></div>
                   </div>
                   <div class="qs-step">
                     <div class="qs-num">4</div>
-                    <div class="qs-body"><h4>Save and enable</h4><p>The task is stored in <code>cron.json</code> and will fire according to your schedule, even if the main window is minimised.</p></div>
+                    <div class="qs-body"><h4>Monitor in 'Cron Tasks'</h4><p>Go to the Cron Tasks view to see all scheduled shortcuts, toggle them on/off, or jump back to the editor.</p></div>
                   </div>
                 </div>
               </div>
@@ -1628,7 +1627,7 @@
         <p class="about-desc">
           Powerful shortcuts and AI workflows for Ubuntu Linux. 
           Raccourcis helps you automate repetitive tasks by chaining actions together 
-          with the power of Artificial Intelligence.
+          with the power of Artificial Intelligence. Scheduling is now handled directly within your workflow triggers.
         </p>
         <div class="about-team">
           <p>Created with ❤️ by <a href="https://github.com/rzafiamy" target="_blank">rzafiamy</a></p>
@@ -1636,47 +1635,6 @@
         </div>
       </div>
       <button class="btn btn-primary about-close-btn" id="closeAbout">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     Cron Editor Modal
-     ══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="cronModal">
-  <div class="modal-content cron-editor-modal">
-    <div class="modal-header">
-      <h2 id="cronModalTitle">Add Schedule</h2>
-      <button class="action-btn" id="closeCronModal" title="Close">
-        <i data-lucide="x"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Select Shortcut</label>
-        <select class="input-field select-field" id="cronShortcutSelect">
-          <!-- Options will be injected here -->
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Cron Expression (e.g. <code>0 9 * * *</code> for 9am daily)</label>
-        <input class="input-field" id="cronExpression" type="text" placeholder="* * * * *">
-        <p class="settings-hint">Format: minute hour day-of-month month day-of-week</p>
-      </div>
-      <div class="form-group">
-        <label>Label / Name</label>
-        <input class="input-field" id="cronLabel" type="text" placeholder="Daily Report…">
-      </div>
-      <div class="form-group checkbox-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="cronEnabled" checked>
-          <span>Enabled</span>
-        </label>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="cancelCronBtn">Cancel</button>
-      <button class="btn btn-primary" id="saveCronBtn">Save Schedule</button>
     </div>
   </div>
 </div>
