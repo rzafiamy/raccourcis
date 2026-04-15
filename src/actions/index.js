@@ -27,6 +27,8 @@ import servicesActions   from './services.js'
 import productivityActions from './productivity.js'
 import officeActions       from './office.js'
 
+import freelanceActions   from './freelance.js'
+
 export const ACTION_REGISTRY = [
   ...inputActions,
   ...aiActions,
@@ -37,6 +39,7 @@ export const ACTION_REGISTRY = [
   ...servicesActions,
   ...productivityActions,
   ...officeActions,
+  ...freelanceActions,
 ]
 
 export function getActionDef(type) {

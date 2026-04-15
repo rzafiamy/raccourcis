@@ -657,6 +657,7 @@ const PALETTE_GROUPS = [
   { label: 'Supabase', types: ['supabase-select', 'supabase-insert', 'supabase-update', 'supabase-delete'] },
   { label: 'Email',    types: ['smtp-send'] },
   { label: 'Transform', types: ['url-encode', 'url-decode', 'filename-generate'] },
+  { label: 'Freelance', types: ['timer-start', 'timer-stop', 'todo-add', 'todo-list', 'expense-log'] },
 ]
 
 export function buildPaletteList(filter, onPick) {

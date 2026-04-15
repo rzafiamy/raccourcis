@@ -455,14 +455,31 @@ const EXECUTORS = {
     window.ipcRenderer.send('open-external', url)
   },
 
-  wait: async (step, _ctx, _opts) => {
+  wait: async (step, _ctx, opts) => {
     const ms = Number(step.duration) || 1000
-    await new Promise((resolve) => setTimeout(resolve, ms))
+    if (opts.signal?.aborted) throw new Error('Workflow cancelled.')
+    
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        opts.signal?.removeEventListener('abort', onAbort)
+        resolve()
+      }, ms)
+      
+      function onAbort() {
+        clearTimeout(timer)
+        reject(new Error('Workflow cancelled.'))
+      }
+      
+      opts.signal?.addEventListener('abort', onAbort, { once: true })
+    })
   },
 
-  shell: async (step, ctx, _opts) => {
+  shell: async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
-    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', s.command)
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', { 
+      command: s.command, 
+      runId: opts.runId 
+    })
     if (exitCode !== 0) throw new Error(`Shell exited ${exitCode}: ${stderr}`)
     ctx.result = stdout.trimEnd()
   },
@@ -713,7 +730,7 @@ const EXECUTORS = {
     await window.ipcRenderer.invoke('app-launch', target)
   },
 
-  'media-metadata-tag': async (step, ctx, _opts) => {
+  'media-metadata-tag': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const filePath = s.filePath || ctx.result
     if (!filePath) throw new Error('Media Tag: No file path provided.')
@@ -727,12 +744,15 @@ const EXECUTORS = {
     const tmpFile = filePath.replace(`.${ext}`, `_tagged.${ext}`)
     cmd += ` -codec copy "${tmpFile}" && mv "${tmpFile}" "${filePath}"`
     
-    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const result = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (result.exitCode !== 0) throw new Error(`Media Tag failed: ${result.stderr}`)
     ctx.result = filePath
   },
 
-  'media-merge-poster': async (step, ctx, _opts) => {
+  'media-merge-poster': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     if (!s.audioPath || !s.imagePath) throw new Error('Merge Poster: Missing audio or image path.')
     
@@ -742,12 +762,15 @@ const EXECUTORS = {
     }
     
     const cmd = `ffmpeg -loop 1 -i "${s.imagePath}" -i "${s.audioPath}" -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -y "${out}"`
-    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const result = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (result.exitCode !== 0) throw new Error(`Merge Poster failed: ${result.stderr}`)
     ctx.result = out
   },
 
-  'media-extract-audio': async (step, ctx, _opts) => {
+  'media-extract-audio': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const videoPath = s.videoPath || ctx.result
     if (!videoPath) throw new Error('Extract Audio: No video path.')
@@ -762,12 +785,15 @@ const EXECUTORS = {
     if (ext === 'flac') acodec = 'flac'
 
     const cmd = `ffmpeg -i "${videoPath}" -vn -c:a ${acodec} -q:a 2 -y "${out}"`
-    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const result = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (result.exitCode !== 0) throw new Error(`Extract Audio failed: ${result.stderr}`)
     ctx.result = out
   },
 
-  'media-convert': async (step, ctx, _opts) => {
+  'media-convert': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const inputPath = s.inputPath || ctx.result
     if (!inputPath) throw new Error('Convert Media: No input path.')
@@ -776,12 +802,15 @@ const EXECUTORS = {
     const out = inputPath.replace(/\.[^.]+$/, '') + '_converted.' + ext
     
     const cmd = `ffmpeg -i "${inputPath}" -y "${out}"`
-    const result = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const result = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (result.exitCode !== 0) throw new Error(`Convert Media failed: ${result.stderr}`)
     ctx.result = out
   },
 
-  'image-compress': async (step, ctx, _opts) => {
+  'image-compress': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const filePath = s.filePath || ctx.result
     if (!filePath) throw new Error('Image Compress: No file path.')
@@ -789,12 +818,18 @@ const EXECUTORS = {
     const quality = s.quality || 80
     // Try mogrify first
     const cmd = `mogrify -quality ${quality} "${filePath}"`
-    const res = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const res = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (res.exitCode !== 0) {
       // Fallback to ffmpeg if mogrify fails
       const tmp = filePath.replace(/\.[^.]+$/, '') + `_q${quality}.jpg`
       const cmd2 = `ffmpeg -i "${filePath}" -q:v ${Math.floor((100 - quality) / 2)} -y "${tmp}" && mv "${tmp}" "${filePath}"`
-      const res2 = await window.ipcRenderer.invoke('shell-exec', cmd2)
+      const res2 = await window.ipcRenderer.invoke('shell-exec', {
+        command: cmd2,
+        runId: opts.runId
+      })
       if (res2.exitCode !== 0) throw new Error(`Image Compress failed: ${res2.stderr}`)
     }
     ctx.result = filePath
@@ -1438,7 +1473,10 @@ const EXECUTORS = {
     
     cmd += ` "${url}"`
     
-    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', { 
+      command: cmd, 
+      runId: opts.runId 
+    })
     if (exitCode !== 0) throw new Error(`YouTube Download failed: ${stderr}`)
     
     // Attempt to find the downloaded file path from stdout
@@ -1467,12 +1505,15 @@ const EXECUTORS = {
     const s = interpolateStep(step, ctx)
     const expr = s.expression || ctx.result
     if (!expr) throw new Error('Math Evaluate: no expression provided.')
-    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', `python3 -c "print(${expr})"`)
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', {
+      command: `python3 -c "print(${expr})"`,
+      runId: opts.runId
+    })
     if (exitCode !== 0) throw new Error(`Math Evaluate failed: ${stderr}`)
     ctx.result = stdout.trim()
   },
 
-  'hash-generate': async (step, ctx, _opts) => {
+  'hash-generate': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const input = s.input || ctx.result
     const alg = s.algorithm || 'sha256'
@@ -1488,7 +1529,10 @@ const EXECUTORS = {
       cmd = `echo -n "${input}" | ${alg}sum`
     }
     
-    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (exitCode !== 0) throw new Error(`Hash generation failed: ${stderr}`)
     
     ctx.result = stdout.split(' ')[0].trim()
@@ -1508,25 +1552,31 @@ const EXECUTORS = {
 
   // ── Office actions ────────────────────────────────────────────────────────
 
-  'zip-extract': async (step, ctx, _opts) => {
+  'zip-extract': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const zipPath = s.zipPath || ctx.result
     if (!zipPath) throw new Error('Extract ZIP: no zip file path provided.')
     const destDir = s.destDir || zipPath.replace(/\.zip$/i, '')
     const cmd = `unzip -o "${zipPath}" -d "${destDir}"`
-    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (exitCode !== 0) throw new Error(`Extract ZIP failed: ${stderr}`)
     ctx.result = destDir
   },
 
-  'folder-compress': async (step, ctx, _opts) => {
+  'folder-compress': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const sourcePath = s.sourcePath || ctx.result
     if (!sourcePath) throw new Error('Compress ZIP: no source path provided.')
     const zipPath = s.zipPath || sourcePath.replace(/\/+$/, '') + '.zip'
     // Use -j only if source is a file, -r if directory
     const cmd = `zip -r "${zipPath}" "${sourcePath}"`
-    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', cmd)
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
     if (exitCode !== 0) throw new Error(`Compress ZIP failed: ${stderr}`)
     ctx.result = zipPath
   },
@@ -1782,6 +1832,70 @@ const EXECUTORS = {
     const responseText = await res.text()
     ctx.result = responseText || `Webhook delivered (${res.status})`
   },
+
+  'timer-start': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const taskName = s.taskName || 'Unnamed Task'
+    const timerData = { taskName, startTime: Date.now() }
+    localStorage.setItem('freelance_timer', JSON.stringify(timerData))
+    ctx.result = `Timer started: ${taskName}`
+  },
+
+  'timer-stop': async (_step, ctx, _opts) => {
+    const raw = localStorage.getItem('freelance_timer')
+    if (!raw) throw new Error('No active timer found.')
+    const timerData = JSON.parse(raw)
+    const durationMs = Date.now() - timerData.startTime
+    const mins = Math.floor(durationMs / 60000)
+    const secs = Math.floor((durationMs % 60000) / 1000)
+    const durationStr = `${mins}m ${secs}s`
+    
+    // Log to history
+    const history = JSON.parse(localStorage.getItem('freelance_work_history') || '[]')
+    history.push({ ...timerData, stopTime: Date.now(), durationMs, durationStr })
+    localStorage.setItem('freelance_work_history', JSON.stringify(history))
+    
+    localStorage.removeItem('freelance_timer')
+    ctx.result = `Stopped: ${timerData.taskName} (Duration: ${durationStr})`
+  },
+
+  'todo-add': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const task = s.task
+    if (!task) throw new Error('Task description is required.')
+    const todos = JSON.parse(localStorage.getItem('freelance_todos') || '[]')
+    todos.push({ id: Date.now(), text: task, priority: s.priority || 'medium', status: 'pending', createdAt: Date.now() })
+    localStorage.setItem('freelance_todos', JSON.stringify(todos))
+    ctx.result = `Added to-do: ${task}`
+  },
+
+  'todo-list': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const status = s.status || 'pending'
+    let todos = JSON.parse(localStorage.getItem('freelance_todos') || '[]')
+    if (status !== 'all') {
+      todos = todos.filter(t => t.status === status)
+    }
+    if (todos.length === 0) {
+      ctx.result = `No ${status} tasks found.`
+    } else {
+      ctx.result = todos.map(t => `[${t.priority.toUpperCase()}] ${t.text}`).join('\n')
+    }
+  },
+
+  'expense-log': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const expenses = JSON.parse(localStorage.getItem('freelance_expenses') || '[]')
+    const entry = {
+      date: new Date().toLocaleDateString(),
+      amount: s.amount,
+      category: s.category || 'Other',
+      description: s.description || '',
+    }
+    expenses.push(entry)
+    localStorage.setItem('freelance_expenses', JSON.stringify(expenses))
+    ctx.result = `Logged ${s.amount} to ${entry.category}`
+  },
 }
 
 
@@ -1880,6 +1994,14 @@ export async function runWorkflow(shortcut, options = {}) {
   const wallStart = Date.now()
   const cfg = await loadConfig()
   
+  // Unique ID for this execution (used for process management)
+  const runId = `run-${Math.random().toString(36).slice(2, 11)}`
+
+  if (signal) {
+    signal.addEventListener('abort', () => {
+      window.ipcRenderer.send('shell-kill', runId)
+    }, { once: true })
+  }
   if (cfg.debugMode) {
     console.log(`%c🚀 Starting Shortcut: %c${shortcut.name}`, 'color: #8b5cf6; font-weight: bold; font-size: 1.2em;', 'color: #fff; font-weight: bold; font-size: 1.2em;')
     window.ipcRenderer.send('log-to-terminal', { type: 'start', shortcutName: shortcut.name })
@@ -1904,6 +2026,7 @@ export async function runWorkflow(shortcut, options = {}) {
 
       const opts = { 
         signal, 
+        runId,
         promptUser, 
         promptRecord, 
         showConfirm, 

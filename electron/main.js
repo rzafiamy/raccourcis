@@ -23,6 +23,7 @@ process.env.VITE_PUBLIC = app.isPackaged
 
 let win
 let scheduledJobs = new Map()
+let runningProcesses = new Map() // runId -> ChildProcess
 
 app.commandLine.appendSwitch('disable-ipv6')
 app.commandLine.appendSwitch('disable-features', 'IPv6')
@@ -656,25 +657,53 @@ ipcMain.handle('app-launch', async (_, target) => {
 // Only available when the app is used by the local user (no network exposure).
 // Commands run in a restricted shell with a 30s timeout.
 
-ipcMain.handle('shell-exec', async (_, command) => {
+ipcMain.handle('shell-exec', async (event, { command, runId }) => {
   if (typeof command !== 'string' || command.length > 4096) {
     return { stdout: '', stderr: 'Invalid command', exitCode: 1 }
   }
 
-  try {
-    const { stdout, stderr } = await execAsync(command, {
+  return new Promise((resolve) => {
+    const child = exec(command, {
       timeout: 300_000, // 5 minutes
-      maxBuffer: 1024 * 1024, // 1 MB
+      maxBuffer: 5 * 1024 * 1024, // 5 MB
       env: { ...process.env },
       shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/bash',
+    }, (error, stdout, stderr) => {
+      if (runId) runningProcesses.delete(runId)
+      
+      if (error) {
+        resolve({
+          stdout: stdout || '',
+          stderr: stderr || error.message,
+          exitCode: error.code ?? 1,
+        })
+      } else {
+        resolve({ stdout, stderr, exitCode: 0 })
+      }
     })
-    return { stdout, stderr, exitCode: 0 }
-  } catch (err) {
-    return {
-      stdout: err.stdout || '',
-      stderr: err.stderr || err.message,
-      exitCode: err.code ?? 1,
+
+    if (runId) {
+      runningProcesses.set(runId, child)
     }
+  })
+})
+
+ipcMain.on('shell-kill', (_, runId) => {
+  if (!runId) return
+  const child = runningProcesses.get(runId)
+  if (child) {
+    console.log(`[Main] Killing process for runId: ${runId}`)
+    // Kill the whole process group if possible
+    if (process.platform !== 'win32') {
+      try {
+        process.kill(-child.pid, 'SIGTERM') // Group kill
+      } catch (e) {
+        child.kill()
+      }
+    } else {
+      child.kill()
+    }
+    runningProcesses.delete(runId)
   }
 })
 
