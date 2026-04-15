@@ -13,6 +13,7 @@ import {
   showConfirm,
   showAlert,
   buildStepCard,
+  buildStepConnector,
 
   buildPaletteList,
   refreshIcons,
@@ -681,6 +682,12 @@ function renderCanvasSteps() {
     })
 
     editorSteps.appendChild(card)
+
+    // ── Connector (Wire) ──
+    if (i < editingShortcut.steps.length - 1) {
+      const connector = buildStepConnector(step, editingShortcut.steps[i + 1])
+      editorSteps.appendChild(connector)
+    }
   })
 
   refreshIcons(editorSteps)

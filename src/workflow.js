@@ -27,7 +27,7 @@ function interpolate(template, ctx) {
   return template
     .replace(/\{\{result\}\}/g, ctx.result ?? '')
     .replace(/\{\{clipboard\}\}/g, ctx.clipboard ?? '')
-    .replace(/\{\{vars\.(\w+)\}\}/g, (_, name) => ctx.vars[name] ?? '')
+    .replace(/\{\{vars\.([\w\s.-]+)\}\}/g, (_, name) => ctx.vars[name] ?? '')
 }
 
 /**

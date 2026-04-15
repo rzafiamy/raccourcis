@@ -138,10 +138,15 @@ export function createRunOverlay(shortcut, onCancel) {
     const row = document.createElement('div')
     row.className = 'run-step-row'
     row.id = `runStep-${i}`
+    let lineExtra = ''
+    if (!isLast && stepDef?.outputType && stepDef.outputType !== 'null') {
+      lineExtra = `<span class="run-step-line-badge">${stepDef.outputType}</span>`
+    }
+
     row.innerHTML = `
       <div class="run-step-timeline">
         <div class="run-step-dot" style="--dot-color:${stepColor}"></div>
-        ${!isLast ? '<div class="run-step-line"></div>' : ''}
+        ${!isLast ? `<div class="run-step-line">${lineExtra}</div>` : ''}
       </div>
       <div class="run-step-body">
         <div class="run-step-title">${step.title}</div>
@@ -463,20 +468,8 @@ export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMov
   })
   titleRow.appendChild(titleInput)
 
-  // Output type badge on the title row
-  if (def?.outputType) {
-    const badge = buildTypeBadge(def.outputType)
-    badge.className += ' step-output-badge'
-    titleRow.appendChild(badge)
-  }
-
   const descEl = document.createElement('div')
   descEl.className = 'step-desc'
-
-  const actionTypeChip = document.createElement('span')
-  actionTypeChip.className = 'step-action-type'
-  actionTypeChip.textContent = step.type
-  descEl.appendChild(actionTypeChip)
 
   // For steps with no editable params, surface any {{token}} values as
   // read-only chips in the header so the user can see what data flows through
@@ -655,6 +648,28 @@ export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMov
 
   refreshIcons(card)
   return card
+}
+
+/**
+ * Build a connector element between steps (the "wire")
+ */
+export function buildStepConnector(step, nextStep) {
+  const def = getActionDef(step.type)
+  const connector = document.createElement('div')
+  connector.className = 'step-connector'
+  
+  const line = document.createElement('div')
+  line.className = 'step-connector-line'
+  
+  // Show output type on the connector if step is not logic-only
+  if (def?.outputType && def.outputType !== 'null') {
+    const badge = buildTypeBadge(def.outputType)
+    badge.className += ' step-connector-badge'
+    connector.appendChild(badge)
+  }
+  
+  connector.appendChild(line)
+  return connector
 }
 
 // ── Palette list ──────────────────────────────────────────────────────────────

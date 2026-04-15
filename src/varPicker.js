@@ -35,8 +35,8 @@ function typeMeta(type) {
   return TYPE_META[type] || TYPE_META.text
 }
 
-const TOKEN_RE   = /(\{\{(?:result|clipboard|vars\.\w+)\}\})/g
-const TOKEN_TEST = /^\{\{(?:result|clipboard|vars\.\w+)\}\}$/
+const TOKEN_RE   = /(\{\{(?:result|clipboard|vars\.[\w\s.-]+)\}\})/g
+const TOKEN_TEST = /^\{\{(?:result|clipboard|vars\.[\w\s.-]+)\}\}$/
 
 // ── Token → human label / color ───────────────────────────────────────────────
 

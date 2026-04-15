@@ -525,7 +525,60 @@ body {
 .canvas-steps {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+}
+
+/* ── Step Connector (Wires) ───────────────────────────────────────── */
+.step-connector {
+  height: 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 58px; /* Aligned with step-icon center: 16+14+10+18 */
+  width: 0; /* Only center point matters */
+  z-index: 1;
+}
+
+.step-connector-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--border);
+  opacity: 0.5;
+}
+
+/* Rounded caps for the line via pseudo-elements */
+.step-connector-line::before,
+.step-connector-line::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.step-connector-line::before { top: -3px; }
+.step-connector-line::after { bottom: -3px; }
+
+.step-connector-badge {
+  position: absolute;
+  left: 12px;
+  transform: translateY(-0.5px);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 6px;
+  background: rgba(28, 28, 34, 0.85); /* Matches .var-picker-dropdown bg approximately */
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.8;
 }
 
 /* ── Step cards ───────────────────────────────────────────────────── */
@@ -1388,6 +1441,22 @@ input[type="checkbox"]:checked::after {
   margin: 3px 0;
   border-radius: 1px;
   transition: background 0.3s;
+  position: relative;
+}
+
+.run-step-line-badge {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.5;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  pointer-events: none;
 }
 .run-step-row.done + .run-step-row .run-step-line,
 .run-step-row.done .run-step-line { background: var(--green); opacity: 0.4; }
