@@ -35,8 +35,8 @@ function typeMeta(type) {
   return TYPE_META[type] || TYPE_META.text
 }
 
-const TOKEN_RE   = /(\{\{(?:result|clipboard|vars\.[\w\s.-]+)\}\})/g
-const TOKEN_TEST = /^\{\{(?:result|clipboard|vars\.[\w\s.-]+)\}\}$/
+const TOKEN_RE   = /(\{\{(?:result|clipboard|vars\.[\w\s.-]+|memory\.[\w\s.-]+)\}\})/g
+const TOKEN_TEST = /^\{\{(?:result|clipboard|vars\.[\w\s.-]+|memory\.[\w\s.-]+)\}\}$/
 
 // ── Token → human label / color ───────────────────────────────────────────────
 
@@ -56,6 +56,14 @@ function tokenMeta(token, stepIndex, allSteps) {
   }
   if (inner === 'clipboard') {
     return { label: 'Clipboard', color: '#BF5AF2', type: 'text' }
+  }
+  if (inner.startsWith('memory.')) {
+    const key = inner.slice('memory.'.length)
+    return {
+      label: `Memory: ${key}`,
+      color: '#06B6D4',
+      type: 'text',
+    }
   }
   const varName = inner.replace('vars.', '')
   return { label: varName, color: '#64D2FF', type: 'text' }
@@ -89,6 +97,16 @@ export function getAvailableVars(stepIndex, allSteps) {
     type:      'text',
     icon:      'clipboard',
     color:     '#BF5AF2',
+    stepIndex: -1,
+  })
+
+  vars.push({
+    label:     'Memory: Last Result',
+    sublabel:  'Last successful result from any shortcut',
+    token:     '{{memory.last}}',
+    type:      'text',
+    icon:      'database',
+    color:     '#06B6D4',
     stepIndex: -1,
   })
 

@@ -66,7 +66,7 @@
       <i data-lucide="briefcase"></i><span>Freelance</span>
     </a>
     <a href="#" class="nav-item" data-category="youtuber">
-      <i data-lucide="youtube"></i><span>YouTuber</span>
+      <i data-lucide="video"></i><span>YouTuber</span>
     </a>
     <a href="#" class="nav-item" data-category="admin">
       <i data-lucide="server"></i><span>System Admin</span>
@@ -1139,7 +1139,10 @@
       <button class="editor-back-btn" id="editorBackBtn" title="Back">
         <i data-lucide="chevron-left"></i>
       </button>
-      <input class="editor-name-input" id="editorName" type="text" placeholder="Shortcut name…" spellcheck="false">
+      <div class="editor-identity">
+        <input class="editor-name-input" id="editorName" type="text" placeholder="Shortcut name…" spellcheck="false">
+        <input class="editor-desc-input" id="editorDescription" type="text" placeholder="Short description to help users pick this shortcut…" spellcheck="false">
+      </div>
       <div class="editor-topbar-meta">
         <!-- Icon -->
         <button class="editor-icon-btn" id="editorIconBtn" title="Change Icon">

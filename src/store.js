@@ -10,6 +10,7 @@ const KEYS = {
   shortcuts: 'raccourcis_shortcuts',
   config: 'raccourcis_config',
   runs: 'raccourcis_runs',
+  memory: 'raccourcis_memory',
 }
 
 const DEFAULT_CONFIG = {
@@ -153,6 +154,41 @@ export async function clearRuns() {
   await window.ipcRenderer.store.saveRuns([])
 }
 
+// --- Cross-shortcut memory ---
+
+const DEFAULT_MEMORY = {
+  last: '',
+  lastShortcutId: '',
+  lastShortcutName: '',
+  updatedAt: '',
+  shortcuts: {},
+  named: {},
+}
+
+function sanitiseMemory(mem) {
+  if (!mem || typeof mem !== 'object') return { ...DEFAULT_MEMORY }
+  return {
+    ...DEFAULT_MEMORY,
+    ...mem,
+    shortcuts: (mem.shortcuts && typeof mem.shortcuts === 'object') ? mem.shortcuts : {},
+    named: (mem.named && typeof mem.named === 'object') ? mem.named : {},
+  }
+}
+
+export async function loadMemory() {
+  try {
+    const raw = localStorage.getItem(KEYS.memory)
+    if (!raw) return { ...DEFAULT_MEMORY }
+    return sanitiseMemory(JSON.parse(raw))
+  } catch {
+    return { ...DEFAULT_MEMORY }
+  }
+}
+
+export async function saveMemory(memory) {
+  localStorage.setItem(KEYS.memory, JSON.stringify(sanitiseMemory(memory)))
+}
+
 // --- Export / Import ---
 
 export async function exportData() {
@@ -173,5 +209,4 @@ export async function importData(json) {
   // config intentionally not imported (API key security)
   return data
 }
-
 

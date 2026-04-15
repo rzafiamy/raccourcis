@@ -9,6 +9,7 @@ import {
   buildShortcutCard,
   createRunOverlay,
   promptUser,
+  promptCommandAuth,
   promptRecord,
   showConfirm,
   showAlert,
@@ -48,6 +49,7 @@ const editorPanel  = document.getElementById('editorPanel')
 
 // Editor top-bar
 const editorNameInput      = document.getElementById('editorName')
+const editorDescInput      = document.getElementById('editorDescription')
 const editorFavorite       = document.getElementById('editorFavorite')
 const editorCategorySelect = document.getElementById('editorCategory')
 const colorSwatches        = document.querySelectorAll('#colorPicker .color-swatch')
@@ -407,7 +409,10 @@ const DATA_CATEGORIES = SHORTCUT_CATEGORY_IDS
 
 function matchesFilter(shortcut) {
   const q = searchInput.value.toLowerCase()
-  if (q && !shortcut.name.toLowerCase().includes(q)) return false
+  if (q) {
+    const haystack = `${shortcut.name || ''} ${shortcut.description || ''}`.toLowerCase()
+    if (!haystack.includes(q)) return false
+  }
   if (currentCategory === 'all') return true
   if (currentCategory === 'favorites') return shortcut.favorite
   if (currentCategory === 'filesystem') return !!shortcut.isFileSystem
@@ -593,6 +598,7 @@ async function startRun(shortcut, options = {}) {
   const result = await runWorkflow(shortcut, {
     signal:       abortController.signal,
     promptUser,
+    promptCommandAuth,
     promptRecord,
     showConfirm,
     showAlert,
@@ -648,6 +654,7 @@ function openEditor(shortcut) {
     : {
         id:       Date.now(),
         name:     '',
+        description: '',
         icon:     'rocket',
         color:    'bg-blue',
         category: getDefaultEditorCategory(),
@@ -655,7 +662,10 @@ function openEditor(shortcut) {
         steps:    [],
       }
 
+  if (editingShortcut.description == null) editingShortcut.description = ''
+
   editorNameInput.value          = editingShortcut.name
+  if (editorDescInput) editorDescInput.value = editingShortcut.description || ''
   editorFavorite.checked         = editingShortcut.favorite
   ensureEditorCategoryOption(editingShortcut.category)
 
@@ -778,6 +788,11 @@ paletteSearch.addEventListener('input', () => renderPalette(paletteSearch.value)
 editorNameInput.addEventListener('input', () => {
   if (editingShortcut) editingShortcut.name = editorNameInput.value
 })
+if (editorDescInput) {
+  editorDescInput.addEventListener('input', () => {
+    if (editingShortcut) editingShortcut.description = editorDescInput.value
+  })
+}
 editorFavorite.addEventListener('change', () => {
   if (editingShortcut) editingShortcut.favorite = editorFavorite.checked
 })

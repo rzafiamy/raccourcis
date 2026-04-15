@@ -122,11 +122,26 @@ export default [
     defaults: {
       label: 'Your input',
       placeholder: 'Type here...',
+      inputType: 'auto',
     },
     params: [
       { name: 'label', label: 'Dialog Label', kind: 'text', placeholder: 'Your input' },
       { name: 'placeholder', label: 'Placeholder text', kind: 'text', placeholder: 'Type here...' },
       { name: 'prefill', label: 'Initial value', kind: 'text', placeholder: 'Leave empty for blank', acceptsVars: true },
+      {
+        name: 'inputType',
+        label: 'Input Type',
+        kind: 'select',
+        options: [
+          { value: 'auto', label: 'Auto detect' },
+          { value: 'text', label: 'Text' },
+          { value: 'number', label: 'Number' },
+          { value: 'email', label: 'Email' },
+          { value: 'url', label: 'URL' },
+          { value: 'password', label: 'Password' },
+          { value: 'multiline', label: 'Multiline text' },
+        ],
+      },
     ],
   },
   {

@@ -53,6 +53,16 @@ export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
   stepCount.className = 'shortcut-steps-count'
   stepCount.textContent = `${shortcut.steps.length} step${shortcut.steps.length !== 1 ? 's' : ''}`
 
+  const desc = document.createElement('div')
+  desc.className = 'shortcut-desc'
+  const explicit = (shortcut.description || '').trim()
+  const generated = (shortcut.steps || [])
+    .slice(0, 2)
+    .map((s) => s?.title)
+    .filter(Boolean)
+    .join(' -> ')
+  desc.textContent = explicit || generated || 'Run this shortcut'
+
   if (shortcut.isFileSystem) {
     const fsBadge = document.createElement('div')
     fsBadge.className = 'shortcut-fs-badge'
@@ -79,6 +89,7 @@ export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
 
   card.appendChild(iconWrap)
   card.appendChild(namEl)
+  card.appendChild(desc)
   card.appendChild(stepCount)
   card.appendChild(actions)
 
@@ -213,20 +224,45 @@ export function showResultModal({ ok, title, desc, result, error }) {
 
 // ── User-input prompt ─────────────────────────────────────────────────────────
 
-export function promptUser({ label, placeholder, prefill = '' }) {
+function detectPromptInputMode({ label, placeholder, prefill, inputType, multiline }) {
+  if (multiline === true || inputType === 'multiline') return { mode: 'textarea', inputType: 'text' }
+  if (inputType && inputType !== 'auto') return { mode: 'input', inputType }
+
+  const hint = `${label || ''} ${placeholder || ''}`.toLowerCase()
+  if (/(password|secret|api key|token|passphrase)/.test(hint)) return { mode: 'input', inputType: 'password' }
+  if (/(email|e-mail)/.test(hint)) return { mode: 'input', inputType: 'email' }
+  if (/(url|uri|link|website|http)/.test(hint)) return { mode: 'input', inputType: 'url' }
+  if (/(number|count|qty|quantity|port|line)/.test(hint)) return { mode: 'input', inputType: 'number' }
+  if (/(command|bash|shell|script|prompt|message|body|description|json|markdown|text)/.test(hint)) {
+    return { mode: 'textarea', inputType: 'text' }
+  }
+  if (String(prefill || '').includes('\n') || String(prefill || '').length > 140) {
+    return { mode: 'textarea', inputType: 'text' }
+  }
+  return { mode: 'input', inputType: 'text' }
+}
+
+export function promptUser({ label, placeholder, prefill = '', inputType = 'auto', multiline = false }) {
   return new Promise((resolve) => {
+    const mode = detectPromptInputMode({ label, placeholder, prefill, inputType, multiline })
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
     overlay.style.display = 'flex'
 
+    const isMultiline = mode.mode === 'textarea'
+    const fieldHtml = isMultiline
+      ? `<textarea class="input-field prompt-input-field prompt-input-field--multiline" id="userInputField"
+          placeholder="${placeholder}" style="flex:1;resize:none;">${prefill}</textarea>`
+      : `<input class="input-field prompt-input-field" id="userInputField"
+          type="${mode.inputType}" placeholder="${placeholder}" value="${prefill}">`
+
     overlay.innerHTML = `
-      <div class="modal-content" style="max-width:800px;height:70vh;width:90%;">
+      <div class="modal-content prompt-modal ${isMultiline ? 'prompt-modal--multiline' : 'prompt-modal--single'}">
         <div class="modal-header">
           <h2>${label}</h2>
         </div>
         <div class="modal-body">
-          <textarea class="input-field" id="userInputField"
-            placeholder="${placeholder}" style="flex:1;resize:none;">${prefill}</textarea>
+          ${fieldHtml}
         </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" id="userInputCancel">Cancel</button>
@@ -247,9 +283,47 @@ export function promptUser({ label, placeholder, prefill = '' }) {
     overlay.querySelector('#userInputConfirm').addEventListener('click', confirm)
     overlay.querySelector('#userInputCancel').addEventListener('click', cancel)
     field.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirm()
+      if (e.key === 'Enter' && !isMultiline) confirm()
+      if (e.key === 'Enter' && isMultiline && (e.ctrlKey || e.metaKey)) confirm()
       if (e.key === 'Escape') cancel()
     })
+  })
+}
+
+export function promptCommandAuth({ command, supportsInlinePassword = true }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'modal-overlay'
+    overlay.style.display = 'flex'
+    overlay.innerHTML = `
+      <div class="modal-content prompt-auth-modal" style="max-width:700px;">
+        <div class="modal-header">
+          <h2>Interactive Command Detected</h2>
+        </div>
+        <div class="modal-body">
+          <p class="prompt-auth-help">This command may ask for a password or terminal interaction.</p>
+          <pre class="prompt-auth-command">${command}</pre>
+          <label class="prompt-auth-label">Password for non-interactive run ${supportsInlinePassword ? '(optional)' : '(not supported for this command)'}</label>
+          <input class="input-field" id="cmdPasswordField" type="password" placeholder="Password (never saved)" ${supportsInlinePassword ? '' : 'disabled'}>
+          <p class="prompt-auth-tip">Tip: choose "Open in Terminal" for commands needing prompts or TTY input.</p>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <button class="btn btn-ghost" id="cmdCancel">Cancel</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" id="cmdTerminal">Open in Terminal</button>
+            <button class="btn btn-primary" id="cmdInlineRun" ${supportsInlinePassword ? '' : 'disabled'}>Run Here</button>
+          </div>
+        </div>
+      </div>
+    `
+    document.body.appendChild(overlay)
+    const passField = overlay.querySelector('#cmdPasswordField')
+    if (supportsInlinePassword) passField.focus()
+
+    const done = (payload) => { overlay.remove(); resolve(payload) }
+    overlay.querySelector('#cmdCancel').addEventListener('click', () => done({ mode: 'cancel' }))
+    overlay.querySelector('#cmdTerminal').addEventListener('click', () => done({ mode: 'terminal' }))
+    overlay.querySelector('#cmdInlineRun').addEventListener('click', () => done({ mode: 'password', password: passField.value }))
   })
 }
 
@@ -646,7 +720,7 @@ const PALETTE_GROUPS = [
   { label: 'Control',  types: ['wait', 'set-var', 'confirm-dialog', 'text-transform', 'text-join'] },
   { label: 'Files',    types: ['file-read', 'folder-list', 'image-clean', 'file-rename', 'file-move', 'file-delete', 'zip-extract', 'folder-compress'] },
   { label: 'Media',    types: ['screenshot-capture', 'media-metadata-tag', 'media-merge-poster', 'media-extract-audio', 'media-convert', 'image-compress'] },
-  { label: 'Data',     types: ['http-request', 'json-extract', 'regex-extract', 'plot-chart', 'math-evaluate', 'hash-generate'] },
+  { label: 'Data',     types: ['http-request', 'json-extract', 'regex-extract', 'plot-chart', 'math-evaluate', 'hash-generate', 'memory-load', 'memory-save'] },
   { label: 'Git',      types: ['git-clone', 'git-init'] },
   { label: 'System',   types: ['shell', 'trigger-cron'] },
   { label: 'Services', types: ['firecrawl-scrape', 'google-search', 'youtube-search', 'wikipedia-search', 'weather', 'qr-code', 'youtube-download'] },

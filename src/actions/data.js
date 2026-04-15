@@ -82,6 +82,31 @@ export default [
     ],
   },
   {
+    type: 'memory-load',
+    title: 'Load From Memory',
+    desc: 'Load a saved value from cross-shortcut memory → result',
+    icon: 'database',
+    color: '#06B6D4',
+    outputType: 'text',
+    defaults: { key: 'last', fallback: '' },
+    params: [
+      { name: 'key', label: 'Memory key', kind: 'text', placeholder: 'last or named.projectBrief' },
+      { name: 'fallback', label: 'Fallback value (optional)', kind: 'text', placeholder: 'Used if key is empty', acceptsVars: true },
+    ],
+  },
+  {
+    type: 'memory-save',
+    title: 'Save To Memory',
+    desc: 'Save current result to cross-shortcut memory for reuse',
+    icon: 'database-zap',
+    color: '#22C55E',
+    outputType: null,
+    defaults: { key: 'named.latest' },
+    params: [
+      { name: 'key', label: 'Memory key', kind: 'text', placeholder: 'named.latest or named.projectBrief' },
+    ],
+  },
+  {
     type: 'app-launch',
     title: 'Launch App',
     desc: 'Open an application or file with its default handler',

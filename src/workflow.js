@@ -17,17 +17,34 @@
  *   { ok, result, log, error, durationMs }
  */
 
-import { loadConfig } from './store.js'
+import { loadConfig, loadMemory, saveMemory } from './store.js'
 
 /**
  * Substitute {{result}}, {{clipboard}}, {{vars.name}} in a string.
  */
+function getPath(obj, path) {
+  if (!path) return undefined
+  return path.split('.').reduce((acc, part) => {
+    if (acc === undefined || acc === null) return undefined
+    return acc[part]
+  }, obj)
+}
+
+function resolveToken(token, ctx) {
+  if (token === 'result') return ctx.result ?? ''
+  if (token === 'clipboard') return ctx.clipboard ?? ''
+  if (token.startsWith('vars.')) return ctx.vars[token.slice(5)] ?? ''
+  if (token.startsWith('memory.')) return getPath(ctx.memory, token.slice(7)) ?? ''
+  return null
+}
+
 function interpolate(template, ctx) {
   if (typeof template !== 'string') return template
-  return template
-    .replace(/\{\{result\}\}/g, ctx.result ?? '')
-    .replace(/\{\{clipboard\}\}/g, ctx.clipboard ?? '')
-    .replace(/\{\{vars\.([\w\s.-]+)\}\}/g, (_, name) => ctx.vars[name] ?? '')
+  return template.replace(/\{\{([^}]+)\}\}/g, (full, rawToken) => {
+    const token = String(rawToken || '').trim()
+    const value = resolveToken(token, ctx)
+    return value === null ? full : String(value)
+  })
 }
 
 /**
@@ -283,6 +300,25 @@ async function callVision(imageUrl, prompt, systemPrompt, model, signal, onDebug
   return data.choices[0].message.content
 }
 
+function normalizeMemoryValue(value, maxLen = 20000) {
+  const text = value == null ? '' : String(value)
+  return text.length > maxLen ? text.slice(0, maxLen) : text
+}
+
+function looksInteractiveCommand(command) {
+  if (!command) return false
+  return /\b(sudo|su|passwd|pkexec)\b/i.test(command)
+}
+
+function supportsPasswordStdin(command) {
+  if (!command) return false
+  return /\bsudo\b/i.test(command)
+}
+
+function ensureSudoStdinFriendly(command) {
+  return command.replace(/\bsudo(?!\s+-S)\b/g, 'sudo -S -p ""')
+}
+
 // ── Step executors ────────────────────────────────────────────────────────────
 
 const EXECUTORS = {
@@ -308,6 +344,8 @@ const EXECUTORS = {
       label: s.label || 'Your input',
       placeholder: s.placeholder || '',
       prefill: s.prefill !== undefined ? s.prefill : ctx.result,
+      inputType: s.inputType || 'auto',
+      multiline: s.multiline,
     })
     if (value === null) throw new Error('User cancelled input.')
     ctx.result = value
@@ -476,9 +514,33 @@ const EXECUTORS = {
 
   shell: async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
-    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', { 
-      command: s.command, 
-      runId: opts.runId 
+    let command = s.command
+    let stdin = ''
+
+    if (looksInteractiveCommand(command) && opts.promptCommandAuth) {
+      const decision = await opts.promptCommandAuth({
+        command,
+        supportsInlinePassword: supportsPasswordStdin(command),
+      })
+      if (!decision || decision.mode === 'cancel') throw new Error('Command cancelled by user.')
+
+      if (decision.mode === 'terminal') {
+        const openRes = await window.ipcRenderer.invoke('open-terminal-command', { command })
+        if (!openRes?.ok) throw new Error(openRes?.error || 'Failed to open terminal command.')
+        ctx.result = `Opened in terminal: ${command}`
+        return
+      }
+
+      if (decision.mode === 'password') {
+        command = ensureSudoStdinFriendly(command)
+        stdin = `${decision.password || ''}\n`
+      }
+    }
+
+    const { stdout, stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', {
+      command,
+      runId: opts.runId,
+      stdin,
     })
     if (exitCode !== 0) throw new Error(`Shell exited ${exitCode}: ${stderr}`)
     ctx.result = stdout.trimEnd()
@@ -605,6 +667,29 @@ const EXECUTORS = {
   'set-var': async (step, ctx, _opts) => {
     const name = step.varName || 'result'
     ctx.vars[name] = ctx.result
+  },
+
+  'memory-load': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const key = (s.key || 'last').trim()
+    const value = key ? getPath(ctx.memory, key) : undefined
+    ctx.result = value == null ? (s.fallback || '') : String(value)
+  },
+
+  'memory-save': async (step, ctx, _opts) => {
+    const s = interpolateStep(step, ctx)
+    const key = (s.key || 'named.latest').trim()
+    if (!key) throw new Error('Save To Memory: key is required.')
+
+    const parts = key.split('.').filter(Boolean)
+    let node = ctx.memory
+    while (parts.length > 1) {
+      const part = parts.shift()
+      if (!node[part] || typeof node[part] !== 'object') node[part] = {}
+      node = node[part]
+    }
+    node[parts[0]] = normalizeMemoryValue(ctx.result)
+    ctx._memoryDirty = true
   },
 
   tts: async (step, ctx, opts) => {
@@ -1458,7 +1543,7 @@ const EXECUTORS = {
     ctx.result = uploadedFiles.join(', ')
   },
 
-  'youtube-download': async (step, ctx, _opts) => {
+  'youtube-download': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const url = s.url || ctx.result
     if (!url) throw new Error('YouTube Download: no URL provided.')
@@ -1501,7 +1586,7 @@ const EXECUTORS = {
     ctx.result = clean
   },
 
-  'math-evaluate': async (step, ctx, _opts) => {
+  'math-evaluate': async (step, ctx, opts) => {
     const s = interpolateStep(step, ctx)
     const expr = s.expression || ctx.result
     if (!expr) throw new Error('Math Evaluate: no expression provided.')
@@ -1981,14 +2066,16 @@ const Logger = {
  * @returns {Promise<{ok, result, log, error, durationMs}>}
  */
 export async function runWorkflow(shortcut, options = {}) {
-  const { signal, promptUser, promptRecord, showConfirm, showAlert, onStepStart, onStepEnd, onShowResult } = options
+  const { signal, promptUser, promptRecord, showConfirm, showAlert, promptCommandAuth, onStepStart, onStepEnd, onShowResult } = options
 
   /** Mutable shared context — the "pipe" between steps */
   const ctx = {
     result: '',
     clipboard: '',
     vars: {},
+    memory: await loadMemory(),
     log: [],
+    _memoryDirty: false,
   }
 
   const wallStart = Date.now()
@@ -2031,6 +2118,7 @@ export async function runWorkflow(shortcut, options = {}) {
         promptRecord, 
         showConfirm, 
         showAlert, 
+        promptCommandAuth,
         onShowResult,
         onDebug: (req, res) => {
           if (req) stepDebug.request = req
@@ -2077,6 +2165,18 @@ export async function runWorkflow(shortcut, options = {}) {
     }
 
     const totalDuration = Date.now() - wallStart
+    ctx.memory.last = normalizeMemoryValue(ctx.result)
+    ctx.memory.lastShortcutId = String(shortcut.id ?? '')
+    ctx.memory.lastShortcutName = shortcut.name || ''
+    ctx.memory.updatedAt = new Date().toISOString()
+    ctx.memory.shortcuts[String(shortcut.id ?? shortcut.name ?? 'unknown')] = {
+      id: String(shortcut.id ?? ''),
+      name: shortcut.name || '',
+      result: normalizeMemoryValue(ctx.result),
+      updatedAt: ctx.memory.updatedAt,
+    }
+    await saveMemory(ctx.memory)
+
     if (cfg.debugMode) {
       console.log(`%c✅ Shortcut Completed: %c${shortcut.name} %c(${totalDuration}ms)`, 'color: #10b981; font-weight: bold;', 'color: #fff; font-weight: bold;', 'color: #6b7280;')
       window.ipcRenderer.send('log-to-terminal', { type: 'end', level: 'INFO', shortcutName: shortcut.name, entry: { durationMs: totalDuration } })
@@ -2091,6 +2191,10 @@ export async function runWorkflow(shortcut, options = {}) {
     }
   } catch (err) {
     const totalDuration = Date.now() - wallStart
+    if (ctx._memoryDirty) {
+      ctx.memory.updatedAt = new Date().toISOString()
+      await saveMemory(ctx.memory)
+    }
     if (cfg.debugMode) {
       console.log(`%c❌ Shortcut Failed: %c${shortcut.name} %c(${totalDuration}ms)`, 'color: #ef4444; font-weight: bold;', 'color: #fff; font-weight: bold;', 'color: #6b7280;')
       window.ipcRenderer.send('log-to-terminal', { type: 'end', level: 'ERROR', shortcutName: shortcut.name, entry: { durationMs: totalDuration } })

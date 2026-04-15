@@ -657,7 +657,9 @@ ipcMain.handle('app-launch', async (_, target) => {
 // Only available when the app is used by the local user (no network exposure).
 // Commands run in a restricted shell with a 30s timeout.
 
-ipcMain.handle('shell-exec', async (event, { command, runId }) => {
+ipcMain.handle('shell-exec', async (event, payload) => {
+  const request = typeof payload === 'string' ? { command: payload } : (payload || {})
+  const { command, runId, stdin = '' } = request
   if (typeof command !== 'string' || command.length > 4096) {
     return { stdout: '', stderr: 'Invalid command', exitCode: 1 }
   }
@@ -685,7 +687,41 @@ ipcMain.handle('shell-exec', async (event, { command, runId }) => {
     if (runId) {
       runningProcesses.set(runId, child)
     }
+
+    if (stdin && child.stdin) {
+      child.stdin.write(stdin)
+      child.stdin.end()
+    }
   })
+})
+
+ipcMain.handle('open-terminal-command', async (_, { command }) => {
+  if (typeof command !== 'string' || !command.trim()) {
+    return { ok: false, error: 'Missing command.' }
+  }
+
+  const escaped = command.replace(/'/g, `'\\''`)
+
+  if (process.platform === 'linux') {
+    const candidates = [
+      `x-terminal-emulator -e bash -lc '${escaped}; echo; read -n 1 -s -r -p "Press any key to close..."'`,
+      `gnome-terminal -- bash -lc '${escaped}; echo; read -n 1 -s -r -p "Press any key to close..."'`,
+      `konsole -e bash -lc '${escaped}; echo; read -n 1 -s -r -p "Press any key to close..."'`,
+      `xterm -e bash -lc '${escaped}; echo; read -n 1 -s -r -p "Press any key to close..."'`,
+    ]
+
+    for (const candidate of candidates) {
+      try {
+        await execAsync(candidate)
+        return { ok: true }
+      } catch {
+        // Try next terminal candidate
+      }
+    }
+    return { ok: false, error: 'No supported terminal app found.' }
+  }
+
+  return { ok: false, error: 'Open-in-terminal is currently supported on Linux only.' }
 })
 
 ipcMain.on('shell-kill', (_, runId) => {
@@ -844,4 +880,3 @@ ipcMain.handle('telegram-send-file', async (_, { token, chatId, filePath, captio
     return { ok: false, error: err.message }
   }
 })
-
