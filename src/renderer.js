@@ -24,6 +24,11 @@ import {
 import { refreshDashboard } from './dashboard.js'
 import { refreshCronList } from './cron.js'
 import { refreshTraces, clearTraceHistory } from './traces.js'
+import {
+  SHORTCUT_CATEGORIES,
+  SHORTCUT_CATEGORY_IDS,
+  getShortcutCategoryLabel,
+} from './shortcutCategories.js'
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -113,6 +118,38 @@ const sLinkedinUrn        = document.getElementById('linkedinPersonUrn')
 const aboutModal       = document.getElementById('aboutModal')
 // helpModal removed, now a view
 
+function populateEditorCategoryOptions() {
+  if (!editorCategorySelect) return
+  const currentValue = editorCategorySelect.value
+  editorCategorySelect.innerHTML = ''
+
+  SHORTCUT_CATEGORIES.forEach((category) => {
+    const option = document.createElement('option')
+    option.value = category.id
+    option.textContent = category.label
+    editorCategorySelect.appendChild(option)
+  })
+
+  if (currentValue) ensureEditorCategoryOption(currentValue)
+}
+
+function ensureEditorCategoryOption(categoryId) {
+  if (!editorCategorySelect || !categoryId) return
+
+  let option = Array.from(editorCategorySelect.options).find((entry) => entry.value === categoryId)
+  if (!option) {
+    option = document.createElement('option')
+    option.value = categoryId
+    option.textContent = getShortcutCategoryLabel(categoryId)
+    editorCategorySelect.appendChild(option)
+  }
+
+  editorCategorySelect.value = categoryId
+}
+
+function getDefaultEditorCategory() {
+  return SHORTCUT_CATEGORY_IDS.includes(currentCategory) ? currentCategory : 'personal'
+}
 
 
 // ── Window controls ───────────────────────────────────────────────────────────
@@ -365,24 +402,24 @@ function getTriggerGroup(shortcut) {
   return TRIGGER_GROUPS.find((g) => g.match(firstType)) ?? TRIGGER_GROUPS[TRIGGER_GROUPS.length - 1]
 }
 
+// All known data categories — single source of truth
+const DATA_CATEGORIES = SHORTCUT_CATEGORY_IDS
+
 function matchesFilter(shortcut) {
   const q = searchInput.value.toLowerCase()
   if (q && !shortcut.name.toLowerCase().includes(q)) return false
   if (currentCategory === 'all') return true
   if (currentCategory === 'favorites') return shortcut.favorite
-  if (currentCategory === 'ai') return shortcut.category === 'ai'
-  if (currentCategory === 'personal') return shortcut.category === 'personal'
-  if (currentCategory === 'media') return shortcut.category === 'media'
-  if (currentCategory === 'comm') return shortcut.category === 'comm'
-  if (currentCategory === 'socialnet') return shortcut.category === 'socialnet'
   if (currentCategory === 'filesystem') return !!shortcut.isFileSystem
   if (currentCategory === 'recent') return true
+  // Any data category: match by shortcut.category field
+  if (DATA_CATEGORIES.includes(currentCategory)) return shortcut.category === currentCategory
   return true
 }
 
 // Whether the current view should render trigger-group sections
 function shouldGroupByTrigger() {
-  return ['all', 'favorites', 'ai', 'personal', 'media', 'comm', 'socialnet', 'filesystem'].includes(currentCategory)
+  return ['all', 'favorites', 'filesystem', ...DATA_CATEGORIES].includes(currentCategory)
 }
 
 // Group shortcuts by how recently they were used
@@ -474,7 +511,7 @@ function renderGrid() {
       }))
     })
     // "+ New" card first
-    if (['all', 'personal', 'ai', 'media', 'comm', 'socialnet'].includes(currentCategory)) {
+    if (['all', ...DATA_CATEGORIES].includes(currentCategory)) {
       const newCard = document.createElement('div')
       newCard.className = 'shortcut-card card-new'
       newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
@@ -493,7 +530,7 @@ function renderGrid() {
   filtered.forEach((s) => buckets.get(getTriggerGroup(s).id).push(s))
 
   // "+ New" shortcut — prepended as its own unsectioned card
-  if (['all', 'personal', 'ai', 'media', 'comm', 'socialnet'].includes(currentCategory)) {
+  if (['all', ...DATA_CATEGORIES].includes(currentCategory)) {
     const newCard = document.createElement('div')
     newCard.className = 'shortcut-card card-new'
     newCard.innerHTML = `<div class="new-card-icon"><i data-lucide="plus"></i></div><div class="shortcut-name">New Shortcut</div>`
@@ -613,14 +650,14 @@ function openEditor(shortcut) {
         name:     '',
         icon:     'rocket',
         color:    'bg-blue',
-        category: 'personal',
+        category: getDefaultEditorCategory(),
         favorite: false,
         steps:    [],
       }
 
   editorNameInput.value          = editingShortcut.name
   editorFavorite.checked         = editingShortcut.favorite
-  editorCategorySelect.value     = editingShortcut.category
+  ensureEditorCategoryOption(editingShortcut.category)
 
   // Update icon button
   if (editorIconBtn) {
@@ -1028,6 +1065,7 @@ window.ipcRenderer.on('run-shortcut-by-id', async (event, shortcutId) => {
 
 async function init() {
   try {
+    populateEditorCategoryOptions()
     shortcuts = await loadShortcuts()
     
     window.addEventListener('open-shortcut-editor', (e) => {

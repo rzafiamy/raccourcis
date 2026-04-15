@@ -33,19 +33,22 @@
     <a href="#" class="nav-item" data-category="favorites">
       <i data-lucide="star"></i><span>Favorites</span>
     </a>
-    <a href="#" class="nav-item" data-category="filesystem">
-      <i data-lucide="folder-lock"></i><span>Local Files</span>
-    </a>
     <a href="#" class="nav-item" data-category="recent">
       <i data-lucide="history"></i><span>Recent</span>
     </a>
+    <a href="#" class="nav-item" data-category="filesystem">
+      <i data-lucide="folder-lock"></i><span>Local Files</span>
+    </a>
 
-    <div class="sidebar-section-label">Automation</div>
+    <div class="sidebar-section-label">Categories</div>
     <a href="#" class="nav-item" data-category="ai">
       <i data-lucide="sparkles"></i><span>AI Workflows</span>
     </a>
     <a href="#" class="nav-item" data-category="personal">
       <i data-lucide="zap"></i><span>Personal</span>
+    </a>
+    <a href="#" class="nav-item" data-category="finance">
+      <i data-lucide="wallet"></i><span>Finance</span>
     </a>
     <a href="#" class="nav-item" data-category="media">
       <i data-lucide="image"></i><span>Media</span>
@@ -54,7 +57,16 @@
       <i data-lucide="mail"></i><span>Communication</span>
     </a>
     <a href="#" class="nav-item" data-category="socialnet">
-      <i data-lucide="share-2"></i><span>SocialNet</span>
+      <i data-lucide="share-2"></i><span>Social Networks</span>
+    </a>
+    <a href="#" class="nav-item" data-category="dev">
+      <i data-lucide="code-2"></i><span>Development</span>
+    </a>
+    <a href="#" class="nav-item" data-category="freelance">
+      <i data-lucide="briefcase"></i><span>Freelance</span>
+    </a>
+    <a href="#" class="nav-item" data-category="youtuber">
+      <i data-lucide="youtube"></i><span>YouTuber</span>
     </a>
 
     <div class="sidebar-section-label">Management</div>
@@ -1142,9 +1154,14 @@
         </div>
         <!-- Category -->
         <select class="input-field select-field editor-category" id="editorCategory">
+          <option value="ai">AI Workflows</option>
           <option value="personal">Personal</option>
-          <option value="ai">AI Workflow</option>
-          <option value="socialnet">SocialNet</option>
+          <option value="media">Media</option>
+          <option value="comm">Communication</option>
+          <option value="socialnet">Social Networks</option>
+          <option value="dev">Development</option>
+          <option value="freelance">Freelance</option>
+          <option value="youtuber">YouTuber</option>
         </select>
         <!-- Favorite -->
         <label class="fav-toggle" title="Favorite">

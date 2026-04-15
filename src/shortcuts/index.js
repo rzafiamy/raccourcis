@@ -10,12 +10,14 @@ import developerShortcuts    from './developer.js'
 import systemShortcuts       from './system.js'
 import mediaShortcuts        from './media.js'
 import communicationShortcuts from './communication.js'
+import financeShortcuts      from './finance.js'
 import filesShortcuts        from './files.js'
 import analyticsShortcuts    from './analytics.js'
 import socialnetShortcuts    from './socialnet.js'
 import officeShortcuts       from './office.js'
 import messagingShortcuts    from './messaging.js'
 import freelanceShortcuts    from './freelancer.js'
+import youtuberShortcuts     from './youtuber.js'
 
 export const DEFAULT_SHORTCUTS = [
   ...aiShortcuts,
@@ -23,10 +25,12 @@ export const DEFAULT_SHORTCUTS = [
   ...systemShortcuts,
   ...mediaShortcuts,
   ...communicationShortcuts,
+  ...financeShortcuts,
   ...filesShortcuts,
   ...analyticsShortcuts,
   ...socialnetShortcuts,
   ...officeShortcuts,
   ...messagingShortcuts,
   ...freelanceShortcuts,
+  ...youtuberShortcuts,
 ]
