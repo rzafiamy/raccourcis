@@ -19,6 +19,7 @@ import messagingShortcuts    from './messaging.js'
 import freelanceShortcuts    from './freelancer.js'
 import youtuberShortcuts     from './youtuber.js'
 import adminShortcuts        from './admin.js'
+import lifestyleShortcuts    from './lifestyle.js'
 
 export const DEFAULT_SHORTCUTS = [
   ...aiShortcuts,
@@ -35,4 +36,5 @@ export const DEFAULT_SHORTCUTS = [
   ...freelanceShortcuts,
   ...youtuberShortcuts,
   ...adminShortcuts,
+  ...lifestyleShortcuts,
 ]

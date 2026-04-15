@@ -144,7 +144,7 @@ async function callTTS(text, voice, model, signal, onDebug) {
   if (!cfg.apiKey) throw new Error('API key not set. Open Settings to add your key.')
 
   const url = `${cfg.baseUrl}/audio/speech`
-  const body = { model: model || 'tts-1', input: text, voice: voice || 'alloy' }
+  const body = { model: model || 'tts-1', input: text, voice: voice ?? '' }
   
   if (onDebug) onDebug({ url, method: 'POST', body })
 
@@ -1087,6 +1087,23 @@ const EXECUTORS = {
       `Wind: ${d.wind?.speed} ${units === 'imperial' ? 'mph' : 'm/s'}`,
       `Visibility: ${d.visibility ? (d.visibility / 1000).toFixed(1) + ' km' : 'N/A'}`,
     ].join('\n')
+  },
+
+  'weather-forecast': async (step, ctx, opts) => {
+    const cfg = await loadConfig()
+    if (!cfg.openWeatherApiKey) throw new Error('OpenWeatherMap API key not set. Open Settings → Services.')
+    const s = interpolateStep(step, ctx)
+    const location = s.location || ctx.result
+    if (!location) throw new Error('Weather Forecast: no location provided.')
+    const units = s.units || 'metric'
+    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(location)}&units=${units}&appid=${cfg.openWeatherApiKey}`
+    const res = await fetch(url, { signal: opts.signal })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.message || `Weather forecast request failed (${res.status})`)
+    }
+    const d = await res.json()
+    ctx.result = JSON.stringify(d)
   },
 
   'smtp-send': async (step, ctx, opts) => {

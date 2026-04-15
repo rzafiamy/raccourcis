@@ -134,6 +134,31 @@ export default [
     ],
   },
   {
+    type: 'weather-forecast',
+    title: 'Get 5-Day Forecast',
+    desc: 'Fetch 5-day / 3-hour weather forecast (OpenWeatherMap) → result',
+    icon: 'calendar-days',
+    color: '#FFB347',
+    outputType: 'text',
+    defaults: {
+      location: '{{result}}',
+      units: 'metric',
+    },
+    params: [
+      { name: 'location', label: 'City or location', kind: 'text', placeholder: 'Paris, FR', acceptsVars: true },
+      {
+        name: 'units',
+        label: 'Units',
+        kind: 'select',
+        options: [
+          { value: 'metric', label: 'Metric (°C)' },
+          { value: 'imperial', label: 'Imperial (°F)' },
+          { value: 'standard', label: 'Standard (K)' },
+        ],
+      },
+    ],
+  },
+  {
     type: 'smtp-send',
     title: 'Send SMTP Email',
     desc: 'Send an email via SMTP (custom mail server)',

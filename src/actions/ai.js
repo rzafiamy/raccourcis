@@ -54,7 +54,7 @@ export default [
     outputType: 'audio',
     defaults: {
       text: '{{result}}',
-      voice: 'alloy',
+      voice: '',
       model: 'tts-1',
     },
     params: [
@@ -70,6 +70,7 @@ export default [
         label: 'Voice',
         kind: 'select',
         options: [
+          { value: '', label: 'Autodetect (Server Default)' },
           { value: 'alloy', label: 'Alloy' },
           { value: 'echo', label: 'Echo' },
           { value: 'fable', label: 'Fable' },

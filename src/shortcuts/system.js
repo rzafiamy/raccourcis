@@ -371,4 +371,28 @@ export default [
       step('show-result', { title: 'Tondro Link', label: 'Share Link' }),
     ],
   },
+  {
+    id: 90,
+    name: '5-Day Forecast',
+    icon: 'cloud-sun',
+    color: 'bg-cyan',
+    category: 'personal',
+    favorite: true,
+    steps: [
+      step('user-input', {
+        title: 'Location',
+        label: 'Enter City:',
+        placeholder: 'Paris, London, New York...',
+      }),
+      step('weather-forecast', {
+        title: 'Fetching Forecast...',
+      }),
+      step('ai-prompt', {
+        title: 'Format Forecast',
+        prompt: 'Convert this weather forecast JSON into a beautiful markdown table for the next 5 days:\n\n{{result}}\n\nUse appropriate emojis for weather conditions (☀️, ☁️, 🌧️, ⛈️, ❄️, etc.). Columns: Date/Day, Weather, Max/Min Temp, Humidity, Wind. Keep it compact and highly readable.',
+        systemPrompt: 'You are a professional weather assistant. Format the data into a clean, easy-to-read markdown table with a summary header for the city.',
+      }),
+      step('show-result', { title: '5-Day Weather Forecast', label: 'Local Forecast' }),
+    ],
+  },
 ]

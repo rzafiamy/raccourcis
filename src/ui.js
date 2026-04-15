@@ -459,7 +459,79 @@ export function showAlert({ title, message, btnText = 'OK' }) {
     overlay.querySelector('#alertOk').addEventListener('click', () => { overlay.remove(); resolve() })
   })
 }
-
+function buildSearchableSelect(param, currentVal, onSelect) {
+  const wrap = document.createElement('div')
+  wrap.className = 'search-select'
+  
+  const selectedOpt = param.options.find(o => String(o.value) === String(currentVal)) || param.options[0]
+  
+  const trigger = document.createElement('div')
+  trigger.className = 'search-select-trigger'
+  trigger.innerHTML = `<span>${selectedOpt?.label || 'Select…'}</span><i data-lucide="chevron-down"></i>`
+  
+  const dropdown = document.createElement('div')
+  dropdown.className = 'search-select-dropdown'
+  
+  const searchWrap = document.createElement('div')
+  searchWrap.className = 'search-select-search'
+  const searchInput = document.createElement('input')
+  searchInput.type = 'text'
+  searchInput.placeholder = 'Search…'
+  searchWrap.appendChild(searchInput)
+  
+  const optionsWrap = document.createElement('div')
+  optionsWrap.className = 'search-select-options'
+  
+  const renderOptions = (filter = '') => {
+    optionsWrap.innerHTML = ''
+    const q = filter.toLowerCase()
+    param.options.forEach(opt => {
+      if (q && !opt.label.toLowerCase().includes(q)) return
+      const item = document.createElement('div')
+      item.className = 'search-select-option'
+      if (String(opt.value) === String(currentVal)) item.classList.add('selected')
+      item.textContent = opt.label
+      item.onclick = (e) => {
+        e.stopPropagation()
+        onSelect(opt.value)
+        dropdown.classList.remove('open')
+        trigger.querySelector('span').textContent = opt.label
+      }
+      optionsWrap.appendChild(item)
+    })
+  }
+  
+  renderOptions()
+  
+  dropdown.appendChild(searchWrap)
+  dropdown.appendChild(optionsWrap)
+  wrap.appendChild(trigger)
+  wrap.appendChild(dropdown)
+  
+  trigger.onclick = (e) => {
+    e.stopPropagation()
+    const wasOpen = dropdown.classList.contains('open')
+    document.querySelectorAll('.search-select-dropdown.open').forEach(d => {
+      if (d !== dropdown) d.classList.remove('open')
+    })
+    dropdown.classList.toggle('open')
+    if (dropdown.classList.contains('open')) {
+      searchInput.value = ''
+      renderOptions('')
+      setTimeout(() => searchInput.focus(), 10)
+    }
+  }
+  
+  searchInput.onclick = (e) => e.stopPropagation()
+  searchInput.oninput = (e) => renderOptions(e.target.value)
+  
+  // Close on outside click is tricky in a dynamic UI, better handle it in trigger or global
+  const closeAll = () => dropdown.classList.remove('open')
+  window.addEventListener('click', closeAll, { once: true })
+  
+  refreshIcons(trigger)
+  return wrap
+}
 
 
 // ── Step card (canvas) ────────────────────────────────────────────────────────
@@ -618,29 +690,20 @@ export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMov
         })
         group.appendChild(input)
       } else if (param.kind === 'select') {
-        const input = document.createElement('select')
-        input.className = 'input-field select-field'
-        ;(param.options || []).forEach((opt) => {
-          const option = document.createElement('option')
-          option.value = opt.value
-          option.textContent = opt.label
-          if ((step[param.name] ?? param.options[0]?.value) === opt.value) option.selected = true
-          input.appendChild(option)
-        })
-        input.addEventListener('change', () => {
-          step = { ...step, [param.name]: input.value }
+        const select = buildSearchableSelect(param, step[param.name] ?? param.options[0]?.value, (newVal) => {
+          step = { ...step, [param.name]: newVal }
           onChange(index, step)
 
           // Special: ai-prompt outputFormat controls visibility of systemPrompt
           if (param.name === 'outputFormat') {
-            currentOutputFormat = input.value
+            currentOutputFormat = newVal
             const customGroup = paramsEl.querySelector('[data-param-name="systemPrompt"]')
             if (customGroup) {
-              customGroup.style.display = input.value === 'custom' ? 'block' : 'none'
+              customGroup.style.display = newVal === 'custom' ? 'block' : 'none'
             }
           }
         })
-        group.appendChild(input)
+        group.appendChild(select)
       } else {
         const input = document.createElement('input')
         input.type = 'text'

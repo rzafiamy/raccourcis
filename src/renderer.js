@@ -162,6 +162,63 @@ function getDefaultEditorCategory() {
 }
 
 
+const sidebarCategories = document.getElementById('sidebarCategories')
+const categorySearch    = document.getElementById('categorySearch')
+const showAllCategories = document.getElementById('showAllCategories')
+let categoriesExpanded = false
+
+function renderSidebarCategories() {
+  if (!sidebarCategories) return
+  sidebarCategories.innerHTML = ''
+  const query = categorySearch.value.toLowerCase().trim()
+
+  const filtered = SHORTCUT_CATEGORIES.filter(c => 
+    c.label.toLowerCase().includes(query) || c.id.toLowerCase().includes(query)
+  )
+
+  const toRender = categoriesExpanded || query ? filtered : filtered.slice(0, 5)
+
+  toRender.forEach(cat => {
+    const a = document.createElement('a')
+    a.href = '#'
+    a.className = 'nav-item'
+    if (currentCategory === cat.id) a.classList.add('active')
+    a.dataset.category = cat.id
+    a.innerHTML = `<i data-lucide="${cat.icon || 'tag'}"></i><span>${cat.label}</span>`
+    
+    a.addEventListener('click', async (e) => {
+      e.preventDefault()
+      switchToView('grid')
+      document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
+      a.classList.add('active')
+      currentCategory = a.dataset.category
+      mainTitle.textContent = a.querySelector('span').textContent
+      if (currentCategory === 'filesystem') await loadAndMergeShortcuts()
+      renderGrid()
+    })
+    sidebarCategories.appendChild(a)
+  })
+
+  if (showAllCategories) {
+    showAllCategories.style.display = (filtered.length > 5 && !query) ? 'flex' : 'none'
+    showAllCategories.querySelector('span').textContent = categoriesExpanded ? 'Show Less' : 'Show All'
+    showAllCategories.classList.toggle('expanded', categoriesExpanded)
+  }
+  
+  refreshIcons(sidebarCategories)
+}
+
+if (categorySearch) {
+  categorySearch.addEventListener('input', renderSidebarCategories)
+}
+if (showAllCategories) {
+  showAllCategories.addEventListener('click', () => {
+    categoriesExpanded = !categoriesExpanded
+    renderSidebarCategories()
+  })
+}
+
+
 // ── Window controls ───────────────────────────────────────────────────────────
 
 document.getElementById('winClose').addEventListener('click', () => window.ipcRenderer.send('window-close'))
@@ -170,7 +227,7 @@ document.getElementById('winMaximize').addEventListener('click', () => window.ip
 
 // ── Sidebar navigation ────────────────────────────────────────────────────────
 
-document.querySelectorAll('.nav-item[data-category]').forEach((item) => {
+document.querySelectorAll('.nav-item[data-category]:not(#sidebarCategories .nav-item)').forEach((item) => {
   item.addEventListener('click', async (e) => {
     e.preventDefault()
     switchToView('grid')
@@ -1090,6 +1147,7 @@ window.ipcRenderer.on('run-shortcut-by-id', async (event, shortcutId) => {
 async function init() {
   try {
     populateEditorCategoryOptions()
+    renderSidebarCategories()
     shortcuts = await loadShortcuts()
     
     window.addEventListener('open-shortcut-editor', (e) => {

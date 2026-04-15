@@ -41,36 +41,17 @@
     </a>
 
     <div class="sidebar-section-label">Categories</div>
-    <a href="#" class="nav-item" data-category="ai">
-      <i data-lucide="sparkles"></i><span>AI Workflows</span>
-    </a>
-    <a href="#" class="nav-item" data-category="personal">
-      <i data-lucide="zap"></i><span>Personal</span>
-    </a>
-    <a href="#" class="nav-item" data-category="finance">
-      <i data-lucide="wallet"></i><span>Finance</span>
-    </a>
-    <a href="#" class="nav-item" data-category="media">
-      <i data-lucide="image"></i><span>Media</span>
-    </a>
-    <a href="#" class="nav-item" data-category="comm">
-      <i data-lucide="mail"></i><span>Communication</span>
-    </a>
-    <a href="#" class="nav-item" data-category="socialnet">
-      <i data-lucide="share-2"></i><span>Social Networks</span>
-    </a>
-    <a href="#" class="nav-item" data-category="dev">
-      <i data-lucide="code-2"></i><span>Development</span>
-    </a>
-    <a href="#" class="nav-item" data-category="freelance">
-      <i data-lucide="briefcase"></i><span>Freelance</span>
-    </a>
-    <a href="#" class="nav-item" data-category="youtuber">
-      <i data-lucide="video"></i><span>YouTuber</span>
-    </a>
-    <a href="#" class="nav-item" data-category="admin">
-      <i data-lucide="server"></i><span>System Admin</span>
-    </a>
+    <div class="sidebar-search">
+      <i data-lucide="search"></i>
+      <input type="text" id="categorySearch" placeholder="Filter categories…" autocomplete="off">
+    </div>
+    <div id="sidebarCategories" class="sidebar-scroll-container">
+      <!-- Categories will be injected here -->
+    </div>
+    <div id="showAllCategories" class="sidebar-more-btn">
+      <i data-lucide="chevron-down"></i>
+      <span>Show All</span>
+    </div>
 
     <div class="sidebar-section-label">Management</div>
     <a href="#" class="nav-item" id="navChat" data-view="chat">
