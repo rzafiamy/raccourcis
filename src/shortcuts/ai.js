@@ -1,4 +1,4 @@
-// AI / Writing shortcuts (ids 1–8, 18–20, 27)
+// AI / Writing shortcuts (ids 1–8, 18–20, 27, 110–139)
 import { makeStep, getActionDef } from '../actions/index.js'
 
 function step(type, overrides = {}) {
@@ -227,6 +227,612 @@ export default [
       }),
       step('clipboard-write', { title: 'Copy Summary' }),
       step('show-result', { title: 'File Summary', label: 'Summary' }),
+    ],
+  },
+
+  // ── Writing & Communication ────────────────────────────────────
+  {
+    id: 110,
+    name: 'Reply to Email',
+    icon: 'reply',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Email Thread' }),
+      step('user-input', {
+        title: 'Reply Intent',
+        label: 'What is your reply intention?',
+        placeholder: 'e.g. Accept the meeting, ask for more details about budget',
+      }),
+      step('ai-prompt', {
+        title: 'Draft Reply',
+        prompt: 'Write a professional email reply based on this original email thread:\n\n{{vars.step1}}\n\nMy intent for the reply:\n{{result}}\n\nWrite a concise, professional reply. Include subject line if needed.',
+        systemPrompt: 'You are a professional communicator. Write clear, direct email replies that get results. No fluff.',
+      }),
+      step('clipboard-write', { title: 'Copy Reply' }),
+      step('show-result', { title: 'Email Reply', label: 'Reply Draft' }),
+    ],
+  },
+  {
+    id: 111,
+    name: 'Slack Message',
+    icon: 'message-square',
+    color: 'bg-cyan',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('user-input', {
+        title: 'Message Intent',
+        label: 'What do you need to communicate?',
+        placeholder: 'e.g. Ask the team to review PR #42 before EOD Friday',
+      }),
+      step('ai-prompt', {
+        title: 'Write Slack Message',
+        prompt: 'Write a clear, concise Slack message for the following intent:\n\n{{result}}\n\nKeep it conversational, scannable, and actionable. Use Slack formatting (bold with *asterisks*, bullet points with •) where helpful. No email-style greetings.',
+        systemPrompt: 'You are a clear async communicator. Write Slack messages that are direct, friendly, and easy to act on.',
+      }),
+      step('clipboard-write', { title: 'Copy Message' }),
+      step('show-result', { title: 'Slack Message', label: 'Message' }),
+    ],
+  },
+  {
+    id: 112,
+    name: 'Tone Shift: Formal',
+    icon: 'briefcase',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Text' }),
+      step('ai-prompt', {
+        title: 'Make Formal',
+        prompt: 'Rewrite the following text in a formal, professional tone suitable for business or academic contexts. Preserve all meaning:\n\n{{result}}',
+        systemPrompt: 'You are a professional editor. Output only the rewritten text, no commentary.',
+      }),
+      step('clipboard-write', { title: 'Copy Formal Text' }),
+      step('show-result', { title: 'Formal Version', label: 'Formal Text' }),
+    ],
+  },
+  {
+    id: 113,
+    name: 'Tone Shift: Casual',
+    icon: 'smile',
+    color: 'bg-green',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Text' }),
+      step('ai-prompt', {
+        title: 'Make Casual',
+        prompt: 'Rewrite the following text in a friendly, casual tone. Keep it natural and human. Preserve all meaning:\n\n{{result}}',
+        systemPrompt: 'You are a conversational writer. Output only the rewritten text, no commentary.',
+      }),
+      step('clipboard-write', { title: 'Copy Casual Text' }),
+      step('show-result', { title: 'Casual Version', label: 'Casual Text' }),
+    ],
+  },
+  {
+    id: 114,
+    name: 'Write LinkedIn Post',
+    icon: 'linkedin',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Post Topic',
+        label: 'What do you want to post about?',
+        placeholder: 'e.g. Lessons learned shipping a side project in 2 weeks',
+      }),
+      step('ai-prompt', {
+        title: 'Draft LinkedIn Post',
+        prompt: 'Write a high-engagement LinkedIn post about the following topic:\n\n{{result}}\n\nStructure: Hook (1 punchy line), 3–5 short paragraphs with insights, a clear takeaway, and a call-to-action question. Use line breaks for readability. No hashtag spam — max 3 relevant hashtags at the end.',
+        systemPrompt: 'You are a LinkedIn content strategist who writes posts that get real engagement from professionals. Write in first person, authentic and specific.',
+      }),
+      step('clipboard-write', { title: 'Copy Post' }),
+      step('show-result', { title: 'LinkedIn Post', label: 'Post Draft' }),
+    ],
+  },
+
+  // ── Research & Analysis ────────────────────────────────────────
+  {
+    id: 115,
+    name: 'Extract Action Items',
+    icon: 'list-checks',
+    color: 'bg-orange',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Text' }),
+      step('ai-prompt', {
+        title: 'Extract Actions',
+        prompt: 'Extract every action item, task, and commitment from the following text. Format as a checklist with owner (if mentioned) and deadline (if mentioned):\n\n{{result}}\n\nOutput format:\n- [ ] Task — Owner: X — Due: Y\n\nIf no owner or deadline is mentioned, omit those fields.',
+        systemPrompt: 'You are a project manager. Extract only genuine action items — no filler. Be precise.',
+      }),
+      step('clipboard-write', { title: 'Copy Action Items' }),
+      step('show-result', { title: 'Action Items', label: 'Action Items' }),
+    ],
+  },
+  {
+    id: 116,
+    name: 'Key Points',
+    icon: 'key-round',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Text' }),
+      step('ai-prompt', {
+        title: 'Extract Key Points',
+        prompt: 'Extract the 5–7 most important key points from the following text. Each point should be a single, specific, self-contained insight:\n\n{{result}}',
+        systemPrompt: 'You are an expert at distilling information. Output only numbered key points, no preamble.',
+      }),
+      step('clipboard-write', { title: 'Copy Key Points' }),
+      step('show-result', { title: 'Key Points', label: 'Key Points' }),
+    ],
+  },
+  {
+    id: 117,
+    name: 'TLDR',
+    icon: 'zap',
+    color: 'bg-orange',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Text' }),
+      step('ai-prompt', {
+        title: 'TLDR',
+        prompt: 'Give me a TL;DR of the following text in exactly 2–3 sentences. Capture the most critical information:\n\n{{result}}',
+        systemPrompt: 'You are a master of brevity. Output only the TL;DR, nothing else.',
+      }),
+      step('clipboard-write', { title: 'Copy TLDR' }),
+      step('show-result', { title: 'TL;DR', label: 'TL;DR' }),
+    ],
+  },
+  {
+    id: 118,
+    name: 'Pros & Cons',
+    icon: 'scale',
+    color: 'bg-cyan',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Topic' }),
+      step('ai-prompt', {
+        title: 'Pros & Cons',
+        prompt: 'Analyze the following topic and produce a balanced pros and cons list. Be specific and realistic, not generic:\n\n{{result}}\n\n**Pros:**\n- ...\n\n**Cons:**\n- ...',
+        systemPrompt: 'You are a strategic analyst. Provide specific, insightful pros and cons — avoid clichés.',
+      }),
+      step('clipboard-write', { title: 'Copy Analysis' }),
+      step('show-result', { title: 'Pros & Cons', label: 'Analysis' }),
+    ],
+  },
+  {
+    id: 119,
+    name: 'Decision Framework',
+    icon: 'git-branch',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Decision to Make',
+        label: 'What decision are you facing?',
+        placeholder: 'e.g. Should I use PostgreSQL or MongoDB for this project?',
+      }),
+      step('ai-prompt', {
+        title: 'Decision Framework',
+        prompt: 'Help me make this decision using a structured framework:\n\n{{result}}\n\nProvide:\n1. **Key criteria** to evaluate\n2. **Options** with quick assessment per criterion\n3. **Recommendation** with reasoning\n4. **Risks** of the recommended option\n5. **When to choose differently** (if context changes)',
+        systemPrompt: 'You are a senior strategic advisor. Be direct, practical, and help make the decision — not just explore it endlessly.',
+      }),
+      step('clipboard-write', { title: 'Copy Framework' }),
+      step('show-result', { title: 'Decision Framework', label: 'Decision Analysis' }),
+    ],
+  },
+  {
+    id: 120,
+    name: 'Research Brief',
+    icon: 'search',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Research Topic',
+        label: 'What do you need to research?',
+        placeholder: 'e.g. Best practices for rate limiting a REST API',
+      }),
+      step('ai-prompt', {
+        title: 'Research Brief',
+        prompt: 'Create a research brief on the following topic:\n\n{{result}}\n\nInclude:\n- **Overview** (what it is, why it matters)\n- **Key concepts** to understand\n- **Current best practices**\n- **Common pitfalls** to avoid\n- **Recommended next steps** for deeper learning',
+        systemPrompt: 'You are a knowledgeable research analyst. Be specific, practical, and accurate. Cite known sources or frameworks by name when relevant.',
+      }),
+      step('clipboard-write', { title: 'Copy Brief' }),
+      step('show-result', { title: 'Research Brief', label: 'Research Brief' }),
+    ],
+  },
+
+  // ── Code Intelligence ──────────────────────────────────────────
+  {
+    id: 121,
+    name: 'Review Code',
+    icon: 'shield-check',
+    color: 'bg-green',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Code' }),
+      step('ai-prompt', {
+        title: 'Code Review',
+        prompt: 'Perform a thorough code review of the following code:\n\n{{result}}\n\nAssess:\n- **Bugs & correctness** (logic errors, edge cases)\n- **Security** (injections, data exposure, auth issues)\n- **Performance** (inefficiencies, N+1 queries, memory leaks)\n- **Readability** (naming, structure, complexity)\n- **Improvements** (concrete suggestions with examples)',
+        systemPrompt: 'You are a senior engineer doing a thorough code review. Be specific — point to the actual code, not generic advice.',
+      }),
+      step('clipboard-write', { title: 'Copy Review' }),
+      step('show-result', { title: 'Code Review', label: 'Review' }),
+    ],
+  },
+  {
+    id: 122,
+    name: 'Explain Code',
+    icon: 'book-open',
+    color: 'bg-cyan',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Code' }),
+      step('ai-prompt', {
+        title: 'Explain Code',
+        prompt: 'Explain the following code in plain English. Describe what it does, how it works step by step, and what the key concepts are:\n\n{{result}}',
+        systemPrompt: 'You are a patient senior developer explaining code to a colleague. Be clear and thorough without being condescending.',
+      }),
+      step('clipboard-write', { title: 'Copy Explanation' }),
+      step('show-result', { title: 'Code Explanation', label: 'Explanation' }),
+    ],
+  },
+  {
+    id: 123,
+    name: 'Write Tests',
+    icon: 'test-tube',
+    color: 'bg-green',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Code' }),
+      step('ai-prompt', {
+        title: 'Generate Tests',
+        prompt: 'Write comprehensive unit tests for the following code. Cover happy paths, edge cases, and error scenarios. Use the same language and testing style implied by the code:\n\n{{result}}',
+        systemPrompt: 'You are a test-driven developer. Write tests that actually catch bugs. Include comments explaining what each test verifies.',
+      }),
+      step('clipboard-write', { title: 'Copy Tests' }),
+      step('show-result', { title: 'Generated Tests', label: 'Tests' }),
+    ],
+  },
+  {
+    id: 124,
+    name: 'Fix Bug',
+    icon: 'bug',
+    color: 'bg-orange',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Code + Error' }),
+      step('ai-prompt', {
+        title: 'Fix Bug',
+        prompt: 'Analyze the following code and/or error message, identify the bug, and provide the fixed code:\n\n{{result}}\n\nExplain:\n1. **Root cause** of the bug\n2. **Fixed code** (complete, ready to use)\n3. **Why the fix works**',
+        systemPrompt: 'You are a debugging expert. Be precise about the root cause. Output complete, working code.',
+      }),
+      step('clipboard-write', { title: 'Copy Fix' }),
+      step('show-result', { title: 'Bug Fix', label: 'Fix' }),
+    ],
+  },
+  {
+    id: 125,
+    name: 'Add Comments',
+    icon: 'message-circle',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Code' }),
+      step('ai-prompt', {
+        title: 'Add Comments',
+        prompt: 'Add clear, concise inline comments and a docstring/JSDoc to the following code. Comment the "why" not just the "what". Return the complete commented code:\n\n{{result}}',
+        systemPrompt: 'You are a documentation expert. Add comments that make code maintainable. Never state the obvious.',
+      }),
+      step('clipboard-write', { title: 'Copy Commented Code' }),
+      step('show-result', { title: 'Commented Code', label: 'Commented Code' }),
+    ],
+  },
+  {
+    id: 126,
+    name: 'SQL Query Builder',
+    icon: 'database',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Query Description',
+        label: 'Describe the query you need',
+        placeholder: 'e.g. Get top 10 customers by revenue in the last 30 days, with their order count',
+      }),
+      step('ai-prompt', {
+        title: 'Build SQL Query',
+        prompt: 'Write an optimized SQL query for the following requirement:\n\n{{result}}\n\nProvide:\n1. **The SQL query** (well-formatted, production-ready)\n2. **Index suggestions** if performance matters\n3. **Brief explanation** of approach',
+        systemPrompt: 'You are a database expert. Write clean, optimized SQL. Use standard SQL unless a specific dialect is mentioned.',
+      }),
+      step('clipboard-write', { title: 'Copy Query' }),
+      step('show-result', { title: 'SQL Query', label: 'SQL Query' }),
+    ],
+  },
+
+  // ── Productivity & Knowledge Work ─────────────────────────────
+  {
+    id: 127,
+    name: 'Plan My Week',
+    icon: 'calendar-days',
+    color: 'bg-green',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('user-input', {
+        title: 'This Week\'s Tasks',
+        label: 'Paste your tasks, goals, and constraints for this week',
+        placeholder: 'e.g. Finish API integration, review 3 PRs, prepare slide deck, team sync Thursday 2pm...',
+      }),
+      step('ai-prompt', {
+        title: 'Weekly Plan',
+        prompt: 'Create a structured weekly plan from these tasks and goals:\n\n{{result}}\n\nOrganize by:\n- **Priority** (must-do vs. nice-to-have)\n- **Suggested day allocation** (Mon–Fri)\n- **Time estimates** per task\n- **Focus blocks** recommendation\n- **Risks** (what might derail the week)\n\nBe realistic about capacity.',
+        systemPrompt: 'You are a productivity coach and project manager. Create practical plans that account for real-world interruptions. Be direct about trade-offs.',
+      }),
+      step('clipboard-write', { title: 'Copy Plan' }),
+      step('show-result', { title: 'Weekly Plan', label: 'Weekly Plan' }),
+    ],
+  },
+  {
+    id: 128,
+    name: 'Brainstorm Ideas',
+    icon: 'sparkles',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Brainstorm Topic',
+        label: 'What do you want to brainstorm?',
+        placeholder: 'e.g. Features for a developer productivity app targeting freelancers',
+      }),
+      step('ai-prompt', {
+        title: 'Brainstorm',
+        prompt: 'Generate 15 diverse, creative ideas for the following:\n\n{{result}}\n\nFor each idea: title + 1-sentence description. Mix conventional and unconventional approaches. No duplicates, no filler.',
+        systemPrompt: 'You are a creative strategist. Generate varied, specific, actionable ideas — not generic platitudes. Think from multiple angles.',
+      }),
+      step('clipboard-write', { title: 'Copy Ideas' }),
+      step('show-result', { title: 'Ideas', label: 'Brainstorm Results' }),
+    ],
+  },
+  {
+    id: 129,
+    name: 'Create Agenda',
+    icon: 'clipboard-list',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Meeting Context',
+        label: 'Describe the meeting purpose, attendees, and duration',
+        placeholder: 'e.g. 45-min sprint retrospective with 6 devs, need to cover what went well, issues, and improvements',
+      }),
+      step('ai-prompt', {
+        title: 'Build Agenda',
+        prompt: 'Create a structured meeting agenda for:\n\n{{result}}\n\nInclude:\n- **Agenda items** with time allocations\n- **Goal** for each item (decision, discussion, or info)\n- **Pre-read/prep** needed from attendees\n- **Owner** for each item (use generic roles if names unknown)\n- **Parking lot** section at end',
+        systemPrompt: 'You are a meeting facilitator. Create agendas that respect everyone\'s time and produce clear outcomes.',
+      }),
+      step('clipboard-write', { title: 'Copy Agenda' }),
+      step('show-result', { title: 'Meeting Agenda', label: 'Agenda' }),
+    ],
+  },
+  {
+    id: 130,
+    name: 'Summarize Thread',
+    icon: 'git-pull-request',
+    color: 'bg-cyan',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Thread' }),
+      step('ai-prompt', {
+        title: 'Thread Summary',
+        prompt: 'Summarize this conversation/thread into a concise brief:\n\n{{result}}\n\nProvide:\n- **Context** (what triggered the thread)\n- **Key points** raised\n- **Decisions made** (if any)\n- **Open questions** (if any)\n- **Action items** (if any)',
+        systemPrompt: 'You are a communications expert. Distill threads into crisp, scannable briefs that let someone catch up in 30 seconds.',
+      }),
+      step('clipboard-write', { title: 'Copy Summary' }),
+      step('show-result', { title: 'Thread Summary', label: 'Thread Summary' }),
+    ],
+  },
+  {
+    id: 131,
+    name: 'Write SOP',
+    icon: 'file-text',
+    color: 'bg-orange',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Process to Document',
+        label: 'Describe the process you want to document',
+        placeholder: 'e.g. How to deploy a new feature to production: merge to main, run tests, tag release...',
+      }),
+      step('ai-prompt', {
+        title: 'Write SOP',
+        prompt: 'Write a clear Standard Operating Procedure (SOP) for the following process:\n\n{{result}}\n\nStructure:\n- **Purpose**\n- **Scope** (who this applies to)\n- **Prerequisites**\n- **Step-by-step procedure** (numbered)\n- **Troubleshooting** (common issues)\n- **Notes / warnings**',
+        systemPrompt: 'You are a technical writer specializing in operations documentation. Write SOPs that a new team member can follow without assistance.',
+      }),
+      step('clipboard-write', { title: 'Copy SOP' }),
+      step('show-result', { title: 'SOP', label: 'Standard Operating Procedure' }),
+    ],
+  },
+  {
+    id: 132,
+    name: 'OKR Generator',
+    icon: 'target',
+    color: 'bg-green',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Goal Area',
+        label: 'Describe your goal area and context',
+        placeholder: 'e.g. Grow our developer community, currently 500 members, target is next quarter',
+      }),
+      step('ai-prompt', {
+        title: 'Generate OKRs',
+        prompt: 'Create a strong OKR (Objectives & Key Results) for the following goal area:\n\n{{result}}\n\n- **1 Objective**: inspiring, qualitative, time-bound\n- **3–4 Key Results**: measurable, specific, ambitious but achievable\n\nFor each KR include the metric, current baseline (if given), and target.',
+        systemPrompt: 'You are an OKR coach who has worked with high-growth teams. Write OKRs that are ambitious yet achievable. Avoid vanity metrics.',
+      }),
+      step('clipboard-write', { title: 'Copy OKRs' }),
+      step('show-result', { title: 'OKRs', label: 'OKRs' }),
+    ],
+  },
+
+  // ── Content & Marketing ────────────────────────────────────────
+  {
+    id: 133,
+    name: 'Blog Post Outline',
+    icon: 'layout-list',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Blog Topic',
+        label: 'What is the blog post about?',
+        placeholder: 'e.g. How to reduce cloud costs by 40% without sacrificing performance',
+      }),
+      step('ai-prompt', {
+        title: 'Create Outline',
+        prompt: 'Create a detailed, SEO-friendly blog post outline for:\n\n{{result}}\n\nInclude:\n- **Title** (with SEO hook)\n- **Intro hook** (1–2 sentences)\n- **Sections** with H2 headings and bullet sub-points\n- **Conclusion** approach\n- **CTA** suggestion\n- **Target keyword** and 3 secondary keywords',
+        systemPrompt: 'You are a content strategist and SEO expert. Create outlines that rank and convert, not just inform.',
+      }),
+      step('clipboard-write', { title: 'Copy Outline' }),
+      step('show-result', { title: 'Blog Outline', label: 'Blog Post Outline' }),
+    ],
+  },
+  {
+    id: 134,
+    name: 'Headline Variants',
+    icon: 'type',
+    color: 'bg-orange',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Original Headline' }),
+      step('ai-prompt', {
+        title: 'Generate Variants',
+        prompt: 'Generate 10 compelling headline variants for the following:\n\n{{result}}\n\nUse these frameworks: curiosity gap, number-driven, how-to, challenge/problem, bold claim, question, listicle, benefit-first. Label each variant with its framework.',
+        systemPrompt: 'You are a conversion copywriter. Write headlines that stop scrolling. Be specific, not generic.',
+      }),
+      step('clipboard-write', { title: 'Copy Headlines' }),
+      step('show-result', { title: 'Headline Variants', label: 'Headlines' }),
+    ],
+  },
+  {
+    id: 135,
+    name: 'Cold Outreach',
+    icon: 'send',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('user-input', {
+        title: 'Outreach Context',
+        label: 'Who are you reaching out to and why?',
+        placeholder: 'e.g. CTO of a 50-person SaaS startup, want to pitch our monitoring tool, they recently raised Series A',
+      }),
+      step('ai-prompt', {
+        title: 'Write Outreach',
+        prompt: 'Write a high-converting cold outreach message for the following context:\n\n{{result}}\n\nMake it:\n- Under 100 words (respects their time)\n- Personalized and specific (no generic pitch)\n- Lead with their pain, not your product\n- Clear single CTA (15-min call, not a demo)\n- Natural, not salesy',
+        systemPrompt: 'You are a growth expert who has sent thousands of cold emails. Write outreach that gets replies because it\'s relevant, not because it\'s persistent.',
+      }),
+      step('clipboard-write', { title: 'Copy Outreach' }),
+      step('show-result', { title: 'Cold Outreach', label: 'Outreach Message' }),
+    ],
+  },
+
+  // ── Data & Documents ───────────────────────────────────────────
+  {
+    id: 136,
+    name: 'Extract Structured Data',
+    icon: 'table',
+    color: 'bg-cyan',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Raw Text' }),
+      step('ai-prompt', {
+        title: 'Extract Data',
+        prompt: 'Extract all structured data from the following text and output it as a clean CSV or JSON (whichever fits better). Include a header row for CSV:\n\n{{result}}\n\nIf multiple data types exist, extract the most prominent one. Output only the structured data.',
+        systemPrompt: 'You are a data extraction specialist. Extract data precisely — do not invent or infer values that are not in the text.',
+      }),
+      step('clipboard-write', { title: 'Copy Structured Data' }),
+      step('show-result', { title: 'Extracted Data', label: 'Structured Data' }),
+    ],
+  },
+  {
+    id: 137,
+    name: 'Compare Options',
+    icon: 'columns',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('clipboard-read', { title: 'Read Options Text' }),
+      step('ai-prompt', {
+        title: 'Compare Options',
+        prompt: 'Create a structured comparison of the options described in the following text:\n\n{{result}}\n\nOutput a comparison table with:\n- Key dimensions/criteria as rows\n- Each option as a column\n- A clear winner recommendation with rationale',
+        systemPrompt: 'You are an analyst. Create objective, specific comparisons. Make a recommendation — don\'t hedge.',
+      }),
+      step('clipboard-write', { title: 'Copy Comparison' }),
+      step('show-result', { title: 'Comparison', label: 'Options Comparison' }),
+    ],
+  },
+  {
+    id: 138,
+    name: 'Transcribe & Structure',
+    icon: 'mic-vocal',
+    color: 'bg-blue',
+    category: 'ai',
+    favorite: false,
+    steps: [
+      step('file-picker', { title: 'Pick Audio File', buttonLabel: 'Select Audio File' }),
+      step('asr', { title: 'Transcribe', filePath: '{{result}}', language: '' }),
+      step('ai-prompt', {
+        title: 'Structure Transcript',
+        prompt: 'Take the following raw audio transcription and clean it up into a structured document:\n- Fix transcription errors and punctuation\n- Add paragraph breaks at natural topic shifts\n- Extract key points in a summary at the top\n- Identify any action items or decisions\n\nTranscript:\n{{result}}',
+        systemPrompt: 'You are a professional transcriptionist and editor. Produce clean, readable documents from raw speech.',
+      }),
+      step('clipboard-write', { title: 'Copy Structured Transcript' }),
+      step('show-result', { title: 'Transcript', label: 'Structured Transcript' }),
+    ],
+  },
+  {
+    id: 139,
+    name: 'Prompt Improver',
+    icon: 'wand-sparkles',
+    color: 'bg-purple',
+    category: 'ai',
+    favorite: true,
+    steps: [
+      step('clipboard-read', { title: 'Read Your Prompt' }),
+      step('ai-prompt', {
+        title: 'Improve Prompt',
+        prompt: 'Analyze and rewrite the following AI prompt to make it significantly more effective:\n\n{{result}}\n\nApply these improvements:\n1. **Role assignment** (give the AI a specific expert persona)\n2. **Clear output format** (specify exactly what to return)\n3. **Context** (add necessary background)\n4. **Constraints** (what to avoid)\n5. **Examples** (if helpful)\n\nOutput:\n- **Improved prompt** (ready to use)\n- **What changed and why** (brief)',
+        systemPrompt: 'You are a prompt engineering expert. Rewrite prompts to be precise, contextualized, and output-focused.',
+      }),
+      step('clipboard-write', { title: 'Copy Improved Prompt' }),
+      step('show-result', { title: 'Improved Prompt', label: 'Improved Prompt' }),
     ],
   },
 ]
