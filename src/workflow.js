@@ -1755,6 +1755,59 @@ const EXECUTORS = {
     ctx.result = outPdf
   },
 
+  'pdf-to-images': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const pdfPath = s.pdfPath || ctx.result
+    if (!pdfPath) throw new Error('PDF to Images: no file path provided.')
+    const maxPages = Number(s.maxPages) || 5
+    const tmpPrefix = `/tmp/raccourci_pdf_${Date.now()}`
+    
+    // pdftoppm -png -f 1 -l {maxPages} {pdfPath} {tmpPrefix}
+    const cmd = `pdftoppm -png -f 1 -l ${maxPages} "${pdfPath}" "${tmpPrefix}"`
+    const { stderr, exitCode } = await window.ipcRenderer.invoke('shell-exec', {
+      command: cmd,
+      runId: opts.runId
+    })
+    
+    if (exitCode !== 0) throw new Error(`PDF conversion failed: ${stderr}. Make sure poppler-utils is installed.`)
+    
+    // Look for generated files
+    const listResult = await window.ipcRenderer.invoke('folder-list', { path: '/tmp', showHidden: false })
+    if (!listResult.ok) throw new Error(`Failed to list temp files: ${listResult.error}`)
+    
+    const prefixBase = tmpPrefix.split('/').pop()
+    const matchingFiles = listResult.entries
+      .filter(f => f.includes(prefixBase))
+      .sort((a, b) => {
+        const numA = parseInt(a.match(/-(\d+)\.png$/)?.[1] || '0')
+        const numB = parseInt(b.match(/-(\d+)\.png$/)?.[1] || '0')
+        return numA - numB
+      })
+    
+    ctx.result = matchingFiles.join('\n')
+  },
+
+  'pdf-ocr-batch': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const paths = (s.imagePaths || ctx.result || '').split('\n').filter(Boolean)
+    if (paths.length === 0) throw new Error('Batch OCR: no image paths provided.')
+
+    let combinedText = ''
+    for (let i = 0; i < paths.length; i++) {
+      const path = paths[i]
+      const base64 = await window.ipcRenderer.readFileBase64(path)
+      const ext = path.split('.').pop().toLowerCase()
+      const mime = ext === 'png' ? 'image/png' : 'image/jpeg'
+      let imageUrl = `data:${mime};base64,${base64}`
+      imageUrl = await optimizeImage(imageUrl)
+      
+      const pageText = await callVision(imageUrl, s.prompt, 'You are an OCR assistant.', s.model, opts.signal, opts.onDebug)
+      combinedText += `### Page ${i + 1}\n${pageText}\n\n`
+    }
+    
+    ctx.result = combinedText.trim()
+  },
+
   // ── Messaging ─────────────────────────────────────────────────────────────
 
   'telegram-send': async (step, ctx, opts) => {

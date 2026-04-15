@@ -114,4 +114,17 @@ export default [
       { name: 'outputPath', label: 'Output PDF path (empty = auto)', kind: 'text', placeholder: '/home/user/page.pdf', acceptsVars: true },
     ],
   },
+  {
+    type: 'pdf-to-images',
+    title: 'PDF to Images',
+    desc: 'Convert PDF pages (up to 5) into separate image files',
+    icon: 'image',
+    color: '#FF453A',
+    outputType: 'file',
+    defaults: { pdfPath: '{{result}}', maxPages: 5 },
+    params: [
+      { name: 'pdfPath', label: 'PDF file path', kind: 'text', placeholder: '{{result}}', acceptsVars: true },
+      { name: 'maxPages', label: 'Max pages to convert', kind: 'number', placeholder: '5' },
+    ],
+  },
 ]

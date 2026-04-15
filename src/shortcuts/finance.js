@@ -720,4 +720,32 @@ export default [
       step('show-result', { title: 'Saved Money Rules', label: 'Money Rules' }),
     ],
   },
+  {
+    id: 360,
+    name: 'Bank Statement Analyzer',
+    icon: 'banknote',
+    color: 'bg-green',
+    category: 'finance',
+    favorite: true,
+    steps: [
+      step('file-picker', {
+        title: 'Select Bank Statement',
+        buttonLabel: 'Select PDF',
+      }),
+      step('pdf-to-images', {
+        title: 'Extract Pages',
+        maxPages: 5,
+      }),
+      step('pdf-ocr-batch', {
+        title: 'OCR Extraction',
+        prompt: 'Extract all transactions from this bank statement page. I need: Date, Description, Amount (positive or negative), and Category if obvious. Format as a clean markdown table.',
+      }),
+      step('ai-prompt', {
+        title: 'Analyze Finances',
+        prompt: 'Here is the extracted content from my bank statement (max 5 pages):\n\n{{result}}\n\n1. Calculate total income (deposits).\n2. Calculate total outcome (expenses).\n3. List the top 3 spending categories.\n4. Provide a synthesis/summary of the financial health for this month and one advice to save more.',
+        systemPrompt: 'You are a professional financial analyst. Be precise with calculations and provide clear, actionable insights.',
+      }),
+      step('show-result', { title: 'Bank Statement Analysis', label: 'Analysis Synthesis' }),
+    ],
+  },
 ]

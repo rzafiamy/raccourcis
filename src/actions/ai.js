@@ -213,4 +213,41 @@ export default [
       },
     ],
   },
+  {
+    type: 'pdf-ocr-batch',
+    title: 'Batch OCR Images',
+    desc: 'Run AI Vision OCR on multiple image files (input: newline list of paths)',
+    icon: 'eye',
+    color: '#32D74B',
+    outputType: 'text',
+    defaults: {
+      imagePaths: '{{result}}',
+      prompt: 'Extract all text from this bank statement page. Be precise with numbers and dates. Format as markdown table if possible.',
+      model: 'gpt-4o',
+    },
+    params: [
+      {
+        name: 'imagePaths',
+        label: 'List of image paths (newline separated)',
+        kind: 'textarea',
+        placeholder: '{{result}}',
+        acceptsVars: true,
+      },
+      {
+        name: 'prompt',
+        label: 'Extraction instructions',
+        kind: 'textarea',
+        placeholder: 'Extract all text...',
+      },
+      {
+        name: 'model',
+        label: 'Model',
+        kind: 'select',
+        options: [
+          { value: 'gpt-4o',   label: 'GPT-4o (best)' },
+          { value: 'gpt-4o-mini', label: 'GPT-4o-mini (fast)' },
+        ],
+      },
+    ],
+  },
 ]
