@@ -208,18 +208,36 @@ const KEYWORDS = new Set([
   'except', 'finally', 'raise', 'global', 'nonlocal', 'assert',
 ])
 
-function syntaxHighlight(code, _lang) {
-  // Simple token-coloring without a real lexer — good enough for readability
-  return escapeHtml(code)
-    // Strings (single/double/template)
-    .replace(/(&#34;[^&#34;]*&#34;|&#39;[^&#39;]*&#39;|`[^`]*`)/g, '<span class="tok-string">$1</span>')
+function syntaxHighlight(code, lang) {
+  let html = escapeHtml(code)
+  
+  if (lang === 'json') {
+    // Special handling for JSON keys
+    html = html.replace(/(&#34;[^&#34;]+&#34;)(?=\s*:)/g, '<span class="tok-json-key">$1</span>')
+    // Values (strings already handled below, but let's be careful)
+    html = html.replace(/(:\s*)(&#34;[^&#34;]*&#34;)/g, '$1<span class="tok-string">$2</span>')
+    // Numbers/booleans/null
+    html = html.replace(/\b(true|false|null)\b/g, '<span class="tok-keyword">$1</span>')
+  }
+
+  return html
+    // Strings (if not already handled or for other langs)
+    .replace(/(&#34;[^&#34;]*&#34;|&#39;[^&#39;]*&#39;|`[^`]*`)/g, (match) => {
+       if (match.includes('tok-json-key')) return match
+       return `<span class="tok-string">${match}</span>`
+    })
     // Comments
     .replace(/(\/\/[^\n]*)/g, '<span class="tok-comment">$1</span>')
     .replace(/(#[^\n]*)/g, '<span class="tok-comment">$1</span>')
-    // Numbers
-    .replace(/\b(\d+\.?\d*)\b/g, '<span class="tok-number">$1</span>')
+    // Numbers (if not part of a string or tag)
+    .replace(/\b(\d+\.?\d*)\b/g, (match, p1, offset, str) => {
+       // Simple check: if we are inside a tag, don't replace
+       const before = str.substring(0, offset)
+       if (before.lastIndexOf('<') > before.lastIndexOf('>')) return match
+       return `<span class="tok-number">${match}</span>`
+    })
     // Keywords
-    .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|default|from|async|await|new|typeof|instanceof|null|undefined|true|false|try|catch|throw|in|of|switch|case|break|continue|this|super|extends|static|get|set|yield|delete|void|def|pass|lambda|with|as|not|and|or|is|elif|except|finally|raise|global|nonlocal|assert)\b/g,
+    .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|default|from|async|await|new|typeof|instanceof|true|false|try|catch|throw|in|of|switch|case|break|continue|this|super|extends|static|get|set|yield|delete|void|def|pass|lambda|with|as|not|and|or|is|elif|except|finally|raise|global|nonlocal|assert|null|undefined)\b/g,
       '<span class="tok-keyword">$1</span>')
     // Function calls
     .replace(/\b([a-zA-Z_$][\w$]*)\s*(?=\()/g, '<span class="tok-fn">$1</span>')
@@ -501,6 +519,14 @@ export function renderOutput(content, kind = 'text') {
 
   const wrap = document.createElement('div')
   wrap.className = `or-output or-kind-${resolvedKind}`
+
+  // Add a subtle kind badge for non-trivial outputs
+  if (['json', 'markdown', 'code', 'chart', 'image', 'file'].includes(resolvedKind)) {
+    const badge = document.createElement('div')
+    badge.className = 'or-meta-badge'
+    badge.textContent = resolvedKind
+    wrap.appendChild(badge)
+  }
 
   let html = ''
   let copyText = content

@@ -123,7 +123,8 @@ export default {
 
   'notification': async (step, ctx, _opts) => {
     const s = interpolateStep(step, ctx)
-    new Notification(s.title || 'Notification', {
+    window.ipcRenderer.send('notification-show', {
+      title: s.title || 'Notification',
       body: s.body || ctx.result
     })
   },
@@ -510,6 +511,59 @@ export default {
 
     localStorage.removeItem('freelance_timer')
     ctx.result = `Stopped: ${timerData.taskName} (Duration: ${durationStr})`
+  },
+
+  'timer-status': async (_step, ctx, _opts) => {
+    const raw = localStorage.getItem('freelance_timer')
+    if (!raw) {
+      ctx.result = 'No timer running'
+      return
+    }
+    const timerData = JSON.parse(raw)
+    const durationMs = Date.now() - timerData.startTime
+    const mins = Math.floor(durationMs / 60000)
+    const secs = Math.floor((durationMs % 60000) / 1000)
+    ctx.result = `${timerData.taskName} running for ${mins}m ${secs}s`
+  },
+
+  'alarm-set': async (step, ctx, opts) => {
+    const s = interpolateStep(step, ctx)
+    const duration = Number(s.duration) || 5
+    const unit = s.unit || 'minutes'
+    const message = s.message || 'Time is up!'
+
+    let ms = duration * 1000
+    if (unit === 'minutes') ms *= 60
+    if (unit === 'hours') ms *= 3600
+
+    const alarmTime = Date.now() + ms
+    const alarmId = `alarm-${Date.now()}`
+    
+    try {
+      const activeAlarmsStr = localStorage.getItem('active_alarms') || '[]'
+      const alarms = JSON.parse(activeAlarmsStr)
+      alarms.push({ id: alarmId, time: alarmTime, message })
+      localStorage.setItem('active_alarms', JSON.stringify(alarms))
+    } catch (err) {
+      console.warn('Failed to save alarm to localStorage', err)
+    }
+
+    // For immediate feedback in this run:
+    setTimeout(() => {
+      try {
+        const currentAlarms = JSON.parse(localStorage.getItem('active_alarms') || '[]')
+        localStorage.setItem('active_alarms', JSON.stringify(currentAlarms.filter(a => a.id !== alarmId)))
+      } catch (err) {}
+
+      // Notify
+      if (typeof window !== 'undefined' && window.ipcRenderer) {
+        window.ipcRenderer.send('notification-show', { title: 'Alarm', body: message })
+      } else {
+        console.log('ALARM:', message)
+      }
+    }, ms)
+
+    ctx.result = `Alarm set for ${duration} ${unit} from now (${new Date(alarmTime).toLocaleTimeString()})`
   },
 
   'todo-add': async (step, ctx, _opts) => {

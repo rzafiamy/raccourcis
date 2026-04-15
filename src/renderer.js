@@ -258,7 +258,7 @@ async function doDashboardRefresh() {
   if (currentView !== 'dashboard') return
   if (dashboardTimer) clearTimeout(dashboardTimer)
   await refreshDashboard(shortcuts, currentView, (s) => startRun(s))
-  dashboardTimer = setTimeout(doDashboardRefresh, 30000)
+  dashboardTimer = setTimeout(doDashboardRefresh, 5000)
 }
 
 document.getElementById('navCron').addEventListener('click', (e) => {
@@ -511,7 +511,11 @@ function renderGrid() {
   grid.innerHTML = ''
   grid.classList.remove('grid-grouped')
 
-  const filtered = shortcuts.filter(matchesFilter)
+  // Always sort shortcuts alphabetically by name first
+  const filtered = shortcuts
+    .filter(matchesFilter)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  
   const q = searchInput.value.trim()
 
   // ── Recent view: grouped by time last used ───────────────────────────────────
@@ -540,6 +544,9 @@ function renderGrid() {
     BUCKET_ORDER.forEach((label) => {
       const cards = buckets[label]
       if (!cards || cards.length === 0) return
+
+      // Sort alphabetically within each time bucket
+      cards.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 
       const section = document.createElement('div')
       section.className = 'trigger-section'
@@ -598,6 +605,7 @@ function renderGrid() {
 
   // Bucket shortcuts into ordered groups
   const buckets = new Map(TRIGGER_GROUPS.map((g) => [g.id, []]))
+  // filtered is already sorted alphabetically, so bucketing maintains that order
   filtered.forEach((s) => buckets.get(getTriggerGroup(s).id).push(s))
 
   // "+ New" shortcut — prepended as its own unsectioned card
@@ -634,6 +642,7 @@ function renderGrid() {
     const row = document.createElement('div')
     row.className = 'trigger-cards'
 
+    // items are pushed into buckets in the order of filtered, so they are already sorted
     cards.forEach((shortcut) => {
       row.appendChild(buildShortcutCard(shortcut, {
         onRun:    (s) => startRun(s),
@@ -649,6 +658,7 @@ function renderGrid() {
 
   refreshIcons(grid)
 }
+
 
 // ── Run workflow ──────────────────────────────────────────────────────────────
 

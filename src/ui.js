@@ -186,8 +186,8 @@ export function showResultModal({ ok, title, desc, result, error }) {
   } else if (!ok && error) {
     resultHtml = `
       <div class="result-body">
-        <div class="result-output-area" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;">
-          <pre style="margin:0;font-size:12px;white-space:pre-wrap;word-break:break-all;font-family:inherit;">${error}</pre>
+        <div class="result-output-area result-output-area--error">
+          <pre class="or-pre">${error}</pre>
         </div>
       </div>
       <div class="result-footer">

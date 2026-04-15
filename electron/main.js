@@ -1,4 +1,14 @@
-import { app, BrowserWindow, ipcMain, shell, clipboard, dialog, desktopCapturer, screen } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  clipboard,
+  dialog,
+  desktopCapturer,
+  screen,
+  Notification
+} from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exec } from 'node:child_process'
@@ -72,6 +82,13 @@ ipcMain.on('window-minimize', () => win?.minimize())
 ipcMain.on('window-maximize', () => {
   if (win?.isMaximized()) win.unmaximize()
   else win?.maximize()
+})
+
+// ── System Notifications ──────────────────────────────────────────────────────
+ipcMain.on('notification-show', (_, { title, body }) => {
+  if (!Notification.isSupported()) return
+  const n = new Notification({ title, body })
+  n.show()
 })
 
 // ── Clipboard ─────────────────────────────────────────────────────────────────

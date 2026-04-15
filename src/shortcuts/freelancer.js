@@ -425,9 +425,9 @@ export default [
     color: 'bg-red',
     category: 'freelance',
     steps: [
-      step('notification', { title: 'Pomodoro Start', body: 'Work for 25 minutes.' }),
-      step('wait', { duration: '1500000' }), // 25 mins
-      step('notification', { title: 'Time Up!', body: 'Take a 5-minute break.' }),
+      step('timer-start', { taskName: 'Pomodoro Focus' }),
+      step('notification', { title: 'Pomodoro Start', body: 'Work for 25 minutes. Deep work mode active.' }),
+      step('alarm-set', { duration: 25, unit: 'minutes', message: 'Pomodoro finished! Time for a break.' }),
     ],
   },
   {

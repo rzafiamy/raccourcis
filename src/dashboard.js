@@ -56,8 +56,74 @@ export async function refreshDashboard(shortcuts, currentView, startRun) {
   renderUsageChart(runs)
   renderTopShortcuts(runs, shortcuts, startRun)
   renderCategoryBreakdown(shortcuts)
+  renderActiveTimers()
 
   refreshIcons(document.getElementById('dashboardView'))
+}
+
+function renderActiveTimers() {
+  const container = document.getElementById('activeTimersList')
+  if (!container) return
+
+  const timerRaw = localStorage.getItem('freelance_timer')
+  const alarmsRaw = localStorage.getItem('active_alarms')
+  
+  let activeTimer = null
+  let activeAlarms = []
+
+  try {
+    if (timerRaw) activeTimer = JSON.parse(timerRaw)
+  } catch (e) {
+    console.warn('Dashboard: Failed to parse freelance_timer', e)
+  }
+
+  try {
+    if (alarmsRaw) activeAlarms = JSON.parse(alarmsRaw)
+  } catch (e) {
+    console.warn('Dashboard: Failed to parse active_alarms', e)
+    activeAlarms = []
+  }
+
+  if (!activeTimer && activeAlarms.length === 0) {
+    container.innerHTML = '<div class="settings-hint">No active timers or alarms.</div>'
+    return
+  }
+
+  container.innerHTML = ''
+
+  if (activeTimer) {
+    const elapsed = Date.now() - activeTimer.startTime
+    const mins = Math.floor(elapsed / 60000)
+    const secs = Math.floor((elapsed % 60000) / 1000)
+    
+    const div = document.createElement('div')
+    div.className = 'timer-item'
+    div.innerHTML = `
+      <div class="timer-item-icon bg-green"><i data-lucide="play"></i></div>
+      <div class="timer-item-info">
+        <span class="timer-item-name">${activeTimer.taskName}</span>
+        <span class="timer-item-time">Running for ${mins}m ${secs}s</span>
+      </div>
+    `
+    container.appendChild(div)
+  }
+
+  activeAlarms.forEach(alarm => {
+    const remaining = Math.max(0, alarm.time - Date.now())
+    const mins = Math.floor(remaining / 60000)
+    const secs = Math.floor((remaining % 60000) / 1000)
+
+    const div = document.createElement('div')
+    div.className = 'timer-item'
+    div.innerHTML = `
+      <div class="timer-item-icon bg-orange"><i data-lucide="alarm-clock"></i></div>
+      <div class="timer-item-info">
+        <span class="timer-item-name">${alarm.message}</span>
+        <span class="timer-item-time">Triggers in ${mins}m ${secs}s</span>
+      </div>
+    `
+    container.appendChild(div)
+  })
 }
 
 function renderUsageChart(runs) {
