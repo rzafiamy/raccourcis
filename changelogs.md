@@ -1,5 +1,17 @@
 # Raccourcis — Changelogs
 
+## v1.5.0 — 2026-04-15
+### 🤖 Agentic Chat
+- **Conversation-driven automation**: A new **Agentic Chat** view in the Management sidebar lets you describe tasks in plain language (text or voice) — the AI automatically discovers and runs the right shortcut(s).
+- **Smart Dispatcher**: The LLM receives a live catalog of all your shortcuts and decides whether to run one, chain multiple, or just answer conversationally.
+- **Voice Input**: Click 🎤 to record audio; Whisper transcribes it automatically and feeds the result into the chat dispatcher.
+- **Human-in-the-loop via Chat**: When a shortcut needs user input (e.g., email topic, file path), instead of a modal dialog the question appears as a chat bubble — you reply directly in the chat box.
+- **Multi-shortcut chaining**: Ask complex tasks like "summarize and translate" and the AI runs both shortcuts in sequence.
+- **Suggestion Chips**: Quick-start prompts on the welcome screen help new users discover the feature.
+- **Non-invasive**: Manual grid-click runs are completely unaffected — the chat is additive, not a replacement.
+
+---
+
 ## v1.4.0 — 2026-04-15
 ### 🚀 New Features
 - **UI/UX Revolution**: 

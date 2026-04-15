@@ -73,6 +73,10 @@
     </a>
 
     <div class="sidebar-section-label">Management</div>
+    <a href="#" class="nav-item" id="navChat" data-view="chat">
+      <i data-lucide="bot"></i><span>Agentic Chat</span>
+      <span class="nav-badge nav-badge-new">Beta</span>
+    </a>
     <a href="#" class="nav-item" id="navDashboard" data-view="dashboard">
       <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
     </a>
@@ -240,6 +244,64 @@
             <p>Select a run from the list to view its full trace.</p>
           </div>
         </main>
+
+      </div>
+    </div>
+
+    <!-- Chat View -->
+    <div id="chatView" class="view-content-full" style="display: none;">
+      <div class="chat-layout">
+
+        <!-- Chat messages area -->
+        <div class="chat-messages" id="chatMessages">
+          <!-- Welcome state -->
+          <div class="chat-welcome" id="chatWelcome">
+            <div class="chat-welcome-icon">
+              <i data-lucide="bot"></i>
+            </div>
+            <h2>Agentic Chat</h2>
+            <p>Describe what you want to do in plain language.<br>I'll figure out which shortcut to run — or reply conversationally.</p>
+            <div class="chat-experimental-badge">
+              <i data-lucide="flask-conical"></i>
+              <span>Experimental — AI may make mistakes. Always verify results.</span>
+            </div>
+            <div class="chat-suggestions">
+              <button class="chat-suggestion-chip" data-suggestion="Summarize the text in my clipboard">Summarize clipboard</button>
+              <button class="chat-suggestion-chip" data-suggestion="Fix the grammar of what's in my clipboard">Fix grammar</button>
+              <button class="chat-suggestion-chip" data-suggestion="Write me a professional email about...">Write an email</button>
+              <button class="chat-suggestion-chip" data-suggestion="What shortcuts do you have for coding?">Explore shortcuts</button>
+            </div>
+          </div>
+          <!-- Messages injected here -->
+        </div>
+
+        <!-- Input bar -->
+        <div class="chat-input-bar">
+          <div class="chat-input-wrap">
+            <textarea
+              id="chatInput"
+              class="chat-textarea"
+              placeholder="Ask me anything, or describe what you want to automate…"
+              rows="1"
+              autocomplete="off"
+            ></textarea>
+          </div>
+          <button id="chatVoiceBtn" class="chat-voice-btn" title="Voice input">
+            <i data-lucide="mic"></i>
+          </button>
+          <button id="chatSendBtn" class="chat-send-btn" title="Send">
+            <i data-lucide="send"></i>
+          </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="chat-toolbar">
+          <button class="chat-tool-btn" id="chatClearBtn" title="Clear conversation">
+            <i data-lucide="trash-2"></i>
+            <span>Clear</span>
+          </button>
+          <span class="chat-model-badge" id="chatModelBadge">AI</span>
+        </div>
 
       </div>
     </div>

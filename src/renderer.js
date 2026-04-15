@@ -30,6 +30,14 @@ import {
   SHORTCUT_CATEGORY_IDS,
   getShortcutCategoryLabel,
 } from './shortcutCategories.js'
+import {
+  initChat,
+  updateChatShortcuts,
+  dispatchChatMessage,
+  dispatchChatVoice,
+  clearChatHistory,
+} from './chat.js'
+
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -227,6 +235,7 @@ function switchToView(view) {
   document.getElementById('dashboardView').style.display = view === 'dashboard' ? 'block' : 'none'
   document.getElementById('cronView').style.display = view === 'cron' ? 'block' : 'none'
   document.getElementById('tracesView').style.display = view === 'traces' ? 'flex' : 'none'
+  document.getElementById('chatView').style.display = view === 'chat' ? 'flex' : 'none'
   document.getElementById('helpView').style.display = view === 'help' ? 'block' : 'none'
   
   // Hide/show header actions if needed
@@ -587,17 +596,17 @@ function renderGrid() {
 // ── Run workflow ──────────────────────────────────────────────────────────────
 
 async function startRun(shortcut, options = {}) {
-  const { background = false } = options
+  const { background = false, chatPromptUser } = options
   const abortController = new AbortController()
   
   let overlay = null
-  if (!background) {
+  if (!background && !chatPromptUser) {
     overlay = createRunOverlay(shortcut, () => abortController.abort())
   }
 
   const result = await runWorkflow(shortcut, {
     signal:       abortController.signal,
-    promptUser,
+    promptUser: options.chatPromptUser || promptUser,
     promptCommandAuth,
     promptRecord,
     showConfirm,
@@ -1199,3 +1208,293 @@ if (iconGalleryModal) {
     if (e.target === iconGalleryModal) iconGalleryModal.style.display = 'none'
   })
 }
+
+// ── Agentic Chat ──────────────────────────────────────────────────────────────
+
+document.getElementById('navChat').addEventListener('click', (e) => {
+  e.preventDefault()
+  switchToView('chat')
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'))
+  document.getElementById('navChat').classList.add('active')
+  mainTitle.textContent = 'Agentic Chat'
+  initChatView()
+})
+
+let _chatInited = false
+let _voiceRecording = false
+let _voiceAbort = null
+
+function initChatView() {
+  if (_chatInited) return
+  _chatInited = true
+
+  // Show model badge
+  loadConfig().then(cfg => {
+    const badge = document.getElementById('chatModelBadge')
+    if (badge && cfg.model) badge.textContent = cfg.model
+  })
+
+  // Init engine (shortcuts will update whenever they reload)
+  initChat(shortcuts, async (shortcut, chatPromptUser) => {
+    await startRun(shortcut, chatPromptUser ? { chatPromptUser } : {})
+  })
+}
+
+// Keep chat shortcuts in sync after any shortcut save
+const _origSaveShortcuts = saveShortcuts
+
+// Chat DOM helpers
+function chatEl(id) { return document.getElementById(id) }
+
+function appendBubble(role, html, extraClass = '') {
+  const welcome = chatEl('chatWelcome')
+  if (welcome) welcome.style.display = 'none'
+
+  const messages = chatEl('chatMessages')
+  const row = document.createElement('div')
+  row.className = `chat-row chat-row-${role}${extraClass ? ' ' + extraClass : ''}`
+
+  if (role === 'user') {
+    row.innerHTML = `
+      <div class="chat-avatar chat-avatar-user"><i data-lucide="user"></i></div>
+      <div class="chat-bubble chat-bubble-user">${escapeHtml(html)}</div>
+    `
+  } else if (role === 'assistant') {
+    row.innerHTML = `
+      <div class="chat-avatar chat-avatar-bot"><i data-lucide="bot"></i></div>
+      <div class="chat-bubble chat-bubble-bot">${renderMarkdownSimple(html)}</div>
+    `
+  } else if (role === 'run') {
+    row.innerHTML = `
+      <div class="chat-run-indicator">
+        <i data-lucide="play-circle"></i>
+        <span>${escapeHtml(html)}</span>
+      </div>
+    `
+  } else if (role === 'run-done') {
+    row.innerHTML = `
+      <div class="chat-run-indicator chat-run-done">
+        <i data-lucide="check-circle-2"></i>
+        <span>${escapeHtml(html)}</span>
+      </div>
+    `
+  } else if (role === 'run-error') {
+    row.innerHTML = `
+      <div class="chat-run-indicator chat-run-error">
+        <i data-lucide="x-circle"></i>
+        <span>${escapeHtml(html)}</span>
+      </div>
+    `
+  } else if (role === 'error') {
+    row.innerHTML = `
+      <div class="chat-avatar chat-avatar-bot"><i data-lucide="alert-triangle"></i></div>
+      <div class="chat-bubble chat-bubble-error">${escapeHtml(html)}</div>
+    `
+  } else if (role === 'input-prompt') {
+    row.innerHTML = `
+      <div class="chat-avatar chat-avatar-bot"><i data-lucide="bot"></i></div>
+      <div class="chat-bubble chat-bubble-bot chat-input-prompt">
+        <i data-lucide="circle-help" style="display:inline-block;vertical-align:middle;margin-right:6px;width:14px;height:14px;"></i>
+        <strong>${escapeHtml(html)}</strong>
+      </div>
+    `
+  }
+
+  messages.appendChild(row)
+  refreshIcons(row)
+  messages.scrollTop = messages.scrollHeight
+  return row
+}
+
+let _thinkingRow = null
+
+function showThinking() {
+  if (_thinkingRow) return
+  const messages = chatEl('chatMessages')
+  const welcome = chatEl('chatWelcome')
+  if (welcome) welcome.style.display = 'none'
+  _thinkingRow = document.createElement('div')
+  _thinkingRow.className = 'chat-row chat-row-assistant'
+  _thinkingRow.innerHTML = `
+    <div class="chat-avatar chat-avatar-bot"><i data-lucide="bot"></i></div>
+    <div class="chat-bubble chat-bubble-bot chat-thinking">
+      <span class="chat-dot"></span><span class="chat-dot"></span><span class="chat-dot"></span>
+    </div>
+  `
+  messages.appendChild(_thinkingRow)
+  refreshIcons(_thinkingRow)
+  messages.scrollTop = messages.scrollHeight
+}
+
+function hideThinking() {
+  if (_thinkingRow) {
+    _thinkingRow.remove()
+    _thinkingRow = null
+  }
+}
+
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/\n/g, '<br>')
+}
+
+function renderMarkdownSimple(text) {
+  // Very minimal markdown: bold, inline code, links, line breaks
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '• $1')
+}
+
+async function submitChatInput(text) {
+  const trimmed = text.trim()
+  if (!trimmed) return
+  if (!_chatInited) initChatView()
+
+  // Update shortcuts in case they changed
+  updateChatShortcuts(shortcuts)
+
+  const textArea = chatEl('chatInput')
+  if (textArea) { textArea.value = ''; textArea.style.height = '' }
+  setChatSending(true)
+
+  await dispatchChatMessage(trimmed, {
+    onUserMessage: (msg) => appendBubble('user', msg),
+    onThinking: () => showThinking(),
+    onAssistant: (msg) => { hideThinking(); appendBubble('assistant', msg) },
+    onRunStart: (name) => { hideThinking(); appendBubble('run', `Running: ${name}…`) },
+    onRunEnd: (name, ok, result, error) => {
+      if (ok) appendBubble('run-done', `✓ ${name} completed`)
+      else appendBubble('run-error', `✗ ${name} failed: ${error}`)
+    },
+    onError: (msg) => { hideThinking(); appendBubble('error', msg) },
+    onAskUser: (label, placeholder) => {
+      appendBubble('input-prompt', label || 'Please enter your input:')
+      const ta = chatEl('chatInput')
+      if (ta) {
+        ta.placeholder = placeholder || 'Type your answer…'
+        ta.focus()
+      }
+    },
+  })
+
+  hideThinking()
+  setChatSending(false)
+  const ta = chatEl('chatInput')
+  if (ta) ta.placeholder = 'Ask me anything, or describe what you want to automate…'
+}
+
+function setChatSending(sending) {
+  const btn = chatEl('chatSendBtn')
+  if (btn) btn.disabled = sending
+  const vBtn = chatEl('chatVoiceBtn')
+  if (vBtn) vBtn.disabled = sending
+}
+
+// ── Send button / Enter ──
+chatEl('chatSendBtn').addEventListener('click', () => {
+  submitChatInput(chatEl('chatInput').value)
+})
+
+chatEl('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    submitChatInput(e.target.value)
+  }
+})
+
+// Auto-grow textarea
+chatEl('chatInput').addEventListener('input', (e) => {
+  const ta = e.target
+  ta.style.height = ''
+  ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
+})
+
+// ── Clear button ──
+chatEl('chatClearBtn').addEventListener('click', () => {
+  clearChatHistory()
+  const messages = chatEl('chatMessages')
+  // Remove all but the welcome placeholder
+  ;[...messages.children].forEach(c => { if (c.id !== 'chatWelcome') c.remove() })
+  const welcome = chatEl('chatWelcome')
+  if (welcome) welcome.style.display = 'flex'
+  showToast('Conversation cleared', 'success')
+})
+
+// ── Suggestion chips ──
+document.querySelectorAll('.chat-suggestion-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const text = chip.dataset.suggestion
+    if (text) submitChatInput(text)
+  })
+})
+
+// ── Voice input ──
+chatEl('chatVoiceBtn').addEventListener('click', async () => {
+  if (_voiceRecording) {
+    // Stop recording
+    _voiceRecording = false
+    if (_voiceAbort) { _voiceAbort(); _voiceAbort = null }
+    return
+  }
+
+  const vBtn = chatEl('chatVoiceBtn')
+  vBtn.classList.add('recording')
+  vBtn.title = 'Stop recording'
+  _voiceRecording = true
+  setChatSending(true)
+
+  let stopped = false
+  _voiceAbort = () => { stopped = true }
+
+  try {
+    // Use audio-record IPC (max 30s)
+    const filePath = await new Promise((resolve, reject) => {
+      // Use promptRecord which triggers the native recorder
+      promptRecord({ duration: 30 }).then(resolve).catch(reject)
+      // Also set up our manual-stop callback
+      _voiceAbort = () => resolve(null)
+    })
+
+    _voiceRecording = false
+    vBtn.classList.remove('recording')
+    vBtn.title = 'Voice input'
+
+    if (!filePath || stopped) {
+      setChatSending(false)
+      return
+    }
+
+    // Show transcribing indicator
+    appendBubble('run', 'Transcribing audio…')
+
+    await dispatchChatVoice(filePath, {
+      onTranscribing: () => showThinking(),
+      onUserMessage: (msg) => { hideThinking(); appendBubble('user', msg) },
+      onThinking: () => showThinking(),
+      onAssistant: (msg) => { hideThinking(); appendBubble('assistant', msg) },
+      onRunStart: (name) => { hideThinking(); appendBubble('run', `Running: ${name}…`) },
+      onRunEnd: (name, ok, _result, error) => {
+        if (ok) appendBubble('run-done', `✓ ${name} completed`)
+        else appendBubble('run-error', `✗ ${name} failed: ${error}`)
+      },
+      onError: (msg) => { hideThinking(); appendBubble('error', msg) },
+      onAskUser: (label, placeholder) => {
+        appendBubble('input-prompt', label || 'Please enter your input:')
+        const ta = chatEl('chatInput')
+        if (ta) { ta.placeholder = placeholder || 'Type your answer…'; ta.focus() }
+      },
+    })
+  } catch (err) {
+    appendBubble('error', err.message)
+  } finally {
+    hideThinking()
+    _voiceRecording = false
+    vBtn.classList.remove('recording')
+    setChatSending(false)
+  }
+})

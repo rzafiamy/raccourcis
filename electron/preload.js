@@ -55,7 +55,10 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     list: () => ipcRenderer.invoke('cron-list'),
     save: (data) => ipcRenderer.invoke('cron-save', data),
     delete: (id) => ipcRenderer.invoke('cron-delete', id),
-  }
+  },
+
+  // LLM HTTP proxy — routes AI requests through main process to avoid CORS
+  llmHttpRequest: (opts) => ipcRenderer.invoke('llm-http-request', opts),
 })
 
 

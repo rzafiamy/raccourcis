@@ -129,6 +129,51 @@ ipcMain.on('log-to-terminal', (_, { type, shortcutName, stepTitle, level, entry 
   }
 })
 
+// ── LLM HTTP proxy (bypasses CORS in renderer) ───────────────────────────────
+//
+// The renderer cannot fetch() external LLM endpoints directly due to CORS.
+// This handler runs in the main process (no CORS) and forwards the request.
+// For multipart/form-data (ASR) pass formFields + file path instead of body.
+
+ipcMain.handle('llm-http-request', async (_, { url, method = 'POST', headers = {}, body, formFields, filePath, fileFieldName }) => {
+  try {
+    let res
+    if (formFields || filePath) {
+      // Multipart form upload (e.g. Whisper transcription)
+      // FormData and Blob are global in Node 18+ / Electron 22+
+      const form = new FormData()
+      if (formFields) {
+        for (const [k, v] of Object.entries(formFields)) form.append(k, v)
+      }
+      if (filePath && fileFieldName) {
+        const buf = fs.readFileSync(filePath)
+        const blob = new Blob([buf])
+        form.append(fileFieldName, blob, path.basename(filePath))
+      }
+      res = await fetch(url, { method, headers, body: form })
+    } else {
+      res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: body ? JSON.stringify(body) : undefined,
+      })
+    }
+
+    const text = await res.text()
+
+    if (!res.ok) {
+      let errorMsg = `AI request failed (${res.status})`
+      try { errorMsg = JSON.parse(text)?.error?.message || errorMsg } catch {}
+      return { ok: false, status: res.status, error: errorMsg }
+    }
+
+    return { ok: true, status: res.status, body: text }
+  } catch (err) {
+    console.error('[main] llm-http-request error:', err.message)
+    return { ok: false, error: err.message }
+  }
+})
+
 // ── External links ────────────────────────────────────────────────────────────
 
 ipcMain.on('open-external', (_, url) => {
