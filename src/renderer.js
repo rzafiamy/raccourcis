@@ -4,7 +4,7 @@
 
 import { loadShortcuts, saveShortcuts, loadConfig, saveConfig, appendRun, DEFAULT_SHORTCUTS } from './store.js'
 import { ACTION_REGISTRY, makeStep } from './actions.js'
-import { runWorkflow } from './workflow.js'
+import { runWorkflow } from './workflow/index.js'
 import {
   buildShortcutCard,
   createRunOverlay,
