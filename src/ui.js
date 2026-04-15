@@ -38,11 +38,11 @@ export function showToast(message, duration = 3000) {
 
 export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {
   const card = document.createElement('div')
-  card.className = `shortcut-card ${shortcut.color}`
+  card.className = `shortcut-card`
   card.dataset.id = shortcut.id
 
   const iconWrap = document.createElement('div')
-  iconWrap.className = 'shortcut-icon'
+  iconWrap.className = `shortcut-icon ${shortcut.color}`
   iconWrap.appendChild(icon(shortcut.icon, 'shortcut-icon-svg'))
 
   const namEl = document.createElement('div')
@@ -101,164 +101,114 @@ export function createRunOverlay(shortcut, onCancel) {
   overlay.innerHTML = `
     <div class="run-modal">
       <div class="run-header">
-        <div class="run-icon ${shortcut.color}"></div>
-        <div class="run-header-info">
-          <div class="run-title">${shortcut.name}</div>
-          <div class="run-status" id="runStatus">Starting…</div>
+        <div class="run-icon ${shortcut.color}">${icon(shortcut.icon || 'zap').outerHTML}</div>
+        <div class="run-info">
+          <div class="run-status" id="runStatus">Running: ${shortcut.name}</div>
+          <div class="run-progress-text"><span id="runPercentage">0</span>%</div>
         </div>
-        <button class="action-btn run-cancel-btn" id="runCancelBtn" title="Cancel"></button>
-        <button class="action-btn run-close-btn" id="runCloseBtn" title="Close" style="display:none"></button>
+        <div class="run-spinner">${icon('loader-2', 'animate-spin').outerHTML}</div>
+        <button class="run-cancel-btn" id="runCancelBtn" title="Cancel">${icon('x').outerHTML}</button>
       </div>
       <div class="run-progress-track">
         <div class="run-progress-bar" id="runProgressBar" style="width:0%"></div>
-      </div>
-      <div class="run-body">
-        <div class="run-sidebar">
-          <div class="run-steps-list" id="runStepsList"></div>
-        </div>
-        <div class="run-content" id="runContent">
-          <div class="run-content-empty" id="runContentEmpty">
-            <div class="run-content-empty-icon"></div>
-            <span>Running…</span>
-          </div>
-          <div class="run-output" id="runOutput" style="display:none">
-            <div class="run-output-header">
-              <span class="run-output-label">Output</span>
-              <button class="run-copy-btn" id="runCopyBtn">Copy</button>
-            </div>
-            <div class="run-output-text" id="runOutputText"></div>
-          </div>
-        </div>
       </div>
     </div>
   `
 
   const cancelBtn = overlay.querySelector('#runCancelBtn')
-  const closeBtn  = overlay.querySelector('#runCloseBtn')
-  cancelBtn.appendChild(icon('x'))
-  closeBtn.appendChild(icon('x'))
-
   cancelBtn.addEventListener('click', () => {
     onCancel()
     cancelBtn.disabled = true
-  })
-  closeBtn.addEventListener('click', () => overlay.remove())
-
-  // Pre-render step rows as timeline
-  const stepsList = overlay.querySelector('#runStepsList')
-  shortcut.steps.forEach((step, i) => {
-    const stepDef = getActionDef(step.type)
-    const stepColor = stepDef?.color ?? step.color
-    const isLast = i === shortcut.steps.length - 1
-    const row = document.createElement('div')
-    row.className = 'run-step-row'
-    row.id = `runStep-${i}`
-    let lineExtra = ''
-    if (!isLast && stepDef?.outputType && stepDef.outputType !== 'null') {
-      lineExtra = `<span class="run-step-line-badge">${stepDef.outputType}</span>`
-    }
-
-    row.innerHTML = `
-      <div class="run-step-timeline">
-        <div class="run-step-dot" style="--dot-color:${stepColor}"></div>
-        ${!isLast ? `<div class="run-step-line">${lineExtra}</div>` : ''}
-      </div>
-      <div class="run-step-body">
-        <div class="run-step-title">${step.title}</div>
-        <div class="run-step-state" id="runStepState-${i}"></div>
-      </div>
-    `
-    stepsList.appendChild(row)
   })
 
   document.body.appendChild(overlay)
   refreshIcons(overlay)
 
-  const statusEl    = overlay.querySelector('#runStatus')
-  const progressEl  = overlay.querySelector('#runProgressBar')
-  const outputEl    = overlay.querySelector('#runOutput')
-  const outputText  = overlay.querySelector('#runOutputText')
-  const emptyEl     = overlay.querySelector('#runContentEmpty')
-  const copyBtn     = overlay.querySelector('#runCopyBtn')
-
-  copyBtn.addEventListener('click', async () => {
-    const kind    = copyBtn.dataset.kind || 'text'
-    const content = copyBtn.dataset.content || ''
-
-    if (kind === 'image') {
-      copyBtn.disabled = true
-      copyBtn.textContent = 'Downloading…'
-      const res = await window.ipcRenderer.downloadUrl(content, 'generated-image.png')
-      copyBtn.disabled = false
-      copyBtn.textContent = res.ok ? 'Saved!' : 'Download'
-      if (res.ok) setTimeout(() => (copyBtn.textContent = 'Download'), 1500)
-    } else {
-      window.ipcRenderer.clipboard.writeText(content)
-      copyBtn.textContent = 'Copied!'
-      setTimeout(() => (copyBtn.textContent = 'Copy'), 1500)
-    }
-  })
+  const progressEl = overlay.querySelector('#runProgressBar')
+  const statusEl   = overlay.querySelector('#runStatus')
+  const percentEl  = overlay.querySelector('#runPercentage')
 
   return {
     setStepActive(i) {
-      overlay.querySelectorAll('.run-step-row').forEach((r) => r.classList.remove('active'))
-      const row = overlay.querySelector(`#runStep-${i}`)
-      if (row) {
-        row.classList.add('active')
-        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-      }
-      statusEl.textContent = shortcut.steps[i]?.title || '…'
-      progressEl.style.width = `${(i / shortcut.steps.length) * 100}%`
+      const step = shortcut.steps[i]
+      const percent = Math.round(((i + 1) / shortcut.steps.length) * 100)
+      statusEl.textContent = step?.title || 'Processing…'
+      progressEl.style.width = `${percent}%`
+      if (percentEl) percentEl.textContent = percent
     },
-    setStepDone(i, entry) {
-      const row = overlay.querySelector(`#runStep-${i}`)
-      if (!row) return
-      row.classList.remove('active')
-      row.classList.add(entry.error ? 'error' : 'done')
-      const stateEl = overlay.querySelector(`#runStepState-${i}`)
-      if (stateEl) stateEl.textContent = entry.error ? 'Failed' : `${entry.ms}ms`
-    },
+    setStepDone(i, entry) { /* Logic handled by active step */ },
     showOutput(content, kind = 'text') {
-      emptyEl.style.display = 'none'
-      outputEl.style.display = 'flex'
-      outputText.innerHTML = ''
-
-      const { el, copyText, kind: resolvedKind } = renderOutput(content, kind)
-      outputText.appendChild(el)
-
-      copyBtn.dataset.content = copyText
-      copyBtn.dataset.kind    = resolvedKind
-
-      if (resolvedKind === 'image') {
-        copyBtn.style.display = 'inline-flex'
-        copyBtn.textContent   = 'Download'
-      } else if (resolvedKind === 'audio' || resolvedKind === 'file') {
-        copyBtn.style.display = 'none'
-      } else {
-        copyBtn.style.display = 'inline-flex'
-        copyBtn.textContent   = 'Copy'
-      }
+      this.lastOutput = { content, kind }
     },
     setDone(ok, result, errorMsg) {
-      progressEl.style.width = '100%'
-      statusEl.textContent = ok ? 'Completed' : 'Failed'
-      statusEl.className = `run-status ${ok ? 'done' : 'error'}`
-      cancelBtn.style.display = 'none'
-      closeBtn.style.display  = 'flex'
-      emptyEl.style.display   = 'none'
-      if (!ok && errorMsg) {
-        outputEl.style.display = 'flex'
-        outputText.innerHTML = `<pre class="run-output-pre error-text">${errorMsg}</pre>`
-        copyBtn.style.display = 'none'
-      } else if (ok && result) {
-        this.showOutput(result, detectKind(result))
-      } else if (ok && !result) {
-        emptyEl.style.display = 'flex'
-        emptyEl.querySelector('span').textContent = 'Done — no output'
-      }
+      overlay.remove()
+      showResultModal({
+        ok,
+        title: ok ? 'Execution Finished' : 'Execution Failed',
+        desc: ok ? `"${shortcut.name}" completed successfully.` : `An error occurred while running "${shortcut.name}".`,
+        result: result || this.lastOutput?.content,
+        error: errorMsg
+      })
     },
-    dismiss() { overlay.remove() },
+    dismiss() { overlay.remove() }
   }
+}
+
+// ── Result Modal (Success/Error) ──────────────────────────────────────────────
+
+export function showResultModal({ ok, title, desc, result, error }) {
+  const overlay = document.createElement('div')
+  overlay.className = 'modal-overlay'
+  overlay.style.display = 'flex'
+
+  let resultHtml = ''
+  if (ok && result) {
+    resultHtml = `
+      <div class="result-body">
+        <div class="result-output-area" id="resultArea"></div>
+      </div>
+      <div class="result-footer">
+        <button class="btn btn-primary" id="resultCopy">Copy Result</button>
+        <button class="btn btn-ghost" id="resultClose">Close</button>
+      </div>
+    `
+  } else if (!ok && error) {
+    resultHtml = `
+      <div class="result-body">
+        <div class="result-output-area" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;">
+          <pre style="margin:0;font-size:12px;white-space:pre-wrap;word-break:break-all;font-family:inherit;">${error}</pre>
+        </div>
+      </div>
+      <div class="result-footer">
+        <button class="btn btn-ghost" id="resultClose">Close</button>
+      </div>
+    `
+  }
+
+  overlay.innerHTML = `
+    <div class="result-modal">
+      <div class="modal-header">
+        <div class="${ok ? 'result-icon-success' : 'result-icon-error'}">${icon(ok ? 'check' : 'alert-circle').outerHTML}</div>
+        <h2 class="result-title">${title}</h2>
+      </div>
+      ${resultHtml}
+    </div>
+  `
+
+  document.body.appendChild(overlay)
+  refreshIcons(overlay)
+
+  if (ok && result) {
+    const area = overlay.querySelector('#resultArea')
+    const { el, copyText } = renderOutput(result, detectKind(result))
+    area.appendChild(el)
+    overlay.querySelector('#resultCopy').onclick = () => {
+      window.ipcRenderer.clipboard.writeText(copyText)
+      showToast('Copied to clipboard')
+    }
+  }
+
+  overlay.querySelector('#resultClose').onclick = () => overlay.remove()
 }
 
 // ── User-input prompt ─────────────────────────────────────────────────────────
@@ -270,17 +220,17 @@ export function promptUser({ label, placeholder, prefill = '' }) {
     overlay.style.display = 'flex'
 
     overlay.innerHTML = `
-      <div class="modal-content" style="max-width:480px;height:auto;">
+      <div class="modal-content" style="max-width:800px;height:70vh;width:90%;">
         <div class="modal-header">
           <h2>${label}</h2>
         </div>
-        <div class="modal-body" style="padding:24px 32px;">
-          <textarea class="input-field" id="userInputField" rows="4"
-            placeholder="${placeholder}" style="resize:vertical;">${prefill}</textarea>
+        <div class="modal-body">
+          <textarea class="input-field" id="userInputField"
+            placeholder="${placeholder}" style="flex:1;resize:none;">${prefill}</textarea>
         </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" id="userInputCancel">Cancel</button>
-          <button class="btn btn-primary" id="userInputConfirm">OK</button>
+          <button class="btn btn-primary" id="userInputConfirm">Submit</button>
         </div>
       </div>
     `
