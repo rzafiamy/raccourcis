@@ -1,5 +1,28 @@
 # Raccourcis — Changelogs
 
+## v1.4.0 — 2026-04-15
+### 🚀 New Features
+- **UI/UX Revolution**: 
+  - Migrated to a sleek Light Mode theme with **Plus Jakarta Sans** typography.
+  - Interactive **Visual Step Connectors** with output type badges for clearer workflow logic.
+  - New **Icon Selection Modal** for easier shortcut customization.
+  - Built-in **Toast Notifications** for real-time operation feedback.
+- **Workflow Engine Upgrades**:
+  - Refactored scheduling system to use trigger-based workflow steps with disk persistence.
+  - Expanded **Variable Token Support**: Now supports spaces, dots, and hyphens in variable names.
+  - Increased run history limit with new "Copy to Clipboard" functionality for action inputs/outputs.
+- **New Shortcut Collections**:
+  - **Freelancer Life**: Dedicated workflows for development, productivity, and financial management.
+  - **AI Content Studio**: Specialized AI shortcuts for Slack/Email replies, tone adjustments, and content creation.
+  - **Dev & Admin Toolkit**: Advanced actions for system management, debugging, and code refactoring.
+  - **Content Creator Hub**: New tools tailored for YouTubers and audience engagement.
+
+### 🛠️ Improvements & Fixes
+- Improved variable regex detection for complex naming schemes.
+- Enhanced reliability of cron-to-trigger migration and history persistence.
+
+---
+
 ## v1.3.0 — 2026-04-13
 ### 🚀 New Features
 - **Multimedia Automation**: 
