@@ -6,6 +6,7 @@ export default [
     desc: 'Apply metadata tags (title, artist, album) to an audio/video file',
     icon: 'tag',
     color: '#FF9F0A',
+    inputType: 'file',
     outputType: 'file',
     defaults: { filePath: '{{result}}', title: '', artist: '', album: '' },
     params: [
@@ -35,6 +36,7 @@ export default [
     desc: 'Extract audio track from a video file → audio file',
     icon: 'music',
     color: '#32D74B',
+    inputType: 'file',
     outputType: 'audio',
     defaults: { videoPath: '{{result}}', format: 'mp3' },
     params: [
@@ -58,6 +60,7 @@ export default [
     desc: 'Convert audio or video to a different format',
     icon: 'refresh-cw',
     color: '#0A84FF',
+    inputType: 'file',
     outputType: 'file',
     defaults: { inputPath: '{{result}}', format: 'mp4' },
     params: [
@@ -83,6 +86,7 @@ export default [
     desc: 'Reduce image file size by adjusting quality/compression',
     icon: 'minimize-2',
     color: '#32D74B',
+    inputType: 'image',
     outputType: 'file',
     defaults: { filePath: '{{result}}', quality: 80 },
     params: [

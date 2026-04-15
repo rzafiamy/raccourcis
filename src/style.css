@@ -26,6 +26,13 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
   --accent-primary: var(--orange);
+
+  /* ── LEGO / Brick Philosophy ─────────────────────────────────── */
+  --brick-stud-size: 8px;
+  --brick-depth: 4px;
+  --brick-radius: 10px;
+  --brick-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --city-grid-opacity: 0.03;
 }
 
 .toast-notification {
@@ -194,6 +201,23 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   padding: 10px 10px 4px;
+}
+
+/* Category City indicator */
+.nav-item[data-category]::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.3;
+}
+
+.nav-item.active[data-category]::after {
+  background: var(--orange);
+  opacity: 1;
 }
 
 .sidebar-search {
@@ -523,6 +547,21 @@ body {
   overflow: hidden;
   isolation: isolate;
   z-index: 0;
+  
+  /* BUILD metaphor: A shortcut is a build made of bricks */
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom-width: 4px; /* Give it some "baseplate" depth */
+}
+
+/* Add subtle brick pattern to cards */
+.shortcut-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.05;
+  pointer-events: none;
 }
 
 .shortcut-card:hover {
@@ -983,10 +1022,25 @@ body {
 .editor-canvas {
   flex: 1;
   overflow-y: auto;
-  padding: 28px 24px 40px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
+  padding: 40px 32px 100px; /* Spacious margins restored */
+}
+
+/* BASEPLATE metaphor: The canvas is where you build */
+.editor-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .canvas-empty {
@@ -1014,6 +1068,8 @@ body {
 }
 
 .canvas-steps {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -1038,30 +1094,64 @@ body {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 2px;
+  width: 4px;
   background: var(--border);
-  opacity: 0.5;
+  opacity: 1;
+  box-shadow: 0 0 0 2px white;
+  border-radius: 2px;
 }
 
-/* Rounded caps for the line via pseudo-elements */
-.step-connector-line::before,
+.step-connector-line--incompatible {
+  background: var(--pink) !important;
+  opacity: 1 !important;
+}
+
+.connector-warning-icon {
+  position: absolute;
+  left: -18px;
+  width: 14px;
+  height: 14px;
+  color: var(--pink);
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px white;
+  z-index: 2;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .step-connector-line::after {
   content: '';
   position: absolute;
-  left: -2px;
-  width: 6px;
-  height: 6px;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--border);
+  background: var(--bg);
+  border: 2px solid var(--border);
 }
 
+/* Rounded caps for the line via pseudo-elements - Consolidated into a single SNAP look */
 .step-connector-line::before {
+  content: '';
+  position: absolute;
   top: -3px;
+  left: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
 }
 
-.step-connector-line::after {
-  bottom: -3px;
-}
+/* Redundant after removed, consolidated above */
 
 .step-connector-badge {
   position: absolute;
@@ -1080,6 +1170,11 @@ body {
   opacity: 0.8;
 }
 
+.type-badge--incompatible {
+  --badge-color: var(--pink) !important;
+  border-style: dashed !important;
+}
+
 /* ── Step cards ───────────────────────────────────────────────────── */
 .step-card {
   background: white;
@@ -1090,8 +1185,44 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   cursor: default;
+  
+  /* ACTION = BRICK */
+  position: relative;
+  border-bottom: 3px solid rgba(0,0,0,0.1);
+  margin-top: 8px; /* Room for studs */
+}
+
+/* The "Studs" on top of the Action Brick */
+.step-card::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  right: 16px;
+  height: 6px;
+  background-image: 
+    radial-gradient(circle at center, var(--border) 40%, transparent 45%),
+    radial-gradient(circle at center, var(--border) 40%, transparent 45%),
+    radial-gradient(circle at center, var(--border) 40%, transparent 45%),
+    radial-gradient(circle at center, var(--border) 40%, transparent 45%);
+  background-size: 20px 100%;
+  background-position: 0% 0, 25% 0, 50% 0, 75% 0;
+  background-repeat: no-repeat;
+  opacity: 0.3;
+  transition: all 0.2s;
+  pointer-events: none;
+}
+
+.step-card:hover::before {
+  opacity: 0.6;
+  transform: translateY(-1px);
+}
+
+.step-card:active {
+  transform: scale(0.985) translateY(2px);
+  border-bottom-width: 1px;
 }
 
 .step-card:hover {

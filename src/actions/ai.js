@@ -7,6 +7,7 @@ export default [
     desc: 'Send a prompt to the LLM → result',
     icon: 'sparkles',
     color: '#FF375F',
+    inputType: 'text',
     outputType: 'text',
     defaults: {
       prompt: '{{result}}',
@@ -51,6 +52,7 @@ export default [
     desc: 'Convert text to spoken audio (OpenAI TTS) → audio result',
     icon: 'volume-2',
     color: '#FF9F0A',
+    inputType: 'text',
     outputType: 'audio',
     defaults: {
       text: '{{result}}',
@@ -95,7 +97,8 @@ export default [
     title: 'Speech to Text',
     desc: 'Transcribe audio file to text (OpenAI Whisper) → result',
     icon: 'mic',
-    color: '#64D2FF',
+    color: '#0A84FF',
+    inputType: 'file',
     outputType: 'text',
     defaults: {
       filePath: '',
@@ -122,7 +125,8 @@ export default [
     title: 'Record Audio',
     desc: 'Record audio from the microphone → result (filePath)',
     icon: 'mic',
-    color: '#FF375F',
+    color: '#0A84FF',
+    inputType: 'any',
     outputType: 'audio',
     defaults: { duration: 30 },
     params: [
@@ -135,6 +139,7 @@ export default [
     desc: 'Generate an image from a text prompt (DALL·E) → image URL',
     icon: 'image',
     color: '#BF5AF2',
+    inputType: 'text',
     outputType: 'image',
     defaults: {
       prompt: '{{result}}',
@@ -177,6 +182,7 @@ export default [
     desc: 'Analyse an image URL or local file with AI Vision → text result',
     icon: 'eye',
     color: '#32D74B',
+    inputType: 'image',
     outputType: 'text',
     defaults: {
       imageUrl: '{{result}}',

@@ -754,20 +754,52 @@ export function buildStepCard(step, index, allSteps, { onChange, onRemove, onMov
 
 /**
  * Build a connector element between steps (the "wire")
+ * @param {object} step - The current step
+ * @param {object} nextStep - The next step
+ * @param {string} effectiveOutputType - The output type flowing into the next step
  */
-export function buildStepConnector(step, nextStep) {
-  const def = getActionDef(step.type)
+export function buildStepConnector(step, nextStep, effectiveOutputType) {
+  const nextDef = getActionDef(nextStep.type)
   const connector = document.createElement('div')
   connector.className = 'step-connector'
   
   const line = document.createElement('div')
   line.className = 'step-connector-line'
   
-  // Show output type on the connector if step is not logic-only
-  if (def?.outputType && def.outputType !== 'null') {
-    const badge = buildTypeBadge(def.outputType)
+  // ── Compatibility Check ──
+  const inputType = nextDef?.inputType || 'any'
+  let isCompatible = true
+  
+  if (inputType !== 'any' && effectiveOutputType !== 'any') {
+    // Basic compatibility rules
+    const rules = {
+      text: ['text', 'number', 'date', 'json'],
+      file: ['file', 'image', 'audio'], // images and audio are also files
+      image: ['image'],
+      audio: ['audio'],
+      list: ['list'],
+    }
+    
+    const allowed = rules[inputType] || [inputType]
+    if (!allowed.includes(effectiveOutputType)) {
+      isCompatible = false
+    }
+  }
+
+  // Show output type on the connector
+  if (effectiveOutputType && effectiveOutputType !== 'null') {
+    const badge = buildTypeBadge(effectiveOutputType)
     badge.className += ' step-connector-badge'
+    if (!isCompatible) {
+      badge.classList.add('type-badge--incompatible')
+      badge.title = `Incompatible: ${nextDef?.title} expects ${inputType}, but receives ${effectiveOutputType}`
+      connector.appendChild(icon('alert-triangle', 'connector-warning-icon'))
+    }
     connector.appendChild(badge)
+  }
+  
+  if (!isCompatible) {
+    line.classList.add('step-connector-line--incompatible')
   }
   
   connector.appendChild(line)

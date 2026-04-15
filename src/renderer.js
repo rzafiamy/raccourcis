@@ -3,7 +3,7 @@
  */
 
 import { loadShortcuts, saveShortcuts, loadConfig, saveConfig, appendRun, DEFAULT_SHORTCUTS } from './store.js'
-import { ACTION_REGISTRY, makeStep } from './actions.js'
+import { ACTION_REGISTRY, makeStep, getActionDef } from './actions.js'
 import { runWorkflow } from './workflow/index.js'
 import {
   buildShortcutCard,
@@ -771,7 +771,10 @@ function renderCanvasSteps() {
   canvasEmpty.style.display = hasSteps ? 'none' : 'flex'
   editorSteps.style.display = hasSteps ? 'flex' : 'none'
 
+  let effectiveOutputType = 'text' // initial is typically text or any
+  
   editingShortcut.steps.forEach((step, i) => {
+    const def = getActionDef(step.type)
     const card = buildStepCard(step, i, editingShortcut.steps, {
       onChange: (idx, updated) => {
         editingShortcut.steps[idx] = updated
@@ -793,6 +796,12 @@ function renderCanvasSteps() {
         renderCanvasSteps()
       },
     })
+
+    // Update effective output type for next step
+    // If current action has outputType: null, it preserves previous output
+    if (def?.outputType && def.outputType !== 'null') {
+      effectiveOutputType = def.outputType
+    }
 
     // ── Drag-to-reorder ──
     card.draggable = true
@@ -827,7 +836,7 @@ function renderCanvasSteps() {
 
     // ── Connector (Wire) ──
     if (i < editingShortcut.steps.length - 1) {
-      const connector = buildStepConnector(step, editingShortcut.steps[i + 1])
+      const connector = buildStepConnector(step, editingShortcut.steps[i + 1], effectiveOutputType)
       editorSteps.appendChild(connector)
     }
   })

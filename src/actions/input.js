@@ -49,6 +49,7 @@ export default [
     desc: 'List files and sub-folders in a directory → result (newline-separated paths)',
     icon: 'folder-open',
     color: '#FF9F0A',
+    inputType: 'text',
     outputType: 'list',
     defaults: { path: '{{result}}', showHidden: false },
     params: [
