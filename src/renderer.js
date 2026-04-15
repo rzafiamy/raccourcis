@@ -17,6 +17,8 @@ import {
 
   buildPaletteList,
   refreshIcons,
+  showToast,
+  icon,
 } from './ui.js'
 
 import { refreshDashboard } from './dashboard.js'
@@ -47,6 +49,13 @@ const colorSwatches        = document.querySelectorAll('#colorPicker .color-swat
 const editorSaveBtn        = document.getElementById('editorSaveBtn')
 const editorRunBtn         = document.getElementById('editorRunBtn')
 const editorBackBtn        = document.getElementById('editorBackBtn')
+const editorIconBtn        = document.getElementById('editorIconBtn')
+
+// Icon gallery
+const iconGalleryModal     = document.getElementById('iconGalleryModal')
+const iconGalleryGrid      = document.getElementById('iconGalleryGrid')
+const iconSearchInput      = document.getElementById('iconSearchInput')
+const closeIconGallery     = document.getElementById('closeIconGallery')
 
 // Editor canvas / palette
 const editorSteps  = document.getElementById('editorSteps')
@@ -171,6 +180,9 @@ document.getElementById('clearTracesBtn').addEventListener('click', () => {
 })
 
 function switchToView(view) {
+  // If moving away from grid via nav, ensure editor is closed
+  if (view !== 'editor') closeEditor()
+  
   currentView = view
   grid.style.display = view === 'grid' ? 'grid' : 'none'
   document.getElementById('dashboardView').style.display = view === 'dashboard' ? 'block' : 'none'
@@ -599,6 +611,12 @@ function openEditor(shortcut) {
   editorFavorite.checked         = editingShortcut.favorite
   editorCategorySelect.value     = editingShortcut.category
 
+  // Update icon button
+  if (editorIconBtn) {
+    editorIconBtn.innerHTML = ''
+    editorIconBtn.appendChild(icon(editingShortcut.icon || 'rocket'))
+  }
+
   colorSwatches.forEach((sw) =>
     sw.classList.toggle('active', sw.dataset.color === editingShortcut.color),
   )
@@ -737,7 +755,8 @@ editorSaveBtn.addEventListener('click', async () => {
   else shortcuts.push(editingShortcut)
   await saveShortcuts(shortcuts)
   renderGrid()
-  closeEditor()
+  // No longer autoclose: closeEditor()
+  showToast('Shortcut saved')
 })
 
 editorRunBtn.addEventListener('click', async () => {
@@ -1027,3 +1046,75 @@ async function loadAndMergeShortcuts() {
 
 init()
 
+
+// ── Icon gallery logic ────────────────────────────────────────────────────────
+
+const COMMON_ICONS = [
+  'rocket', 'zap', 'sparkles', 'brain', 'bot', 'cpu', 'code-2', 'terminal', 'layout-grid', 'star',
+  'image', 'camera', 'film', 'video', 'mic', 'volume-2', 'music', 'headphones',
+  'mail', 'send', 'message-square', 'phone', 'share-2', 'globe', 'link', 'external-link',
+  'folder', 'file', 'file-text', 'file-code', 'save', 'trash-2', 'download-cloud', 'upload-cloud',
+  'calendar', 'clock', 'timer', 'alarm-clock', 'calendar-clock', 'history',
+  'settings', 'sliders', 'wrench', 'tool', 'hammer', 'shield', 'lock', 'key',
+  'search', 'eye', 'zoom-in', 'filter', 'list-tree', 'database', 'cloud', 'server',
+  'smile', 'heart', 'user', 'users', 'home', 'shopping-cart', 'credit-card', 'banknote',
+  'map', 'map-pin', 'navigation', 'compass', 'sun', 'moon', 'cloud-rain', 'wind',
+  'bar-chart-3', 'pie-chart', 'trending-up', 'activity', 'clipboard', 'check-circle'
+]
+
+function renderIconGallery(filter = '') {
+  iconGalleryGrid.innerHTML = ''
+  const query = filter.toLowerCase().trim()
+  
+  COMMON_ICONS.filter(name => name.includes(query)).forEach(name => {
+    const item = document.createElement('div')
+    item.className = 'icon-gallery-item'
+    if (editingShortcut && editingShortcut.icon === name) item.classList.add('active')
+    
+    item.appendChild(icon(name))
+    item.title = name
+    
+    item.addEventListener('click', () => {
+      editingShortcut.icon = name
+      if (editorIconBtn) {
+        editorIconBtn.innerHTML = ''
+        editorIconBtn.appendChild(icon(name))
+        refreshIcons(editorIconBtn)
+      }
+      iconGalleryModal.style.display = 'none'
+    })
+    
+    iconGalleryGrid.appendChild(item)
+  })
+  
+  refreshIcons(iconGalleryGrid)
+}
+
+if (editorIconBtn) {
+  editorIconBtn.addEventListener('click', () => {
+    if (iconGalleryModal) {
+      iconGalleryModal.style.display = 'flex'
+      iconSearchInput.value = ''
+      renderIconGallery()
+      iconSearchInput.focus()
+    }
+  })
+}
+
+if (closeIconGallery) {
+  closeIconGallery.addEventListener('click', () => {
+    iconGalleryModal.style.display = 'none'
+  })
+}
+
+if (iconSearchInput) {
+  iconSearchInput.addEventListener('input', (e) => {
+    renderIconGallery(e.target.value)
+  })
+}
+
+if (iconGalleryModal) {
+  iconGalleryModal.addEventListener('click', (e) => {
+    if (e.target === iconGalleryModal) iconGalleryModal.style.display = 'none'
+  })
+}

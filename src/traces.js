@@ -182,11 +182,21 @@ export function renderTraceDetail(run) {
               </div>
               <div class="step-node-io">
                 <div class="io-box">
-                  <div class="io-label">Input</div>
+                  <div class="io-label-row">
+                    <div class="io-label">Input</div>
+                    <button class="io-copy-btn" title="Copy Input" data-copy="${escapeHtmlAttribute(String(entry.input ?? ''))}">
+                      <i data-lucide="copy"></i>
+                    </button>
+                  </div>
                   <pre class="io-value">${escapeHtml(String(entry.input ?? 'None'))}</pre>
                 </div>
                 <div class="io-box">
-                  <div class="io-label">Output</div>
+                  <div class="io-label-row">
+                    <div class="io-label">Output</div>
+                    <button class="io-copy-btn" title="Copy Output" data-copy="${escapeHtmlAttribute(String(entry.output ?? (entry.error ? 'ERROR' : '')))}">
+                      <i data-lucide="copy"></i>
+                    </button>
+                  </div>
                   <pre class="io-value">${escapeHtml(String(entry.output ?? (entry.error ? 'ERROR' : 'None')))}</pre>
                 </div>
               </div>
@@ -228,3 +238,27 @@ function escapeHtml(text) {
   div.textContent = text
   return div.innerHTML
 }
+
+function escapeHtmlAttribute(text) {
+  return text.replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+}
+
+// Global listener for copy buttons
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.io-copy-btn')
+  if (!btn) return
+  const text = btn.dataset.copy
+  if (text) {
+    navigator.clipboard.writeText(text)
+    const iconEl = btn.querySelector('i')
+    const originalIcon = iconEl.getAttribute('data-lucide')
+    iconEl.setAttribute('data-lucide', 'check')
+    if (window.lucide) window.lucide.createIcons({ node: btn })
+    btn.classList.add('success')
+    setTimeout(() => {
+      iconEl.setAttribute('data-lucide', originalIcon)
+      if (window.lucide) window.lucide.createIcons({ node: btn })
+      btn.classList.remove('success')
+    }, 2000)
+  }
+})

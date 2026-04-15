@@ -19,6 +19,21 @@ export function refreshIcons(root = document) {
   if (window.lucide) window.lucide.createIcons({ node: root })
 }
 
+export function showToast(message, duration = 3000) {
+  const toast = document.createElement('div')
+  toast.className = 'toast-notification'
+  toast.textContent = message
+  document.body.appendChild(toast)
+  
+  // Trigger animation
+  setTimeout(() => toast.classList.add('visible'), 10)
+  
+  setTimeout(() => {
+    toast.classList.remove('visible')
+    setTimeout(() => toast.remove(), 400)
+  }, duration)
+}
+
 // ── Shortcut card ─────────────────────────────────────────────────────────────
 
 export function buildShortcutCard(shortcut, { onRun, onEdit, onDelete }) {

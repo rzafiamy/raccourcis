@@ -78,10 +78,12 @@ function renderUsageChart(runs) {
     })
   }
 
+  const toKey = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+  
   runs.forEach(r => {
     const runDate = new Date(r.runAt)
-    runDate.setHours(0,0,0,0)
-    const day = last7Days.find(d => d.date.getTime() === runDate.getTime())
+    const runKey = toKey(runDate)
+    const day = last7Days.find(d => toKey(d.date) === runKey)
     if (day) day.count++
   })
 

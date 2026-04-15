@@ -1127,6 +1127,10 @@
       </button>
       <input class="editor-name-input" id="editorName" type="text" placeholder="Shortcut name…" spellcheck="false">
       <div class="editor-topbar-meta">
+        <!-- Icon -->
+        <button class="editor-icon-btn" id="editorIconBtn" title="Change Icon">
+          <i data-lucide="rocket"></i>
+        </button>
         <!-- Color swatches -->
         <div class="color-picker" id="colorPicker">
           <div class="color-swatch bg-blue"   data-color="bg-blue"></div>
@@ -1585,6 +1589,27 @@
     </div>
 
 
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     Icon Gallery Modal
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="iconGalleryModal">
+  <div class="modal-content icon-gallery-modal">
+    <div class="modal-header">
+      <h2>Change Icon</h2>
+      <div class="search-container small">
+        <i data-lucide="search"></i>
+        <input class="search-input" id="iconSearchInput" type="text" placeholder="Search icons…" autocomplete="off">
+      </div>
+      <button class="action-btn" id="closeIconGallery" title="Close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="icon-gallery-grid" id="iconGalleryGrid">
+      <!-- Icons injected here -->
+    </div>
   </div>
 </div>
 
