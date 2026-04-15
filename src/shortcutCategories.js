@@ -8,6 +8,7 @@ export const SHORTCUT_CATEGORIES = [
   { id: 'dev', label: 'Development' },
   { id: 'freelance', label: 'Freelance' },
   { id: 'youtuber', label: 'YouTuber' },
+  { id: 'admin', label: 'System Admin' },
 ]
 
 export const SHORTCUT_CATEGORY_IDS = SHORTCUT_CATEGORIES.map((category) => category.id)
